@@ -9,15 +9,15 @@ export default defineConfig({
 		// Order matters: more specific subpath patterns must come first.
 		alias: [
 			{
-				find: /^@lucasschirm\/bhzai\/plugins\/(.*)$/,
+				find: /^@bhzai\/core\/plugins\/(.*)$/,
 				replacement: fileURLToPath(new URL("./src/plugins/$1/index.ts", import.meta.url)),
 			},
 			{
-				find: /^@lucasschirm\/bhzai\/core$/,
+				find: /^@bhzai\/core\/core$/,
 				replacement: fileURLToPath(new URL("./src/core/index.ts", import.meta.url)),
 			},
 			{
-				find: /^@lucasschirm\/bhzai$/,
+				find: /^@bhzai\/core$/,
 				replacement: fileURLToPath(new URL("./src/index.ts", import.meta.url)),
 			},
 		],
