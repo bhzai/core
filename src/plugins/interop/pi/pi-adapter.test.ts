@@ -2,9 +2,9 @@
 
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import type { Mock } from "vitest"
-import { BHAI } from "../../../core/bhai.js"
-import type { BHAIDriver, ChatRequest, DriverEvent } from "../../../types/driver.js"
-import type { BHAIConversation } from "../../../types/index.js"
+import { BHZAI } from "../../../core/bhzai.js"
+import type { BHZAIDriver, ChatRequest, DriverEvent } from "../../../types/driver.js"
+import type { BHZAIConversation } from "../../../types/index.js"
 import { runPiExtension } from "./index.js"
 import type { PiExtensionAPI } from "./index.js"
 
@@ -14,7 +14,7 @@ import type { PiExtensionAPI } from "./index.js"
  */
 function makeMockDriver(
 	scriptedEvents: DriverEvent[],
-): BHAIDriver & { chat: Mock<(request: ChatRequest) => AsyncIterable<DriverEvent>> } {
+): BHZAIDriver & { chat: Mock<(request: ChatRequest) => AsyncIterable<DriverEvent>> } {
 	return {
 		id: "mock-driver-id",
 		listModels: async () => [
@@ -45,12 +45,12 @@ function makeMockDriver(
 }
 
 describe("TASK_0039: pi extension interop adapter", () => {
-	let bh: BHAI
-	let mockDriver: BHAIDriver & { chat: Mock<(request: ChatRequest) => AsyncIterable<DriverEvent>> }
-	let conversation: BHAIConversation | undefined
+	let bh: BHZAI
+	let mockDriver: BHZAIDriver & { chat: Mock<(request: ChatRequest) => AsyncIterable<DriverEvent>> }
+	let conversation: BHZAIConversation | undefined
 
 	beforeEach(() => {
-		bh = new BHAI()
+		bh = new BHZAI()
 		// Register mock driver with simple deltas and done
 		mockDriver = makeMockDriver([
 			{ type: "delta", text: "Hello world" },
@@ -60,9 +60,9 @@ describe("TASK_0039: pi extension interop adapter", () => {
 	})
 
 	// =========================================================================
-	// Test 1: registers a real BHAI tool via pi.registerTool
+	// Test 1: registers a real BHZAI tool via pi.registerTool
 	// =========================================================================
-	it("registers a real BHAI tool via pi.registerTool — proven callable through tool-execution path", async () => {
+	it("registers a real BHZAI tool via pi.registerTool — proven callable through tool-execution path", async () => {
 		const factory = (pi: PiExtensionAPI) => {
 			pi.registerTool({
 				name: "echo",
@@ -79,7 +79,7 @@ describe("TASK_0039: pi extension interop adapter", () => {
 			})
 		}
 
-		// Initialize BHAI and run the extension
+		// Initialize BHZAI and run the extension
 		await bh.init()
 		await runPiExtension(factory, bh, "pi:test-echo")
 
@@ -102,7 +102,7 @@ describe("TASK_0039: pi extension interop adapter", () => {
 
 		const conv = (await bh.createConversation({
 			model: "mock-driver-id/mock-model",
-		})) as unknown as BHAIConversation
+		})) as unknown as BHZAIConversation
 
 		// Send a message that will trigger the tool call
 		await conv.sendMessage("Echo test input")
@@ -117,9 +117,9 @@ describe("TASK_0039: pi extension interop adapter", () => {
 	})
 
 	// =========================================================================
-	// Test 2: pi.on('tool_call', handler) fires on BHAI tool(beforeCall) with payload equivalence
+	// Test 2: pi.on('tool_call', handler) fires on BHZAI tool(beforeCall) with payload equivalence
 	// =========================================================================
-	it("pi.on('tool_call', handler) fires when BHAI tool(beforeCall) fires, with field-by-field payload equivalence", async () => {
+	it("pi.on('tool_call', handler) fires when BHZAI tool(beforeCall) fires, with field-by-field payload equivalence", async () => {
 		const toolCallPayloads: unknown[] = []
 
 		const factory = (pi: PiExtensionAPI) => {
@@ -145,7 +145,7 @@ describe("TASK_0039: pi extension interop adapter", () => {
 			})
 		}
 
-		const bh2 = new BHAI()
+		const bh2 = new BHZAI()
 		// Set up mock driver before init - needs to return tool-call then final response
 		const mockToolDriver = makeMockDriver([
 			{
@@ -165,7 +165,7 @@ describe("TASK_0039: pi extension interop adapter", () => {
 		// Create a conversation AFTER handlers are registered
 		const conv = (await bh2.createConversation({
 			model: "mock-driver-id/mock-model",
-		})) as unknown as BHAIConversation
+		})) as unknown as BHZAIConversation
 
 		// Trigger the tool call by sending a message
 		await conv.sendMessage("Trigger tool")
@@ -173,7 +173,7 @@ describe("TASK_0039: pi extension interop adapter", () => {
 		// Verify the tool_call handler was invoked
 		expect(toolCallPayloads.length).toBeGreaterThan(0)
 
-		// Verify payload fields match BHAI's tool(beforeCall) shape
+		// Verify payload fields match BHZAI's tool(beforeCall) shape
 		const payload = toolCallPayloads[0]
 		const toolEventPayload = payload as { tool: { name: string }; input: unknown }
 		expect(toolEventPayload).toHaveProperty("tool")
@@ -187,7 +187,7 @@ describe("TASK_0039: pi extension interop adapter", () => {
 	// =========================================================================
 	// Test 3: pi.on('tool_call', handler) returning { block: true } vetoes the call
 	// =========================================================================
-	it("pi.on('tool_call', handler) returning { block: true } vetoes the call exactly like a native BHAI blocker", async () => {
+	it("pi.on('tool_call', handler) returning { block: true } vetoes the call exactly like a native BHZAI blocker", async () => {
 		let executeSpy: Mock<(params: unknown) => Promise<string>> | undefined
 
 		const factory = (pi: PiExtensionAPI) => {
@@ -231,7 +231,7 @@ describe("TASK_0039: pi extension interop adapter", () => {
 
 		const conv = (await bh.createConversation({
 			model: "mock-driver-id/mock-model",
-		})) as unknown as BHAIConversation
+		})) as unknown as BHZAIConversation
 
 		// Send a message that would trigger the tool
 		const result = await conv.sendMessage("Call the tool")
@@ -311,7 +311,7 @@ describe("TASK_0039: pi extension interop adapter", () => {
 
 		// Test 1: Default value path
 		{
-			const bh1 = new BHAI()
+			const bh1 = new BHZAI()
 			bh1.addDriver(makeMockDriver([{ type: "done", stopReason: "stop" }]))
 			await bh1.init()
 			const handle1 = await runPiExtension(factory, bh1, "pi:test-flag-default")
@@ -323,7 +323,7 @@ describe("TASK_0039: pi extension interop adapter", () => {
 
 		// Test 2: Host-supplied override path
 		{
-			const bh2 = new BHAI({
+			const bh2 = new BHZAI({
 				config: {
 					"pi:test-flag-override": { myFlag: false },
 				},
@@ -357,7 +357,7 @@ describe("TASK_0039: pi extension interop adapter", () => {
 			})
 		}
 
-		const bh2 = new BHAI()
+		const bh2 = new BHZAI()
 		bh2.addDriver(
 			makeMockDriver([
 				{ type: "delta", text: "response" },
@@ -371,7 +371,7 @@ describe("TASK_0039: pi extension interop adapter", () => {
 		// Create conversation AFTER handlers registered
 		const conv = (await bh2.createConversation({
 			model: "mock-driver-id/mock-model",
-		})) as unknown as BHAIConversation
+		})) as unknown as BHZAIConversation
 
 		// Verify the pi shim was captured
 		if (!capturedPi) {
@@ -423,7 +423,7 @@ describe("TASK_0039: pi extension interop adapter", () => {
 			})
 		}
 
-		const bh2 = new BHAI()
+		const bh2 = new BHZAI()
 		bh2.addDriver(makeMockDriver([{ type: "done", stopReason: "stop" }]))
 		await bh2.init()
 		await runPiExtension(factory2, bh2, "pi:demo2")

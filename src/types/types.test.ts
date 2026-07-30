@@ -1,7 +1,7 @@
 import { describe, expectTypeOf, it } from "vitest"
 
 import type {
-	BHAIMessage,
+	BHZAIMessage,
 	CallToolResult,
 	ChatRequest,
 	ContentBlock,
@@ -26,9 +26,9 @@ import type {
 // itself reports an "Unused '@ts-expect-error' directive" error under
 // `strict` + the default `expectBehavior` for that flag.
 
-describe("BHAIMessage", () => {
+describe("BHZAIMessage", () => {
 	it("accepts a literal supplying all required fields and method stubs", () => {
-		const msg: BHAIMessage = {
+		const msg: BHZAIMessage = {
 			id: "uuid",
 			role: "user",
 			content: "hi",
@@ -38,14 +38,14 @@ describe("BHAIMessage", () => {
 			append: () => {},
 			setContent: () => {},
 		}
-		expectTypeOf<BHAIMessage>().toMatchTypeOf<BHAIMessage>()
+		expectTypeOf<BHZAIMessage>().toMatchTypeOf<BHZAIMessage>()
 		// Touch the literal so it isn't flagged as unused.
 		expectTypeOf(msg).toBeObject()
 	})
 
 	it("rejects a literal missing a required field (omits `time`)", () => {
-		// @ts-expect-error - missing `time` is not assignable to BHAIMessage
-		const _bad: BHAIMessage = {
+		// @ts-expect-error - missing `time` is not assignable to BHZAIMessage
+		const _bad: BHZAIMessage = {
 			id: "uuid",
 			role: "user",
 			content: "hi",
@@ -55,9 +55,9 @@ describe("BHAIMessage", () => {
 			setContent: () => {},
 		}
 		// The `@ts-expect-error` above is the load-bearing assertion: if
-		// BHAIMessage ever loosens to accept this literal, TS2578 (unused
+		// BHZAIMessage ever loosens to accept this literal, TS2578 (unused
 		// directive) fails the build.
-		expectTypeOf<BHAIMessage>().not.toBeNever()
+		expectTypeOf<BHZAIMessage>().not.toBeNever()
 	})
 })
 
@@ -196,7 +196,7 @@ describe("barrel surface", () => {
 		}>()
 		expectTypeOf<ChatRequest>().toEqualTypeOf<{
 			model: string
-			messages: BHAIMessage[]
+			messages: BHZAIMessage[]
 			systemPrompt?: string
 			tools?: ToolWireDefinition[]
 			params?: GenerationParams

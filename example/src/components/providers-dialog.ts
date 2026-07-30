@@ -42,12 +42,12 @@ type DialogView = "list" | "add" | "edit"
 /**
  * Providers dialog custom element.
  *
- * @fires bhai-add-provider - The add form was submitted. Detail: `{ type: 'ollama', baseUrl, token }`.
- * @fires bhai-update-provider - The edit form was submitted. Detail: `{ id, baseUrl, token }`.
- * @fires bhai-remove-provider - The edit form's remove button was clicked. Detail: `{ id }`.
+ * @fires bhzai-add-provider - The add form was submitted. Detail: `{ type: 'ollama', baseUrl, token }`.
+ * @fires bhzai-update-provider - The edit form was submitted. Detail: `{ id, baseUrl, token }`.
+ * @fires bhzai-remove-provider - The edit form's remove button was clicked. Detail: `{ id }`.
  */
-@customElement("bhai-providers-dialog")
-export class BhaiProvidersDialog extends LitElement {
+@customElement("bhzai-providers-dialog")
+export class BhzaiProvidersDialog extends LitElement {
 	override createRenderRoot() {
 		return this
 	}
@@ -299,7 +299,7 @@ export class BhaiProvidersDialog extends LitElement {
 		const baseUrl = this._apiUrl.value
 		const token = this._apiToken.value
 		this.dispatchEvent(
-			new CustomEvent("bhai-add-provider", {
+			new CustomEvent("bhzai-add-provider", {
 				detail: { type: "ollama", baseUrl, token },
 				bubbles: true,
 				composed: true,
@@ -312,7 +312,7 @@ export class BhaiProvidersDialog extends LitElement {
 		const baseUrl = this._apiUrl.value
 		const token = this._apiToken.value
 		this.dispatchEvent(
-			new CustomEvent("bhai-update-provider", {
+			new CustomEvent("bhzai-update-provider", {
 				detail: { id: this._editId, baseUrl, token },
 				bubbles: true,
 				composed: true,
@@ -322,7 +322,7 @@ export class BhaiProvidersDialog extends LitElement {
 
 	private _onRemove(): void {
 		this.dispatchEvent(
-			new CustomEvent("bhai-remove-provider", {
+			new CustomEvent("bhzai-remove-provider", {
 				detail: { id: this._editId },
 				bubbles: true,
 				composed: true,
@@ -333,6 +333,6 @@ export class BhaiProvidersDialog extends LitElement {
 
 declare global {
 	interface HTMLElementTagNameMap {
-		"bhai-providers-dialog": BhaiProvidersDialog
+		"bhzai-providers-dialog": BhzaiProvidersDialog
 	}
 }

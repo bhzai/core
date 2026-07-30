@@ -3,12 +3,12 @@
 // ENVIRONMENT BOUNDARY (§ 5): web-standard APIs only. No Node built-ins, no DOM,
 // no imports from src/plugins/**.
 
-import type { BHAIMessage } from "../types/message.js"
+import type { BHZAIMessage } from "../types/message.js"
 
 /**
  * Declaration for a plugin-contributed message field.
  *
- * A field is a named accessor installed on every {@link BHAIMessage} that reads
+ * A field is a named accessor installed on every {@link BHZAIMessage} that reads
  * and writes a single key inside the message's `meta` bag. Nothing new is
  * stored on the message itself, which is what makes the contract safe: `meta`
  * already round-trips through `toPlainMessage`/`fromSnapshot`, so a field's
@@ -33,7 +33,7 @@ export interface ResolvedMessageField {
 }
 
 /**
- * Field names that would shadow the structural members of {@link BHAIMessage}.
+ * Field names that would shadow the structural members of {@link BHZAIMessage}.
  * Registering one is always a mistake — the accessor would hide `content`,
  * `meta`, or a mutation method and silently break the agent loop.
  */
@@ -51,7 +51,7 @@ const RESERVED_FIELD_NAMES: ReadonlySet<string> = new Set([
 /**
  * Registration-ordered registry of plugin-declared message fields.
  *
- * Owned by the kernel (one per `BHAI` instance) and read by the conversation
+ * Owned by the kernel (one per `BHZAI` instance) and read by the conversation
  * layer's message factory. Registration order is preserved so `defineProperty`
  * runs in a deterministic sequence.
  */
@@ -71,7 +71,7 @@ export class MessageFieldRegistry {
 		}
 		if (RESERVED_FIELD_NAMES.has(name)) {
 			throw new Error(
-				`bh.defineMessageField(): "${name}" is a reserved BHAIMessage member and cannot be redefined`,
+				`bh.defineMessageField(): "${name}" is a reserved BHZAIMessage member and cannot be redefined`,
 			)
 		}
 		if (this.fields.has(name)) {
@@ -106,7 +106,7 @@ export class MessageFieldRegistry {
 	 *
 	 * @returns The same `message`, for chaining.
 	 */
-	applyTo<T extends BHAIMessage>(message: T): T {
+	applyTo<T extends BHZAIMessage>(message: T): T {
 		return applyMessageFields(message, this.list())
 	}
 }
@@ -119,7 +119,7 @@ export class MessageFieldRegistry {
  *
  * @returns The same `message`, for chaining.
  */
-export function applyMessageFields<T extends BHAIMessage>(
+export function applyMessageFields<T extends BHZAIMessage>(
 	message: T,
 	fields: readonly ResolvedMessageField[],
 ): T {
@@ -127,11 +127,11 @@ export function applyMessageFields<T extends BHAIMessage>(
 		const { metaKey } = field
 		const fallback = field.default
 		Object.defineProperty(message, field.name, {
-			get(this: BHAIMessage): unknown {
+			get(this: BHZAIMessage): unknown {
 				const value = this.meta[metaKey]
 				return value === undefined ? fallback : value
 			},
-			set(this: BHAIMessage, value: unknown) {
+			set(this: BHZAIMessage, value: unknown) {
 				this.meta[metaKey] = value
 			},
 			enumerable: false,

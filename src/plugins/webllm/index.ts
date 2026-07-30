@@ -1,13 +1,13 @@
 // WebLLM driver plugin — runs LLM inference in-browser via WebGPU
-// (ARCHITECTURE.md § 10.2). Implements `BHAIDriver` (from
+// (ARCHITECTURE.md § 10.2). Implements `BHZAIDriver` (from
 // `src/types/driver.ts`) on top of `@mlc-ai/web-llm`'s `MLCEngine`, which the
 // host injects at runtime (never statically imported by the core).
 //
-// Scope of THIS file (TASK_0019): the `WebLLM` class implementing `BHAIDriver`,
+// Scope of THIS file (TASK_0019): the `WebLLM` class implementing `BHZAIDriver`,
 // accepting either an `MLCEngine` constructor (the driver instantiates and
 // manages the engine's init/download lifecycle itself) or an already-
 // constructed, pre-warmed `MLCEngine` instance (used directly, no re-init).
-// Also updates `bhai/package.json` to add `@mlc-ai/web-llm` as a
+// Also updates `BHZAI/package.json` to add `@mlc-ai/web-llm` as a
 // `peerDependency` (marked `optional: true` via `peerDependenciesMeta`).
 //
 // PEER-DEPENDENCY / IMPORT BOUNDARY (§ 5, § 10.2):
@@ -29,7 +29,7 @@
 // WebLLM path since MLC supplies them) and async iterables — no Node built-ins.
 
 import type {
-	BHAIDriver,
+	BHZAIDriver,
 	ChatRequest,
 	DriverCapabilities,
 	DriverEvent,
@@ -168,7 +168,7 @@ export interface WebLLMOptions {
 }
 
 /**
- * `WebLLM` — a {@link BHAIDriver} that runs inference entirely in-browser over
+ * `WebLLM` — a {@link BHZAIDriver} that runs inference entirely in-browser over
  * WebGPU by wrapping an injected MLC `MLCEngine` instance.
  *
  * Constructor-injection form (`new WebLLM({ engine: MLCEngine })` where
@@ -189,7 +189,7 @@ export interface WebLLMOptions {
  * one later) and still surfaces `driver.progress` events for any in-flight
  * loads the instance itself reports.
  */
-export class WebLLM implements BHAIDriver {
+export class WebLLM implements BHZAIDriver {
 	readonly id = "webllm" as const
 	private readonly engine: MLCEngineInstance
 	private readonly appConfig: AppConfig | undefined
@@ -310,7 +310,7 @@ export class WebLLM implements BHAIDriver {
 	}
 
 	/**
-	 * One LLM call. Maps the BHAI `ChatRequest` into MLC's OpenAI-compatible
+	 * One LLM call. Maps the BHZAI `ChatRequest` into MLC's OpenAI-compatible
 	 * `chat.completions.create({ stream: true, ... })` and translates the
 	 * resulting async iterable into the framework's `DriverEvent` shape.
 	 *
@@ -329,7 +329,7 @@ export class WebLLM implements BHAIDriver {
 		// differs from what was last loaded through this driver instance).
 		await this.ensureModelLoaded(request.model)
 
-		// Step 2: map BHAIMessage[] into the engine's OpenAI-style messages.
+		// Step 2: map BHZAIMessage[] into the engine's OpenAI-style messages.
 		const messages = request.messages.map((m) => {
 			let content: unknown = m.content
 			// Reasoning models (e.g. Qwen3, DeepSeek-R1) stream their chain-of-thought
@@ -464,7 +464,7 @@ export class WebLLM implements BHAIDriver {
 	}
 
 	/**
-	 * Map MLC's `finish_reason` to BHAI's `stopReason`.
+	 * Map MLC's `finish_reason` to BHZAI's `stopReason`.
 	 * `'stop'` → `'stop'`, `'tool_calls'` → `'tool-calls'`, `'length'` →
 	 * `'length'`.
 	 */

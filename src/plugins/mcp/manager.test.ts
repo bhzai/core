@@ -1,7 +1,7 @@
 // McpManager tests — observable lifecycle over `bh.addMcp()`.
 //
 // The manager is deliberately host-agnostic (it takes an `McpManagerHost`
-// interface, not a `BHAI`), so these tests drive it with a fake host built on
+// interface, not a `BHZAI`), so these tests drive it with a fake host built on
 // the REAL `ToolRegistry`. That keeps `listTools`/`removeTool` honest — tool
 // derivation and detach cleanup are asserted against actual registry state
 // rather than a spy's call log — while letting each test decide exactly how

@@ -1,5 +1,5 @@
 {
-	"name": "bhai-example",
+	"name": "bhzai-example",
 	"private": true,
 	"type": "module",
 	"scripts": {
@@ -9,7 +9,7 @@
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
-		"@lucasschirm/bhai": "workspace:*",
+		"@bhzai/core": "workspace:*",
 		"@lucasschirm/litjs-typeahead": "^0.0.1",
 		"@mlc-ai/web-llm": "^0.2.79",
 		"lit": "^3.2.0",

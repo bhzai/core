@@ -12,11 +12,11 @@
  * kernel's `memoryStore` capability-object key is wired automatically.
  */
 
-import type { BHAI } from "../src/core/bhai.js"
-import type { BHAIPluginCapabilities } from "../src/core/index.js"
+import type { BHZAI } from "../src/core/bhzai.js"
+import type { BHZAIPluginCapabilities } from "../src/core/index.js"
 import type {
-	BHAIMessage,
-	BHAIToolDefinition,
+	BHZAIMessage,
+	BHZAIToolDefinition,
 	MemoryStore,
 	ToolInvocation,
 } from "../src/types/index.js"
@@ -32,7 +32,7 @@ import type {
  * - `conversation.start` handler: recalls relevant memories at conversation startup
  * - `conversation.compact` handler: extracts new facts before message folding
  */
-export function memoryPlugin(memoryStore: MemoryStore): BHAIPluginCapabilities {
+export function memoryPlugin(memoryStore: MemoryStore): BHZAIPluginCapabilities {
 	return {
 		name: "memory",
 		memoryStore,
@@ -40,16 +40,16 @@ export function memoryPlugin(memoryStore: MemoryStore): BHAIPluginCapabilities {
 		/**
 		 * Initialize the plugin by registering tools and event handlers.
 		 *
-		 * @param bh - The BHAI kernel instance
+		 * @param bh - The BHZAI kernel instance
 		 */
-		async initialize({ bh }: { bh: BHAI }) {
+		async initialize({ bh }: { bh: BHZAI }) {
 			/**
 			 * `save_memory` tool — persist a fact, preference, or instruction.
 			 *
 			 * Stores arbitrary user/agent data durably across conversations.
 			 * Returns a confirmation string with the assigned memory ID.
 			 */
-			const saveMemoryTool: BHAIToolDefinition = {
+			const saveMemoryTool: BHZAIToolDefinition = {
 				name: "save_memory",
 				description:
 					"Persist a durable fact, preference, or instruction about the user for future conversations.",
@@ -85,7 +85,7 @@ export function memoryPlugin(memoryStore: MemoryStore): BHAIPluginCapabilities {
 			 * a compromised memory store from steering the model via prompt injection.
 			 */
 			bh.on("conversation.start", async (payload: unknown) => {
-				const p = payload as { firstMessage?: BHAIMessage }
+				const p = payload as { firstMessage?: BHZAIMessage }
 				const query = p.firstMessage?.content ?? ""
 
 				const memories = await memoryStore.search(query, 20)
@@ -115,7 +115,7 @@ export function memoryPlugin(memoryStore: MemoryStore): BHAIPluginCapabilities {
 			 * demonstration that assumes the happy path (extraction succeeds).
 			 */
 			bh.on("conversation.compact", async (payload: unknown) => {
-				const p = payload as { state: string; foldedMessages: BHAIMessage[] }
+				const p = payload as { state: string; foldedMessages: BHZAIMessage[] }
 
 				if (p.state !== "before") {
 					return // No-op for compacting/complete states

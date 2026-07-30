@@ -1,26 +1,26 @@
 /** @file Tests for TASK_0023: Conversation surface skeleton */
 
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { BHAI } from "../core/bhai.js"
+import { BHZAI } from "../core/bhzai.js"
 import { EventBus } from "../core/event-bus.js"
 import { NoModelError } from "../core/models.js"
 import {
-	type BHAIConversation,
-	BHAIConversationImpl,
+	type BHZAIConversation,
+	BHZAIConversationImpl,
 	type ConversationSnapshot,
 } from "./conversation.js"
 
 /**
- * Test suite for BHAIConversation and conversation event mirroring (TASK_0023).
+ * Test suite for BHZAIConversation and conversation event mirroring (TASK_0023).
  *
  * All 8 test cases from TASK_0023's "Tests Required" section are included below,
  * plus edge cases for UUID validity and complete acceptance criteria verification.
  */
 describe("TASK_0023: Conversation surface skeleton", () => {
-	let bh: BHAI
+	let bh: BHZAI
 
 	beforeEach(() => {
-		bh = new BHAI()
+		bh = new BHZAI()
 	})
 
 	// =========================================================================
@@ -45,8 +45,8 @@ describe("TASK_0023: Conversation surface skeleton", () => {
 		const modelResolveSpy = vi.fn()
 		bh.on("model.resolve", modelResolveSpy)
 
-		// Create a fresh BHAI with no defaultModel
-		const bhNoDefault = new BHAI()
+		// Create a fresh BHZAI with no defaultModel
+		const bhNoDefault = new BHZAI()
 		bhNoDefault.on("model.resolve", modelResolveSpy)
 
 		const conversation = await bhNoDefault.createConversation()
@@ -331,7 +331,7 @@ describe("TASK_0023: Conversation surface skeleton", () => {
 		await conversation.addMessage("Test message", "user")
 
 		// compact() without a completeFn override calls bh.complete() (now fully implemented in TASK_0032).
-		// Since no driver is registered and no defaultModel is set on this BHAI instance,
+		// Since no driver is registered and no defaultModel is set on this BHZAI instance,
 		// bh.complete() will throw NoModelError when trying to resolve a model.
 		// This verifies that compact() properly delegates and propagates real errors from bh.complete().
 		await expect(conversation.compact()).rejects.toBeInstanceOf(NoModelError)
@@ -349,7 +349,7 @@ describe("TASK_0023: Conversation surface skeleton", () => {
 	})
 
 	it("createConversation with defaultModel does NOT trigger model.resolve", async () => {
-		const bhWithDefault = new BHAI({
+		const bhWithDefault = new BHZAI({
 			defaultModel: "default/model",
 		})
 		const modelResolveSpy = vi.fn()
@@ -361,7 +361,7 @@ describe("TASK_0023: Conversation surface skeleton", () => {
 	})
 
 	it("model.resolve patch is applied to conversation", async () => {
-		const bh2 = new BHAI()
+		const bh2 = new BHZAI()
 		bh2.on("model.resolve", (payload) => {
 			return { model: "resolved/model" }
 		})

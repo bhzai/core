@@ -1,13 +1,13 @@
 # WebLLM Chat Example
 
-A Lit 3 + TypeScript browser example demonstrating BHAI's core capabilities:
+A Lit 3 + TypeScript browser example demonstrating BHZAI's core capabilities:
 streaming responses, in-browser model execution via WebLLM, live telemetry
 (decode/prefill tokens per second, time-to-first-token, context usage), and
 client-side parsing of reasoning blocks.
 
 ## What it is
 
-**bhai · local** is a single-page chat application that runs a curated set of small language models directly in your browser using WebGPU. It demonstrates:
+**BHZAI · local** is a single-page chat application that runs a curated set of small language models directly in your browser using WebGPU. It demonstrates:
 
 1. **Streaming responses** — Text arrives incrementally as the model generates tokens.
 2. **Live decode/prefill telemetry** — Real-time measurement of tokens-per-second during prefill (KV cache population) and decode (token generation), displayed as an instrument panel.
@@ -31,7 +31,7 @@ From the repo root:
 
 ```bash
 pnpm install
-pnpm run preview   # Builds @lucasschirm/bhai, then starts the example server
+pnpm run preview   # Builds @bhzai/core, then starts the example server
 ```
 
 Open your browser to `http://localhost:5173` (or whatever Vite reports). The model selector should populate; pick a model and send a message.
@@ -46,7 +46,7 @@ pnpm run build        # One-time build
 pnpm test:watch       # Or watch for lib changes
 
 # Terminal 2: run the dev server
-pnpm --filter bhai-example dev
+pnpm --filter bhzai-example dev
 ```
 
 Navigate to `http://localhost:5173`.
@@ -57,7 +57,7 @@ Navigate to `http://localhost:5173`.
 
 The example is TypeScript, with one module per responsibility: `app/` owns kernel
 and engine calls but never touches the DOM, `components/` owns the DOM but knows
-nothing about BHAI, and `main.ts` is the only file that knows the `index.html`
+nothing about BHZAI, and `main.ts` is the only file that knows the `index.html`
 element ids.
 
 ```
@@ -73,13 +73,13 @@ app/ (orchestration — no DOM)
 └─ fatal-error.ts — the one path spanning telemetry + composer
 
 components/ (DOM — one Lit custom element per region)
-├─ status-indicator.ts → <bhai-status-indicator>
-├─ composer.ts → <bhai-composer>
-├─ conversation-view.ts → <bhai-conversation> (user/assistant bubbles, streaming)
-├─ cold-start-panel.ts → <bhai-cold-start>
-├─ telemetry-panel.ts → <bhai-telemetry>
+├─ status-indicator.ts → <bhzai-status-indicator>
+├─ composer.ts → <bhzai-composer>
+├─ conversation-view.ts → <bhzai-conversation> (user/assistant bubbles, streaming)
+├─ cold-start-panel.ts → <bhzai-cold-start>
+├─ telemetry-panel.ts → <bhzai-telemetry>
 └─ mcp-server-list.ts, mcp-server-card.ts, mcp-tool-list.ts,
-   mcp-add-form.ts, mcp-error-dialog.ts → <bhai-mcp-*>
+   mcp-add-form.ts, mcp-error-dialog.ts → <bhzai-mcp-*>
 
 lib/ (pure functions, testable)
 ├─ dom.ts — el(), byId(), iconButton()
@@ -150,7 +150,7 @@ All numbers are formatted for readability (`formatTps`, `formatTokens`, etc.).
 
 ### Model selection
 
-The model picker is a custom `<bhai-model-select>` wrapper around the
+The model picker is a custom `<bhzai-model-select>` wrapper around the
 `<lit-typeahead>` element from `@lucasschirm/litjs-typeahead`. `main.ts` seeds
 it from `bh.listModels()` and keeps it in sync via the `models.changed` event,
 so the catalogue reacts to driver and `modelSource` changes without any direct
@@ -350,7 +350,7 @@ regression is guarded by
 
 ### Workspace-linked package
 
-The example imports `@lucasschirm/bhai` via the workspace (`workspace:*`
+The example imports `@bhzai/core` via the workspace (`workspace:*`
 dependency in `package.json`), ensuring it uses the BUILT `dist/` output (run
 `pnpm run build` first). It never imports from source (`../../src/*.ts`), which
 exercises the published subpath exports.
@@ -365,9 +365,9 @@ the root `vitest.config.ts` stays `node` by default. All of it runs via `pnpm te
 
 Because custom element updates are async, the DOM tests `await` the host's
 `updateComplete` and, for the server list, the `updateComplete` of child
-`<bhai-mcp-server-card>` elements as well.
+`<bhzai-mcp-server-card>` elements as well.
 
-`main.ts` and `app/*` are thin glue around BHAI APIs and the tested libs; they are
+`main.ts` and `app/*` are thin glue around BHZAI APIs and the tested libs; they are
 covered by the smoke run (`pnpm run preview`).
 
 ### Typechecking
@@ -375,14 +375,14 @@ covered by the smoke run (`pnpm run preview`).
 `example/` is its own TypeScript project (`example/tsconfig.json`), because it
 needs the DOM lib, `experimentalDecorators: true`, and `useDefineForClassFields:
 false` for Lit, which the kernel deliberately does not, and because resolving
-`@lucasschirm/bhai` through the workspace link requires `pnpm run build` to have
+`@bhzai/core` through the workspace link requires `pnpm run build` to have
 produced `dist/` first. The root `pnpm typecheck` runs both projects.
 
 ### Build output
 
 Vite bundles `src/main.ts` and everything it imports into a single JavaScript
-file that references the workspace-linked `@lucasschirm/bhai` by its published
-subpath names (`@lucasschirm/bhai/plugins/webllm`, etc.). The `dist/index.html`
+file that references the workspace-linked `@bhzai/core` by its published
+subpath names (`@bhzai/core/plugins/webllm`, etc.). The `dist/index.html`
 is served as-is.
 
 ## Further reading
@@ -390,5 +390,5 @@ is served as-is.
 - **`example/AGENTS.md`** — Implementation notes for developers working on this example.
 - **`example/package.json`** — Dependencies and build scripts.
 - **`example/vite.config.ts`** — Vite configuration (note: `@mlc-ai/web-llm` is excluded from pre-bundling).
-- **BHAI core docs**: `docs/core/kernel.md`, `docs/core/conversation.md` — Detailed BHAI API and concepts.
+- **BHZAI core docs**: `docs/core/kernel.md`, `docs/core/conversation.md` — Detailed BHZAI API and concepts.
 - **WebLLM docs**: https://github.com/mlc-ai/web-llm — Model selection, custom parameters, advanced features.

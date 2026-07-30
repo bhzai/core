@@ -1,8 +1,8 @@
 /** @file Embedding side channel — RAG substrate (TASK_0033, ARCHITECTURE.md § 6, § 11.8) */
 
-import type { BHAIDriver } from "../types/driver.js"
+import type { BHZAIDriver } from "../types/driver.js"
 import type { Usage } from "../types/model.js"
-import type { BHAI } from "./bhai.js"
+import type { BHZAI } from "./bhzai.js"
 import { parseModelRef, resolveConversationModel } from "./models.js"
 
 /**
@@ -78,9 +78,9 @@ export interface EmbedResult {
  * 8. **Usage**: pass through whatever `usage` the driver's `embed()` call returned
  *    verbatim (it is optional per § 6/§ 10.1 — do not synthesize a fallback).
  *
- * @param bh The BHAI instance (passed explicitly for testability; wired onto the class as a method).
+ * @param bh The BHZAI instance (passed explicitly for testability; wired onto the class as a method).
  * @param req The request options.
- * @param defaultModel Optional host-level default model (from `new BHAI({ defaultModel })`, passed by the class method wrapper).
+ * @param defaultModel Optional host-level default model (from `new BHZAI({ defaultModel })`, passed by the class method wrapper).
  * @returns Promise resolving to `{ embeddings, usage? }`.
  * @throws `AbortError` if the request was aborted before starting.
  * @throws `NoModelError` if model resolution failed (§ 10.5 tier 4).
@@ -90,7 +90,7 @@ export interface EmbedResult {
  * @internal
  */
 export async function embed(
-	bh: BHAI,
+	bh: BHZAI,
 	req: EmbedRequest,
 	defaultModel?: string,
 ): Promise<EmbedResult> {

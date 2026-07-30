@@ -2,11 +2,11 @@
 
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import type { Mock } from "vitest"
-import { BHAI } from "../core/bhai.js"
-import type { BHAIDriver, ChatRequest, DriverEvent } from "../types/driver.js"
-import type { BHAIMessage } from "../types/message.js"
+import { BHZAI } from "../core/bhzai.js"
+import type { BHZAIDriver, ChatRequest, DriverEvent } from "../types/driver.js"
+import type { BHZAIMessage } from "../types/message.js"
 import { ConversationBusyError, sendMessage } from "./agent-loop.js"
-import type { BHAIConversationImpl } from "./conversation.js"
+import type { BHZAIConversationImpl } from "./conversation.js"
 
 /**
  * Helper: sleep for a given number of milliseconds.
@@ -23,7 +23,7 @@ function delay(ms: number): Promise<void> {
  */
 function makeDelayedMockDriver(
 	gate: Promise<void>,
-): BHAIDriver & { chat: Mock<(request: ChatRequest) => AsyncIterable<DriverEvent>> } {
+): BHZAIDriver & { chat: Mock<(request: ChatRequest) => AsyncIterable<DriverEvent>> } {
 	return {
 		id: "mock-driver-id",
 		listModels: async () => [
@@ -62,7 +62,7 @@ function makeStatefulMockDriver(
 	firstCallEvents: DriverEvent[],
 	secondCallEvents: DriverEvent[],
 	delayBetweenEvents = 0,
-): BHAIDriver & { chat: Mock<(request: ChatRequest) => AsyncIterable<DriverEvent>> } {
+): BHZAIDriver & { chat: Mock<(request: ChatRequest) => AsyncIterable<DriverEvent>> } {
 	let callCount = 0
 	return {
 		id: "mock-driver-id",
@@ -99,10 +99,10 @@ function makeStatefulMockDriver(
 }
 
 describe("TASK_0030: Steering & concurrent input", () => {
-	let bh: BHAI
+	let bh: BHZAI
 
 	beforeEach(() => {
-		bh = new BHAI()
+		bh = new BHZAI()
 	})
 
 	// =========================================================================
@@ -120,7 +120,7 @@ describe("TASK_0030: Steering & concurrent input", () => {
 
 		const conversation = (await bh.createConversation({
 			model: "mock-driver-id/mock-model",
-		})) as BHAIConversationImpl
+		})) as BHZAIConversationImpl
 
 		// Start the first message WITHOUT awaiting it
 		const firstPromise = sendMessage(conversation, "First message")
@@ -152,7 +152,7 @@ describe("TASK_0030: Steering & concurrent input", () => {
 
 		const conversation = (await bh.createConversation({
 			model: "mock-driver-id/mock-model",
-		})) as BHAIConversationImpl
+		})) as BHZAIConversationImpl
 
 		const firstPromise = sendMessage(conversation, "First message")
 		await delay(10)
@@ -226,7 +226,7 @@ describe("TASK_0030: Steering & concurrent input", () => {
 
 		const conversation = (await bh.createConversation({
 			model: "mock-driver-id/mock-model",
-		})) as BHAIConversationImpl
+		})) as BHZAIConversationImpl
 
 		// Spy on driver calls to know when it's invoked
 		const originalChat = mockDriver.chat
@@ -310,7 +310,7 @@ describe("TASK_0030: Steering & concurrent input", () => {
 
 		const conversation = (await bh.createConversation({
 			model: "mock-driver-id/mock-model",
-		})) as BHAIConversationImpl
+		})) as BHZAIConversationImpl
 
 		// Listen for loop(end) event
 		conversation.on("loop", (payload: unknown) => {
@@ -403,7 +403,7 @@ describe("TASK_0030: Steering & concurrent input", () => {
 
 		const conversation = (await bh.createConversation({
 			model: "mock-driver-id/mock-model",
-		})) as BHAIConversationImpl
+		})) as BHZAIConversationImpl
 
 		// Register a message(before) handler that blocks messages starting with "BLOCK"
 		conversation.on("message", (payload: unknown) => {
@@ -452,7 +452,7 @@ describe("TASK_0030: Steering & concurrent input", () => {
 
 		const conversation = (await bh.createConversation({
 			model: "mock-driver-id/mock-model",
-		})) as BHAIConversationImpl
+		})) as BHZAIConversationImpl
 
 		// Start first message WITHOUT awaiting
 		const firstPromise = sendMessage(conversation, "First message")
@@ -502,7 +502,7 @@ describe("TASK_0030: Steering & concurrent input", () => {
 
 		const conversation = (await bh.createConversation({
 			model: "mock-driver-id/mock-model",
-		})) as BHAIConversationImpl
+		})) as BHZAIConversationImpl
 
 		const idleFireCount: number[] = []
 		conversation.on("idle", () => {
@@ -557,7 +557,7 @@ describe("TASK_0030: Steering & concurrent input", () => {
 	it("queue accessor methods work correctly", async () => {
 		const conversation = (await bh.createConversation({
 			model: "mock-driver-id/mock-model",
-		})) as BHAIConversationImpl
+		})) as BHZAIConversationImpl
 
 		expect(conversation._getSteerQueueLength()).toBe(0)
 		expect(conversation._getFollowUpQueueLength()).toBe(0)
@@ -577,7 +577,7 @@ describe("TASK_0030: Steering & concurrent input", () => {
 	it("waitForIdle() fast path resolves immediately when idle and queues empty", async () => {
 		const conversation = (await bh.createConversation({
 			model: "mock-driver-id/mock-model",
-		})) as BHAIConversationImpl
+		})) as BHZAIConversationImpl
 
 		expect(conversation.status).toBe("idle")
 
@@ -597,7 +597,7 @@ describe("TASK_0030: Steering & concurrent input", () => {
 
 		const conversation = (await bh.createConversation({
 			model: "mock-driver-id/mock-model",
-		})) as BHAIConversationImpl
+		})) as BHZAIConversationImpl
 
 		const idleEvents: unknown[] = []
 		conversation.on("idle", (payload) => {
@@ -627,7 +627,7 @@ describe("TASK_0030: Steering & concurrent input", () => {
 
 		const conversation = (await bh.createConversation({
 			model: "mock-driver-id/mock-model",
-		})) as BHAIConversationImpl
+		})) as BHZAIConversationImpl
 
 		expect(conversation.status).toBe("idle")
 
@@ -660,7 +660,7 @@ describe("TASK_0030: Steering & concurrent input", () => {
 
 		// Mock driver that's stateful: different gate per call
 		let callCount = 0
-		const mockDriver: BHAIDriver & {
+		const mockDriver: BHZAIDriver & {
 			chat: Mock<(request: ChatRequest) => AsyncIterable<DriverEvent>>
 		} = {
 			id: "mock-driver-id",
@@ -696,7 +696,7 @@ describe("TASK_0030: Steering & concurrent input", () => {
 
 		const conversation = (await bh.createConversation({
 			model: "mock-driver-id/mock-model",
-		})) as BHAIConversationImpl
+		})) as BHZAIConversationImpl
 
 		// Send three messages sequentially
 		const p1 = sendMessage(conversation, "Message 1")

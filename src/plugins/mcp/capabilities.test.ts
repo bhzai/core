@@ -14,7 +14,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import { EventBus } from "../../core/event-bus.js"
 import { ToolRegistry } from "../../tools/registry.js"
-import type { BHAIDriver, DriverEvent } from "../../types/index.js"
+import type { BHZAIDriver, DriverEvent } from "../../types/index.js"
 import {
 	type ElicitRequest,
 	type ElicitResponse,
@@ -271,7 +271,7 @@ describe("handleElicitation", () => {
 // ---------------------------------------------------------------------------
 
 /** A mock driver that yields a fixed delta + done. */
-function mockDriver(id: string, text: string): BHAIDriver {
+function mockDriver(id: string, text: string): BHZAIDriver {
 	const chat = async function* (): AsyncIterable<DriverEvent> {
 		yield { type: "delta", text }
 		yield { type: "done", stopReason: "stop" }
@@ -292,7 +292,7 @@ function mockDriver(id: string, text: string): BHAIDriver {
 	}
 }
 
-function mockDriverRegistry(drivers: BHAIDriver[]): SamplingDriverRegistry {
+function mockDriverRegistry(drivers: BHZAIDriver[]): SamplingDriverRegistry {
 	return {
 		getDriver: (id) => drivers.find((d) => d.id === id),
 		drivers: () => drivers,
@@ -426,7 +426,7 @@ describe("handleSampling", () => {
 	})
 
 	it("returns internal-error when the driver chat() yields a done(error)", async () => {
-		const failingDriver: BHAIDriver = {
+		const failingDriver: BHZAIDriver = {
 			id: "d",
 			listModels: async () => [
 				{

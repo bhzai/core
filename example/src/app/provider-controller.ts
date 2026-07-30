@@ -27,11 +27,11 @@
  * here; acceptable for a local demo.
  */
 
-import type { BHAI } from "@lucasschirm/bhai"
-import { Ollama } from "@lucasschirm/bhai/plugins/ollama"
+import type { BHZAI } from "@bhzai/core"
+import { Ollama } from "@bhzai/core/plugins/ollama"
 
-import type { BhaiProviderCog } from "../components/provider-cog.js"
-import type { BhaiProvidersDialog, ProviderViewState } from "../components/providers-dialog.js"
+import type { BhzaiProviderCog } from "../components/provider-cog.js"
+import type { BhzaiProvidersDialog, ProviderViewState } from "../components/providers-dialog.js"
 import {
 	type OllamaProviderConfig,
 	loadProviders,
@@ -43,12 +43,12 @@ import { showErrorToast } from "../lib/toast.js"
 
 /** Everything the provider controller drives. */
 export interface ProviderControllerDeps {
-	/** The live BHAI kernel instance. */
-	bh: BHAI
+	/** The live BHZAI kernel instance. */
+	bh: BHZAI
 	/** The providers cog button in the status bar. */
-	cog: BhaiProviderCog
+	cog: BhzaiProviderCog
 	/** The providers dialog custom element. */
-	dialog: BhaiProvidersDialog
+	dialog: BhzaiProvidersDialog
 	/** Invoked whenever the provider list changes, so the model picker refreshes. */
 	onProvidersChanged?: () => void
 }
@@ -72,7 +72,7 @@ interface ProviderEntry {
 }
 
 /**
- * Wire the providers dialog to the BHAI kernel.
+ * Wire the providers dialog to the BHZAI kernel.
  *
  * @param deps - The kernel, the cog, the dialog, and an optional change callback
  */
@@ -260,12 +260,12 @@ export function createProviderController(deps: ProviderControllerDeps): Provider
 
 	return {
 		async start() {
-			cog.addEventListener("bhai-open-providers", () => {
+			cog.addEventListener("bhzai-open-providers", () => {
 				dialog.show()
 				refreshList()
 			})
 
-			dialog.addEventListener("bhai-add-provider", (event) => {
+			dialog.addEventListener("bhzai-add-provider", (event) => {
 				const detail = (event as CustomEvent<{ type: string; baseUrl: string; token: string }>)
 					.detail
 				if (detail?.type === "ollama") {
@@ -273,14 +273,14 @@ export function createProviderController(deps: ProviderControllerDeps): Provider
 				}
 			})
 
-			dialog.addEventListener("bhai-update-provider", (event) => {
+			dialog.addEventListener("bhzai-update-provider", (event) => {
 				const detail = (event as CustomEvent<{ id: string; baseUrl: string; token: string }>).detail
 				if (detail?.id) {
 					void updateProvider(detail.id, detail.baseUrl, detail.token)
 				}
 			})
 
-			dialog.addEventListener("bhai-remove-provider", (event) => {
+			dialog.addEventListener("bhzai-remove-provider", (event) => {
 				const detail = (event as CustomEvent<{ id: string }>).detail
 				if (detail?.id) {
 					removeProvider(detail.id)

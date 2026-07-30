@@ -6,14 +6,14 @@
 // (e.g. `"/mycommand foo bar"`), does NOT dispatch to stored handlers from any
 // CLI/chat host loop, and does NOT wire the capability-object `commands:` key
 // resolution during `use()`/`init()` (that is TASK_0003/0005's job — this
-// registry only ensures the stored `BHAICommandDefinition` shape is identical
+// registry only ensures the stored `BHZAICommandDefinition` shape is identical
 // regardless of arrival path, so future wiring is trivial).
 //
 // ENVIRONMENT BOUNDARY (§ 5): web-standard APIs only. This file touches nothing
 // outside of plain TypeScript — no `fetch`, no `crypto`, no Node built-ins. It
 // is runtime-agnostic.
 //
-// PATH NOTE: TASK_0010 specifies `bhai/src/kernel/commands.ts`, but the package
+// PATH NOTE: TASK_0010 specifies `bhzai/src/kernel/commands.ts`, but the package
 // layout already established by TASK_0002/TASK_0003 places the kernel under
 // `src/core/` (see `src/core/index.ts` and the `./core` subpath export in
 // `package.json`). This file follows the existing repo convention to keep one
@@ -27,10 +27,10 @@
 // `src/types/command.ts`. Everything beyond that literal shape in this file
 // is TASK_0010's own inferred design, marked inline as such.
 
-import type { BHAICommandDefinition } from "../types/index.js"
+import type { BHZAICommandDefinition } from "../types/index.js"
 
 /**
- * The '/slash'-command registry (§ 6). Stores {@link BHAICommandDefinition}
+ * The '/slash'-command registry (§ 6). Stores {@link BHZAICommandDefinition}
  * records keyed by `name` in a `Map`. Owns the duplicate-name policy and the
  * `listCommands()` test/host accessor. Has NO event-bus integration: § 8.1
  * defines no `command.registered`/`command.removed` event pair, so — exactly
@@ -39,7 +39,7 @@ import type { BHAICommandDefinition } from "../types/index.js"
  */
 export class CommandRegistry {
 	/** Commands keyed by `name`; last registration wins (shadowing). */
-	private readonly commands: Map<string, BHAICommandDefinition> = new Map()
+	private readonly commands: Map<string, BHZAICommandDefinition> = new Map()
 
 	/**
 	 * Predicate deciding whether a command name is currently visible, injected
@@ -52,7 +52,7 @@ export class CommandRegistry {
 	 */
 	private isActive: ((commandName: string) => boolean) | undefined
 
-	/** Install the visibility predicate. Called once by the `BHAI` constructor. */
+	/** Install the visibility predicate. Called once by the `BHZAI` constructor. */
 	setActivePredicate(predicate: (commandName: string) => boolean): void {
 		this.isActive = predicate
 	}
@@ -67,7 +67,7 @@ export class CommandRegistry {
 	 * TASK_0008 established for tool-name shadowing and TASK_0009 echoed for
 	 * drivers: **last registration wins** — a duplicate
 	 * `addCommand(name, def)` call silently replaces the earlier entry under
-	 * that name, for consistency across all of BHAI's registries (tools,
+	 * that name, for consistency across all of BHZAI's registries (tools,
 	 * drivers, commands). Rationale: same as TASK_0008's — conceptually the
 	 * host still sees "a command named X" continuously across the shadowing;
 	 * nothing was removed, only updated.
@@ -78,7 +78,7 @@ export class CommandRegistry {
 	 * mirrors TASK_0009's drivers, which likewise fire nothing on
 	 * registration/replacement because § 8.1 defines no `driver.removed` row.
 	 */
-	addCommand(name: string, def: BHAICommandDefinition): void {
+	addCommand(name: string, def: BHZAICommandDefinition): void {
 		this.commands.set(name, def)
 	}
 
@@ -102,8 +102,8 @@ export class CommandRegistry {
 	 * calls (same snapshot-freshness guarantee `ToolRegistry.listTools`
 	 * provides).
 	 */
-	listCommands(): Array<{ name: string; def: BHAICommandDefinition }> {
-		const out: Array<{ name: string; def: BHAICommandDefinition }> = []
+	listCommands(): Array<{ name: string; def: BHZAICommandDefinition }> {
+		const out: Array<{ name: string; def: BHZAICommandDefinition }> = []
 		for (const [name, def] of this.commands) {
 			// A command contributed by a deactivated plugin stays registered but
 			// drops out of every read path, so it cannot be listed or resolved.
@@ -117,7 +117,7 @@ export class CommandRegistry {
 	 * Look up a registered command by `name`, or `undefined` if not registered
 	 * — or if its contributing plugin is currently deactivated.
 	 */
-	get(name: string): BHAICommandDefinition | undefined {
+	get(name: string): BHZAICommandDefinition | undefined {
 		if (this.isActive !== undefined && !this.isActive(name)) return undefined
 		return this.commands.get(name)
 	}

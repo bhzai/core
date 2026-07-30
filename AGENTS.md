@@ -1,8 +1,8 @@
-# `bhai/` — `@lucasschirm/bhai` package
+# `bhzai/` — `@bhzai/core` package
 
 ## Purpose & scope
 
-The actual git repository for the `@lucasschirm/bhai` package (MIT license).
+The actual git repository for the `@bhzai/core` package (MIT license).
 Contains the framework source (`src/`), build/test/lint tooling, and
 implementation documentation (`docs/`). The parent directory holds only the
 v0.1 design proposal (`ARCHITECTURE.md`) and the task breakdown (`tasks/`) —
@@ -20,7 +20,7 @@ Implemented:
 - **Scaffolding** (`package.json`, `tsconfig.json`, `tsup.config.ts`,
   `vitest.config.ts`, `biome.json`, `husky`) — ESM-only, three-tier subpath
   exports, native TC39 stage-3 decorators.
-- **Kernel** (`src/core/bhai.ts`) — `BHAI` class: `use()`, `on()`/`emit()`,
+- **Kernel** (`src/core/bhzai.ts`) — `BHZAI` class: `use(), `on()`/`emit()`,
   `init()`/`dispose()`, config contract, registry wiring, `complete()` /
   `embed()` side-channels, `getContributions()` accessor, full teardown.
 - **Event bus** (`src/core/event-bus.ts`) — sequential dispatch, patch
@@ -40,9 +40,9 @@ Implemented:
 - **Transport retry** (`src/core/retry.ts`) — `callDriverWithRetry` wrapper,
   `isRetriableError` classifier, `DEFAULT_RETRY_POLICY`, `request` lifecycle
   events.
-- **WebLLM driver** (`src/plugins/webllm/`) — `BHAIDriver` implementation
+- **WebLLM driver** (`src/plugins/webllm/`) — `bhzaiDriver` implementation
   wrapping an injected MLC `MLCEngine` instance. Browser/WebGPU-only.
-- **Ollama driver** (`src/plugins/ollama/`) — `BHAIDriver` implementation
+- **Ollama driver** (`src/plugins/ollama/`) — `bhzaiDriver` implementation
   backed entirely by web-standard `fetch`. NDJSON streaming, capabilities
   cache, `embed()`. Works in any fetch-capable runtime.
 - **Credential resolution** (`src/core/credentials.ts`) —
@@ -58,7 +58,7 @@ Implemented:
   full detail. Summary: conversation surface, system-prompt layering, the
   agent loop with tool execution, loop termination & guardrails, serialization,
   storage interfaces, concurrent input steering, and compaction pipeline.
-- **Model lifecycle events** (`src/core/bhai.ts`, `docs/core/events.md`) —
+- **Model lifecycle events** (`src/core/bhzai.ts`, `docs/core/events.md`) —
   `model.added`, `model.changed`, `model.removed`, and `models.changed` are
   dispatched on every `listModels()` refresh, including driver registration,
   `init()`, and plugin activation toggles.
@@ -71,7 +71,7 @@ Implemented:
   plus a runnable README quickstart example.
 - **Interop adapters** (`src/plugins/interop/`) — `runPiExtension()`
   (`src/plugins/interop/pi/`) translates pi coding-agent extensions onto
-  BHAI kernel primitives; `runOpenCodePlugin()`
+  bhzai kernel primitives; `runOpenCodePlugin()`
   (`src/plugins/interop/opencode/`) maps OpenCode-style plugin hooks onto
   the same primitives, including zod-like→JSON-Schema conversion and
   `permission.ask` composing with the shared `tool(beforeCall)` approval
@@ -96,7 +96,7 @@ rationale).
   `.claude/rules/packaging.md`.
 - `src/index.ts` — root superset barrel (re-exports `core/`, `types/`, and
   every `plugins/*` subpath).
-- `src/core/bhai.ts` — the `BHAI` kernel class. See `docs/core/kernel.md`.
+- `src/core/bhzai.ts` — the `BHZAI` kernel class. See `docs/core/kernel.md`.
 - `docs/core/events.md` — full catalogue of framework and conversation events.
 - `docs/` — implementation documentation. See `docs/ARCHITECTURE.md` for the
   index of per-subsystem docs.
@@ -148,7 +148,7 @@ pnpm test:watch       # vitest watch mode
 
 - `.claude/rules/packaging.md` — subpath exports, dependency policy,
   tree-shaking rules.
-- `.claude/rules/workspace.md` — workspace structure (code in `bhai/`,
+- `.claude/rules/workspace.md` — workspace structure (code in `bhzai/`,
   tasks in `tasks/`).
 - `.claude/rules/testing.md` — test conventions.
 - `.claude/rules/docs.md` — keep documentation current with code changes.

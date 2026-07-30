@@ -17,7 +17,7 @@
 // TypeScript — no `fetch`, no `crypto`, no Node built-ins. It is
 // runtime-agnostic and side-effect-free.
 
-import type { BHAIToolDefinition, DriverCapabilities, ToolFilter } from "../types/index.js"
+import type { BHZAIToolDefinition, DriverCapabilities, ToolFilter } from "../types/index.js"
 
 /**
  * Options for {@link resolveAvailableTools}.
@@ -58,7 +58,7 @@ export interface ResolveAvailableToolsOptions {
  */
 export interface ResolvedTool {
 	/** The tool definition. */
-	tool: BHAIToolDefinition
+	tool: BHZAIToolDefinition
 	/**
 	 * Whether this tool comes from a trusted MCP source. `true` for local
 	 * (non-`mcp__`) tools and for `mcp__<server>__<tool>` tools whose
@@ -102,9 +102,9 @@ export interface ResolvedTool {
  * @returns The resolved (filtered, patched, gated) tool list with trust flags.
  */
 export function resolveAvailableTools(
-	allTools: BHAIToolDefinition[],
+	allTools: BHZAIToolDefinition[],
 	filter: ToolFilter | undefined,
-	contextPatchedTools: BHAIToolDefinition[] | undefined,
+	contextPatchedTools: BHZAIToolDefinition[] | undefined,
 	driverCapabilities: DriverCapabilities,
 	options?: ResolveAvailableToolsOptions,
 ): ResolvedTool[] {
@@ -147,9 +147,9 @@ export function resolveAvailableTools(
  * The filter is pure and side-effect-free; it does not mutate the input.
  */
 export function applyToolFilter(
-	tools: BHAIToolDefinition[],
+	tools: BHZAIToolDefinition[],
 	filter: ToolFilter | undefined,
-): BHAIToolDefinition[] {
+): BHZAIToolDefinition[] {
 	if (!filter) return [...tools]
 	const allowSet = filter.allow ? new Set(filter.allow) : undefined
 	const denySet = filter.deny ? new Set(filter.deny) : undefined
@@ -207,7 +207,7 @@ export function isToolTrusted(toolName: string, trustedSources: Set<string> | un
  */
 function matchMcpNamespacedName(toolName: string): [string, string] | null {
 	// Pattern: mcp__<server>__<tool> where <server> and <tool> are
-	// non-empty. The server name may contain characters valid in BHAI-
+	// non-empty. The server name may contain characters valid in bhzai-
 	// local names (per TASK_0011's deriveServerName, which derives from
 	// URL hostname or a host-supplied name).
 	const match = /^mcp__(.+?)__(.+)$/.exec(toolName)

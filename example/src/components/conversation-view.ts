@@ -41,10 +41,10 @@ export interface AssistantTurn {
  *
  * Rendered in the light DOM so the host page's global styles (and CSS variables)
  * continue to drive its appearance. Deltas are streamed through the imperative
- * handles returned by {@link BhaiConversation.beginAssistantTurn}.
+ * handles returned by {@link BhzaiConversation.beginAssistantTurn}.
  */
-@customElement("bhai-conversation")
-export class BhaiConversation extends LitElement {
+@customElement("bhzai-conversation")
+export class BhzaiConversation extends LitElement {
 	override createRenderRoot() {
 		return this
 	}
@@ -147,6 +147,6 @@ export class BhaiConversation extends LitElement {
 
 declare global {
 	interface HTMLElementTagNameMap {
-		"bhai-conversation": BhaiConversation
+		"bhzai-conversation": BhzaiConversation
 	}
 }

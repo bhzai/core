@@ -5,7 +5,7 @@ import { EventBus } from "./event-bus.js"
 // TASK_0004 — framework event bus (§§ 8.2, 8.4).
 //
 // These tests exercise the standalone `EventBus` class directly (not through
-// `BHAI`), since `EventBus` must be independently reusable — TASK_0023 will
+// `BHZAI`), since `EventBus` must be independently reusable — TASK_0023 will
 // instantiate one per `Conversation`. Each test maps 1:1 to a bullet under
 // TASK_0004's "Tests Required" and to a numbered rule in § 8.2 / § 8.4.
 

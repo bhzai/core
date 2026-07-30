@@ -13,23 +13,23 @@
 // outside of plain TypeScript — no `fetch`, no `crypto`, no Node built-ins. It
 // is runtime-agnostic.
 //
-// PATH NOTE: TASK_0009 specifies `bhai/src/kernel/drivers.ts`, but the package
+// PATH NOTE: TASK_0009 specifies `bhzai/src/kernel/drivers.ts`, but the package
 // layout already established by TASK_0002/TASK_0003 places the kernel under
 // `src/core/` (see `src/core/index.ts` and the `./core` subpath export in
 // `package.json`). This file follows the existing repo convention to keep one
 // kernel directory; the behavioral contract is unchanged.
 
-import type { BHAIDriver, ModelInfo } from "../types/index.js"
+import type { BHZAIDriver, ModelInfo } from "../types/index.js"
 import type { EventBus } from "./event-bus.js"
 
 /**
- * The driver registry (§ 10.1). Stores {@link BHAIDriver} instances keyed by
+ * The driver registry (§ 10.1). Stores {@link BHZAIDriver} instances keyed by
  * `driver.id`, fires `driver.registered` (§ 8.1) on registration, and merges
  * every registered driver's `listModels()` into one flat catalogue.
  */
 export class DriverRegistry {
 	/** Drivers keyed by `driver.id`; last registration wins (shadowing). */
-	private readonly drivers: Map<string, BHAIDriver> = new Map()
+	private readonly drivers: Map<string, BHZAIDriver> = new Map()
 
 	/**
 	 * @param bus The framework event bus, used to fire `driver.registered`
@@ -52,7 +52,7 @@ export class DriverRegistry {
 	 */
 	private isActive: ((driverId: string) => boolean) | undefined
 
-	/** Install the visibility predicate. Called once by the `BHAI` constructor. */
+	/** Install the visibility predicate. Called once by the `BHZAI` constructor. */
 	setActivePredicate(predicate: (driverId: string) => boolean): void {
 		this.isActive = predicate
 	}
@@ -62,7 +62,7 @@ export class DriverRegistry {
 	 * installed, otherwise only those whose id the predicate accepts. Preserves
 	 * registration order.
 	 */
-	private activeEntries(): BHAIDriver[] {
+	private activeEntries(): BHZAIDriver[] {
 		const all = Array.from(this.drivers.values())
 		const predicate = this.isActive
 		if (predicate === undefined) return all
@@ -78,7 +78,7 @@ export class DriverRegistry {
 	 * twice with the same `id`. This registry adopts the IDENTICAL convention
 	 * TASK_0008 established for tool-name shadowing: later registration
 	 * replaces the earlier one under the same key, for consistency across all
-	 * of BHAI's registries (tools, drivers, and — see TASK_0010 — commands).
+	 * of BHZAI's registries (tools, drivers, and — see TASK_0010 — commands).
 	 * Rationale: same as TASK_0008's — conceptually the host still sees "a
 	 * driver named X" continuously across the shadowing; nothing was removed,
 	 * only updated.
@@ -93,7 +93,7 @@ export class DriverRegistry {
 	 * no event to fire even if we wanted to draw the parallel with
 	 * `tool.removed`.
 	 */
-	addDriver(driver: BHAIDriver): void {
+	addDriver(driver: BHZAIDriver): void {
 		this.drivers.set(driver.id, driver)
 		// Fire-and-forget: `addDriver` is synchronous (`void`), and
 		// `driver.registered` is a non-blockable notification event. Dispatched
@@ -165,7 +165,7 @@ export class DriverRegistry {
 	 * the lookup. It is a convenience accessor, not a new kernel API surface —
 	 * `bh` does not re-export it on § 6's named method list.
 	 */
-	get(id: string): BHAIDriver | undefined {
+	get(id: string): BHZAIDriver | undefined {
 		if (this.isActive !== undefined && !this.isActive(id)) return undefined
 		return this.drivers.get(id)
 	}

@@ -1,26 +1,26 @@
 /** @file RAG plugin tests (TASK_0038)
  *
  * Integration-style tests for the RAG plugin (examples/rag-plugin.ts) against
- * a real, fully-assembled BHAI instance with mock Retriever contributions.
+ * a real, fully-assembled BHZAI instance with mock Retriever contributions.
  * Tests both Shape 1 (agentic `search_knowledge` tool) and Shape 2 (automatic
  * `context`-time injection).
  */
 
 import { beforeEach, describe, expect, it } from "vitest"
-import { BHAIConversation } from "../src/conversation/conversation.js"
-import { BHAI } from "../src/core/bhai.js"
-import type { BHAIMessage } from "../src/types/index.js"
+import { BHZAIConversation } from "../src/conversation/conversation.js"
+import { BHZAI } from "../src/core/bhzai.js"
+import type { BHZAIMessage } from "../src/types/index.js"
 import type { CallToolResult } from "../src/types/index.js"
 import type { Retriever } from "./rag-plugin.js"
 import { ragPlugin } from "./rag-plugin.js"
 
 /**
- * Create a mock message shaped like a BHAIMessage for testing context injection.
+ * Create a mock message shaped like a BHZAIMessage for testing context injection.
  * @param role - Message role: 'user', 'assistant', etc.
  * @param content - Message text content
- * @returns A fixture BHAIMessage
+ * @returns A fixture BHZAIMessage
  */
-function makeMessage(role: "user" | "assistant", content: string): BHAIMessage {
+function makeMessage(role: "user" | "assistant", content: string): BHZAIMessage {
 	return {
 		id: `msg-${Math.random().toString(36).slice(2)}`,
 		role,
@@ -34,15 +34,18 @@ function makeMessage(role: "user" | "assistant", content: string): BHAIMessage {
 }
 
 /**
- * Create a fresh BHAI instance with the RAG plugin and two mock retrievers.
+ * Create a fresh BHZAI instance with the RAG plugin and two mock retrievers.
  * Useful for tests where retriever behavior is configured per test.
  *
  * @param mockRetrieverA - First mock Retriever (e.g. returns specific chunks)
  * @param mockRetrieverB - Second mock Retriever (e.g. returns different chunks)
- * @returns Initialized BHAI instance with RAG and mock retrievers wired
+ * @returns Initialized BHZAI instance with RAG and mock retrievers wired
  */
-async function createTestBhai(mockRetrieverA: Retriever, mockRetrieverB: Retriever): Promise<BHAI> {
-	const bh = new BHAI()
+async function createTestbhzai(
+	mockRetrieverA: Retriever,
+	mockRetrieverB: Retriever,
+): Promise<BHZAI> {
+	const bh = new BHZAI()
 
 	// Register two mock retrievers via the capability-object form
 	bh.use({ retriever: mockRetrieverA })
@@ -73,7 +76,7 @@ describe("RAG Plugin — Shape 1 (agentic search_knowledge tool)", () => {
 			retrieve: async () => [{ content: "chunk B1", source: "doc-b1" }],
 		}
 
-		const bh = await createTestBhai(mockA, mockB)
+		const bh = await createTestbhzai(mockA, mockB)
 
 		/**
 		 * Invoke the search_knowledge tool directly via the internal _getTool seam.
@@ -128,7 +131,7 @@ describe("RAG Plugin — Shape 2 (automatic context injection)", () => {
 			],
 		}
 
-		const bh = await createTestBhai(mockA, mockB)
+		const bh = await createTestbhzai(mockA, mockB)
 
 		// Override the topK config to 2 (default is 6)
 		bh.setConfig("rag", { topK: 2 })
@@ -179,7 +182,7 @@ describe("RAG Plugin — Shape 2 (automatic context injection)", () => {
 			retrieve: async () => [],
 		}
 
-		const bh = await createTestBhai(mockA, mockB)
+		const bh = await createTestbhzai(mockA, mockB)
 		const conversation = await bh.createConversation()
 
 		// biome-ignore lint/suspicious/noExplicitAny: accessing private method via type escape
@@ -214,7 +217,7 @@ describe("RAG Plugin — Shape 2 (automatic context injection)", () => {
 			retrieve: async () => [],
 		}
 
-		const bh = await createTestBhai(mockA, mockB)
+		const bh = await createTestbhzai(mockA, mockB)
 		const conversation = await bh.createConversation()
 
 		// biome-ignore lint/suspicious/noExplicitAny: accessing private method via type escape
@@ -245,7 +248,7 @@ describe("RAG Plugin — Shape 2 (automatic context injection)", () => {
 			retrieve: async () => [],
 		}
 
-		const bh = await createTestBhai(mockA, mockB)
+		const bh = await createTestbhzai(mockA, mockB)
 		const conversation = await bh.createConversation()
 
 		/**
@@ -270,7 +273,7 @@ describe("RAG Plugin — Shape 2 (automatic context injection)", () => {
 describe("RAG Plugin — Configuration", () => {
 	it("applies configSchema defaults when host supplies no config", async () => {
 		/**
-		 * Create a fresh BHAI with the RAG plugin but no explicit setConfig call.
+		 * Create a fresh BHZAI with the RAG plugin but no explicit setConfig call.
 		 * The defaults from configSchema should apply automatically during init().
 		 */
 		const mockA: Retriever = {
@@ -280,7 +283,7 @@ describe("RAG Plugin — Configuration", () => {
 			retrieve: async () => [],
 		}
 
-		const bh = await createTestBhai(mockA, mockB)
+		const bh = await createTestbhzai(mockA, mockB)
 
 		/**
 		 * After init, getConfig should return the schema defaults.
@@ -306,7 +309,7 @@ describe("RAG Plugin — Configuration", () => {
 			retrieve: async () => [],
 		}
 
-		const bh = new BHAI()
+		const bh = new BHZAI()
 		bh.use({ retriever: mockA })
 		bh.use({ retriever: mockB })
 		bh.use(ragPlugin)

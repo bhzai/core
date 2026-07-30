@@ -78,8 +78,8 @@
 import Ajv, { type ValidateFunction } from "ajv"
 import type { ToolRegistry } from "../../tools/registry.js"
 import type {
-	BHAIDriver,
-	BHAIToolDefinition,
+	BHZAIDriver,
+	BHZAIToolDefinition,
 	CallToolResult,
 	ContentBlock,
 	JSONSchema,
@@ -152,7 +152,7 @@ interface JsonRpcResponse {
 // MCP-spec-derived shapes (confirmed against
 // https://modelcontextprotocol.io/specification/2025-11-25/basic/lifecycle
 // and /server/tools). These are local to this module — they model the wire
-// shapes this client sends/receives, not the public BHAI surface.
+// shapes this client sends/receives, not the public BHZAI surface.
 // ---------------------------------------------------------------------------
 
 /**
@@ -194,7 +194,7 @@ interface ServerCapabilities {
 /**
  * A single MCP `Tool` object as returned by `tools/list` (spec: /server/tools).
  * `name`, `description`, `inputSchema` are required; `title`, `outputSchema`,
- * `icons`, `annotations` are optional and passed through to the BHAI registry
+ * `icons`, `annotations` are optional and passed through to the BHZAI registry
  * unchanged per § 9.3 item 2's "passed through untouched" wording.
  */
 interface McpTool {
@@ -340,7 +340,7 @@ const REQUESTED_PROTOCOL_VERSION = "2025-11-25"
  * a host wants its own identity advertised. Confirmed against spec: `name`
  * and `version` are the only required `clientInfo` fields.
  */
-const DEFAULT_CLIENT_INFO = { name: "@lucasschirm/bhai", version: "0.1.0" } as const
+const DEFAULT_CLIENT_INFO = { name: "@bhzai/core", version: "0.1.0" } as const
 
 /**
  * Default per-call timeout for `tools/call` (TASK_0012, § 9.3 item 5). 60
@@ -389,7 +389,7 @@ export function deriveServerName(url: string): string {
  *
  * This class is INTERNAL to `src/plugins/mcp/`. The public `bh.addMcp()`
  * entry point (TASK_0015) constructs one of these per `McpServerConfig` and
- * calls {@link connect}. This class does NOT attach itself to the `BHAI`
+ * calls {@link connect}. This class does NOT attach itself to the `BHZAI`
  * kernel instance — it receives the {@link ToolRegistry} to register into and
  * does the rest.
  */
@@ -512,7 +512,7 @@ export class McpClient {
 		this.eventBus = options?.eventBus
 	}
 
-	/** The BHAI-local server name used to namespace discovered tools. */
+	/** The bhzai-local server name used to namespace discovered tools. */
 	get serverName(): string {
 		return this.config.name
 	}
@@ -966,12 +966,12 @@ export class McpClient {
 	}
 
 	/**
-	 * Construct a {@link BHAIToolDefinition} from an MCP `Tool` and register it
+	 * Construct a {@link BHZAIToolDefinition} from an MCP `Tool` and register it
 	 * via the shared {@link ToolRegistry}. The namespaced name is
 	 * `mcp__<serverName>__<toolName>` (double underscores, three segments —
 	 * § 9.3 item 2). `title`, `icons`, `annotations`, `inputSchema`,
 	 * `outputSchema`, `description` are passed through byte-for-byte from the
-	 * server's `tools/list` response. `tags` is left `undefined` (BHAI-local
+	 * server's `tools/list` response. `tags` is left `undefined` (bhzai-local
 	 * field with no MCP-server equivalent; TASK_0017's availability filtering
 	 * is the eventual consumer, but assigning tags to remote MCP tools is not
 	 * this task's job and is not specified anywhere as automatic).
@@ -979,7 +979,7 @@ export class McpClient {
 	 * The `execute` binding (TASK_0012) is a real `tools/call` proxy that:
 	 *  - sends `tools/call` with `params: { name: <original unprefixed MCP
 	 *    tool name>, arguments: invocation.params }` — the namespaced
-	 *    `mcp__<server>__<tool>` name is a BHAI-local registry key only; the
+	 *    `mcp__<server>__<tool>` name is a bhzai-local registry key only; the
 	 *    wire request uses the tool's original name, captured explicitly here
 	 *    to avoid fragile string-parsing of the prefix;
 	 *  - returns the `CallToolResult` verbatim on success;
@@ -1002,14 +1002,14 @@ export class McpClient {
 		// re-deriving the prefix or re-reading the registry.
 		const originalName = tool.name
 		const outputSchema = tool.outputSchema
-		const def: BHAIToolDefinition = {
+		const def: BHZAIToolDefinition = {
 			name: namespacedName,
 			title: tool.title,
 			description: tool.description,
 			inputSchema: tool.inputSchema,
 			outputSchema,
-			icons: tool.icons as BHAIToolDefinition["icons"],
-			annotations: tool.annotations as BHAIToolDefinition["annotations"],
+			icons: tool.icons as BHZAIToolDefinition["icons"],
+			annotations: tool.annotations as BHZAIToolDefinition["annotations"],
 			execute: async (invocation: ToolInvocation<unknown>): Promise<CallToolResult> => {
 				return this.callTool(namespacedName, originalName, outputSchema, invocation)
 			},

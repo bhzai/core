@@ -1,27 +1,27 @@
 # Ollama driver plugin
 
-> Subpath: `@lucasschirm/bhai/plugins/ollama`
+> Subpath: `@bhzai/core/plugins/ollama`
 > Source: `src/plugins/ollama/index.ts`
 > Task: TASK_0020
 > Architecture: § 10.3
 
 ## Overview
 
-The `Ollama` driver implements `BHAIDriver` (§ 10.1) on top of a local or
+The `Ollama` driver implements `BHZAIDriver` (§ 10.1) on top of a local or
 remote Ollama server, using only web-standard `fetch`. It works unmodified in
 any fetch-capable runtime (browser, Node, Electron) — no Node-specific HTTP
 client, no peer dependency.
 
 This is the second of the two "bundled drivers" (§ 10.3). Unlike the WebLLM
 driver (browser-only, WebGPU-accelerated, peer dep on `@mlc-ai/web-llm`),
-Ollama gives BHAI a zero-install, environment-agnostic local-inference story.
+Ollama gives BHZAI a zero-install, environment-agnostic local-inference story.
 
 ## Installation
 
 No peer dependency to install — `fetch` is the only requirement.
 
 ```typescript
-import { Ollama } from "@lucassirm/bhai/plugins/ollama"
+import { Ollama } from "@lucassirm/BHZAI/plugins/ollama"
 
 const driver = new Ollama({
   baseUrl: "http://localhost:11434", // default
@@ -35,7 +35,7 @@ bh.addDriver(driver)
 
 ### `Ollama` class
 
-Implements `BHAIDriver` in full:
+Implements `BHZAIDriver` in full:
 
 | Method | Endpoint | Notes |
 |---|---|---|
@@ -62,7 +62,7 @@ omitted.
 
 ## Capabilities cache
 
-`capabilities(model)` is synchronous per the `BHAIDriver` interface, but
+`capabilities(model)` is synchronous per the `BHZAIDriver` interface, but
 `GET /api/show` is inherently asynchronous. This driver resolves that tension
 by eagerly fetching and caching `/api/show` results per model id the first
 time `listModels()` or `chat()` references that model (populating an internal
@@ -103,7 +103,7 @@ doesn't supply one, and uses the server-supplied id when it does.
 
 ### Stop reason mapping
 
-| Ollama `done_reason` | BHAI `stopReason` |
+| Ollama `done_reason` | BHZAI `stopReason` |
 |---|---|
 | `'stop'` or absent (no tool calls) | `'stop'` |
 | `'length'` | `'length'` |

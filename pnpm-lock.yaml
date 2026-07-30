@@ -36,7 +36,7 @@ importers:
 
   example:
     dependencies:
-      '@lucasschirm/bhai':
+      '@bhzai/core':
         specifier: workspace:*
         version: link:..
       '@lucasschirm/litjs-typeahead':

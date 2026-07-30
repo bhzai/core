@@ -43,7 +43,7 @@
 export interface ApprovalCall {
 	/** Namespaced tool name (`mcp__<server>__<tool>`) or `'sampling/createMessage'`. */
 	toolName: string
-	/** BHAI-local server name the call is being routed to. */
+	/** bhzai-local server name the call is being routed to. */
 	serverName: string
 	/** Raw argument payload for the call. */
 	params: unknown

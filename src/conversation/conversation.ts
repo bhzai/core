@@ -1,11 +1,11 @@
-/** @file Conversation surface skeleton (TASK_0023) — BHAIConversation interface and event mirroring */
+/** @file Conversation surface skeleton (TASK_0023) — BHZAIConversation interface and event mirroring */
 
-import type { BHAI } from "../core/bhai.js"
+import type { BHZAI } from "../core/bhzai.js"
 import type { BlockSignal, DispatchOptions, Handler } from "../core/event-bus.js"
 import { EventBus } from "../core/event-bus.js"
 import type { ContentBlock } from "../types/content.js"
 import type { EmitResult, Unsubscribe } from "../types/events.js"
-import type { BHAIMessage, ConversationStatus } from "../types/message.js"
+import type { BHZAIMessage, ConversationStatus } from "../types/message.js"
 // ConversationSnapshot is now defined and versioned in snapshot.ts (TASK_0028).
 // Import here to use in internal method signatures.
 import type { ConversationSnapshot } from "./snapshot.js"
@@ -111,7 +111,7 @@ export interface ConversationEvents {
  * Per ARCHITECTURE.md § 11.1. Methods beyond what's listed here are stubs
  * with `// TODO(TASK_XXXX)` comments naming the owning task.
  */
-export interface BHAIConversation {
+export interface BHZAIConversation {
 	/** Unique conversation identity, generated with `crypto.randomUUID()`. */
 	readonly id: string
 
@@ -119,7 +119,7 @@ export interface BHAIConversation {
 	 * Read-only view of messages — prevents external code from mutating the
 	 * live array and bypassing the message lifecycle machinery (TASK_0025).
 	 */
-	readonly messages: readonly BHAIMessage[]
+	readonly messages: readonly BHZAIMessage[]
 
 	/** Conversation status: one of the ConversationStatus values (§ 11.1). */
 	get status(): ConversationStatus
@@ -196,7 +196,7 @@ export interface BHAIConversation {
 	sendMessage(
 		content: string | ContentBlock[],
 		options?: import("./agent-loop.js").SendOptions,
-	): Promise<BHAIMessage>
+	): Promise<BHZAIMessage>
 
 	/**
 	 * Add a message without driving the agent loop (TASK_0025).
@@ -207,7 +207,7 @@ export interface BHAIConversation {
 		content: string | ContentBlock[],
 		role: "user" | "assistant" | "system",
 		options?: import("./agent-loop.js").AddOptions,
-	): Promise<BHAIMessage>
+	): Promise<BHZAIMessage>
 
 	/**
 	 * TODO(TASK_0025/cross-group model switching): set the active model.
@@ -227,14 +227,14 @@ export interface BHAIConversation {
 /**
  * Core conversation implementation with private event bus and mirroring logic.
  *
- * Implements the `BHAIConversation` interface. Each instance owns a private
+ * Implements the `BHZAIConversation` interface. Each instance owns a private
  * `EventBus` (reusing TASK_0004's class, not a duplicate implementation);
  * the crucial `dispatchConversationEvent()` method implements the mirroring
  * mechanic from ARCHITECTURE.md § 8.1: conversation-bus handlers run first,
  * then the framework-bus mirror runs seeded with their patches, sharing one
  * continuing patch chain.
  */
-export class BHAIConversationImpl implements BHAIConversation {
+export class BHZAIConversationImpl implements BHZAIConversation {
 	/** Unique identity per conversation. Writable by internal methods only. */
 	_id: string
 
@@ -243,7 +243,7 @@ export class BHAIConversationImpl implements BHAIConversation {
 	}
 
 	/** Private mutable message array. Exposed read-only via the `messages` getter. */
-	private _messages: BHAIMessage[] = []
+	private _messages: BHZAIMessage[] = []
 
 	/** Lifecycle status: idle, streaming, waiting-tool, compacting, aborted, error. */
 	private _status: ConversationStatus = "idle"
@@ -317,7 +317,7 @@ export class BHAIConversationImpl implements BHAIConversation {
 	 */
 	private readonly _steerQueue: Array<{
 		content: string | ContentBlock[]
-		resolve: (msg: BHAIMessage) => void
+		resolve: (msg: BHZAIMessage) => void
 		reject: (err: unknown) => void
 	}> = []
 
@@ -329,18 +329,18 @@ export class BHAIConversationImpl implements BHAIConversation {
 	 */
 	private readonly _followUpQueue: Array<{
 		content: string | ContentBlock[]
-		resolve: (msg: BHAIMessage) => void
+		resolve: (msg: BHZAIMessage) => void
 		reject: (err: unknown) => void
 	}> = []
 
 	/**
 	 * Construct a new conversation with a fresh UUID and empty state.
 	 *
-	 * @param bh The owning BHAI instance (provides access to tool/driver registries and framework bus).
+	 * @param bh The owning BHZAI instance (provides access to tool/driver registries and framework bus).
 	 * @param options Options for the new conversation (model, systemPrompt, etc.).
 	 */
 	constructor(
-		private readonly bh: BHAI,
+		private readonly bh: BHZAI,
 		options?: CreateConversationOptions,
 	) {
 		this._id = crypto.randomUUID()
@@ -361,7 +361,7 @@ export class BHAIConversationImpl implements BHAIConversation {
 	 * `_messages` array that only the conversation's own methods are allowed to
 	 * mutate (and later, TASK_0025's agent loop, which lives in this class).
 	 */
-	get messages(): readonly BHAIMessage[] {
+	get messages(): readonly BHZAIMessage[] {
 		return Object.freeze(this._messages.slice())
 	}
 
@@ -630,7 +630,7 @@ export class BHAIConversationImpl implements BHAIConversation {
 	async sendMessage(
 		content: string | ContentBlock[],
 		options?: import("./agent-loop.js").SendOptions,
-	): Promise<BHAIMessage> {
+	): Promise<BHZAIMessage> {
 		const { sendMessage: sendMessageImpl } = await import("./agent-loop.js")
 		return sendMessageImpl(this, content, options)
 	}
@@ -646,7 +646,7 @@ export class BHAIConversationImpl implements BHAIConversation {
 		content: string | ContentBlock[],
 		role: "user" | "assistant" | "system",
 		options?: import("./agent-loop.js").AddOptions,
-	): Promise<BHAIMessage> {
+	): Promise<BHZAIMessage> {
 		const { addMessage: addMessageImpl } = await import("./agent-loop.js")
 		return addMessageImpl(this, content, role, options)
 	}
@@ -674,13 +674,13 @@ export class BHAIConversationImpl implements BHAIConversation {
 	}
 
 	// ---------------------------------------------------------------------------
-	// Internal methods for BHAI to call during createConversation/loadConversation
+	// Internal methods for BHZAI to call during createConversation/loadConversation
 	// ---------------------------------------------------------------------------
 
 	/**
 	 * Internal: set the resolved model reference.
 	 *
-	 * Called by `BHAI.createConversation()` / `BHAI.loadConversation()` after
+	 * Called by `BHZAI.createConversation()` / `BHZAI.loadConversation()` after
 	 * model resolution completes. Not part of the public interface.
 	 *
 	 * @internal
@@ -705,7 +705,7 @@ export class BHAIConversationImpl implements BHAIConversation {
 	 */
 	_restoreFromSnapshot(params: {
 		id: string
-		messages: BHAIMessage[]
+		messages: BHZAIMessage[]
 		meta: Record<string, unknown>
 		usage: { inputTokens: number; outputTokens: number }
 	}): void {
@@ -730,7 +730,7 @@ export class BHAIConversationImpl implements BHAIConversation {
 	/**
 	 * Internal: fire the `conversation.created` event.
 	 *
-	 * Called by `BHAI.createConversation()` after constructing the conversation.
+	 * Called by `BHZAI.createConversation()` after constructing the conversation.
 	 * Uses the shared mirroring mechanism so both conversation-scoped and
 	 * framework-level handlers observe the event.
 	 *
@@ -743,7 +743,7 @@ export class BHAIConversationImpl implements BHAIConversation {
 	/**
 	 * Internal: fire the `conversation.loaded` event.
 	 *
-	 * Called by `BHAI.loadConversation()` after loading from snapshot.
+	 * Called by `BHZAI.loadConversation()` after loading from snapshot.
 	 * Uses the shared mirroring mechanism.
 	 *
 	 * @internal
@@ -817,7 +817,7 @@ export class BHAIConversationImpl implements BHAIConversation {
 	 *
 	 * @internal
 	 */
-	_prependMessages(messages: BHAIMessage[]): void {
+	_prependMessages(messages: BHZAIMessage[]): void {
 		this._messages.unshift(...messages)
 	}
 
@@ -853,14 +853,14 @@ export class BHAIConversationImpl implements BHAIConversation {
 	}
 
 	/**
-	 * Internal: get the owning BHAI instance.
+	 * Internal: get the owning BHZAI instance.
 	 *
-	 * Returns the BHAI instance passed to the constructor. Used by TASK_0025's
+	 * Returns the BHZAI instance passed to the constructor. Used by TASK_0025's
 	 * agent loop to access the tool registry, driver registry, and model listing.
 	 *
 	 * @internal
 	 */
-	_getBh(): BHAI {
+	_getBh(): BHZAI {
 		return this.bh
 	}
 
@@ -895,7 +895,7 @@ export class BHAIConversationImpl implements BHAIConversation {
 	 *
 	 * @internal
 	 */
-	_pushMessage(message: BHAIMessage): void {
+	_pushMessage(message: BHZAIMessage): void {
 		this._messages.push(message)
 	}
 
@@ -932,7 +932,7 @@ export class BHAIConversationImpl implements BHAIConversation {
 	 */
 	_pushSteerQueue(entry: {
 		content: string | ContentBlock[]
-		resolve: (msg: BHAIMessage) => void
+		resolve: (msg: BHZAIMessage) => void
 		reject: (err: unknown) => void
 	}): void {
 		this._steerQueue.push(entry)
@@ -958,7 +958,7 @@ export class BHAIConversationImpl implements BHAIConversation {
 	 */
 	_pushFollowUpQueue(entry: {
 		content: string | ContentBlock[]
-		resolve: (msg: BHAIMessage) => void
+		resolve: (msg: BHZAIMessage) => void
 		reject: (err: unknown) => void
 	}): void {
 		this._followUpQueue.push(entry)
@@ -974,7 +974,7 @@ export class BHAIConversationImpl implements BHAIConversation {
 	_dequeueOneFollowUp():
 		| {
 				content: string | ContentBlock[]
-				resolve: (msg: BHAIMessage) => void
+				resolve: (msg: BHZAIMessage) => void
 				reject: (err: unknown) => void
 		  }
 		| undefined {
@@ -1014,7 +1014,7 @@ export class BHAIConversationImpl implements BHAIConversation {
 	 * @param message The message to insert.
 	 * @internal
 	 */
-	_insertMessageAt(index: number, message: BHAIMessage): void {
+	_insertMessageAt(index: number, message: BHZAIMessage): void {
 		this._messages.splice(index, 0, message)
 	}
 

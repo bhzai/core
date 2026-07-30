@@ -1,6 +1,6 @@
 # Shared Types (`src/types/`)
 
-Documentation for BHAI's cross-cutting TypeScript type declarations.
+Documentation for BHZAI's cross-cutting TypeScript type declarations.
 Architecture references: ARCHITECTURE.md §§ 9.1, 10.1, 10.5, 11.1, 8.4.
 
 ## Overview
@@ -20,7 +20,7 @@ package barrel, which re-exports this file).
 
 - `JSONSchema` — loose type alias for a JSON Schema (2020-12 dialect):
   `Record<string, unknown>`. A fully-typed JSON Schema AST is out of
-  scope for BHAI's MVP; downstream code that needs to inspect specific
+  scope for BHZAI's MVP; downstream code that needs to inspect specific
   keywords (e.g. TASK_0006's `default` keyword lookup) narrows locally.
 - `ContentBlock` — discriminated union on `type`:
   - `{ type: 'text'; text: string }`
@@ -33,14 +33,14 @@ package barrel, which re-exports this file).
 
 ### `message.ts` (TASK_0002)
 
-- `BHAIMessageExtensions` — the open extension point of the message
+- `BHZAIMessageExtensions` — the open extension point of the message
   contract. Plugins declare a field at runtime with
   `bh.defineMessageField(name)` (a non-enumerable accessor over
   `message.meta`) and declare its type here by module augmentation:
 
   ```ts
-  declare module "@lucasschirm/bhai" {
-    interface BHAIMessageExtensions {
+  declare module "@bhzai/core" {
+    interface BHZAIMessageExtensions {
       sentiment?: "positive" | "negative"
     }
   }
@@ -52,11 +52,11 @@ package barrel, which re-exports this file).
   optional, since a message only carries a field once the owning plugin
   has registered it. Core ships one member, `think?: string`, backing
   `CreateConversationOptions.parseThink`.
-- `BHAIMessage` — `{ id, role, content, blocks, time, meta, append(text),
+- `BHZAIMessage` — `{ id, role, content, blocks, time, meta, append(text),
   setContent(content) }` (§ 11.1). The full conversation interface is
   TASK_0023's; this task supplies only the message shape and the
   standalone `ConversationStatus` union. Extends
-  `BHAIMessageExtensions`.
+  `BHZAIMessageExtensions`.
 - `ConversationStatus` — `'idle' | 'streaming' | 'waiting-tool' |
   'compacting' | 'aborted' | 'error'`.
 
@@ -81,7 +81,7 @@ package barrel, which re-exports this file).
   signal }`.
 - `ToolWireDefinition` — the raw MCP `Tool` wire shape (used when
   bridging remote MCP tools into the local registry).
-- `BHAIDriver` — added by TASK_0009 on TASK_0002's behalf (see the
+- `BHZAIDriver` — added by TASK_0009 on TASK_0002's behalf (see the
   file-header coordination note). See `drivers.md`.
 
 ### `events.ts` (TASK_0002)
@@ -92,7 +92,7 @@ package barrel, which re-exports this file).
 
 ### `tool.ts` (TASK_0008, added on TASK_0002's behalf)
 
-- `BHAIToolDefinition` — a BHAI tool definition IS an MCP `Tool` object
+- `BHZAIToolDefinition` — a BHZAI tool definition IS an MCP `Tool` object
   plus a local `execute` binding (§ 9.1). Required: `name`,
   `description`, `inputSchema`, `execute`. Optional: `annotations`,
   `outputSchema`, `_meta`.
@@ -103,13 +103,13 @@ package barrel, which re-exports this file).
   as `{ content: [{ type: 'text', text }] }`.
 - `ToolFilter` — predicate for `listTools(filter?)`.
 - `Icon`, `ToolAnnotations` — MCP-spec passthrough fields.
-- `BHAIConversation` — opaque placeholder; refined by TASK_0023.
+- `BHZAIConversation` — opaque placeholder; refined by TASK_0023.
 
 ### `command.ts` (TASK_0010, added on TASK_0002's behalf)
 
-- `BHAICommandDefinition` — `{ description, handler(args, ctx),
+- `BHZAICommandDefinition` — `{ description, handler(args, ctx),
   complete?(prefix) }`. See `command-registry.md`.
-- `BHAICommandContext` — `{ conversation?, signal? }`.
+- `BHZAICommandContext` — `{ conversation?, signal? }`.
 
 ### `mcp.ts` (TASK_0011, added on TASK_0002's behalf)
 
@@ -121,7 +121,7 @@ package barrel, which re-exports this file).
 - **No runtime logic**: if a file under `src/types/` needs to export a
   value, it belongs elsewhere.
 - **Field names match the spec verbatim** for MCP wire-compatibility
-  (§ 9.1: a BHAI tool definition _is_ an MCP `Tool`).
+  (§ 9.1: a BHZAI tool definition _is_ an MCP `Tool`).
 - **`unknown` over `any`**: driver/tool-specific fields whose concrete
   shape isn't knowable at this layer use `unknown`.
 - **Cross-task coordination**: if a later task needs a type TASK_0002

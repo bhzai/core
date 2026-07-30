@@ -39,7 +39,7 @@ jobs:
         run: pnpm run build
 
       - name: Build example site
-        run: pnpm --filter bhai-example run build
+        run: pnpm --filter bhzai-example run build
         env:
           GITHUB_PAGES: "true"
 

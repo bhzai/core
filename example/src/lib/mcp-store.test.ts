@@ -56,20 +56,20 @@ describe("loadServers / saveServers", () => {
 	})
 
 	it("returns an empty list for corrupt JSON rather than throwing", () => {
-		const storage = fakeStorage({ "bhai.mcp.servers": "{not json" })
+		const storage = fakeStorage({ "bhzai.mcp.servers": "{not json" })
 		expect(loadServers(storage)).toEqual([])
 	})
 
 	it("discards a payload from an unknown schema version", () => {
 		const storage = fakeStorage({
-			"bhai.mcp.servers": JSON.stringify({ v: 99, servers: [{ url: "https://a.example/mcp" }] }),
+			"bhzai.mcp.servers": JSON.stringify({ v: 99, servers: [{ url: "https://a.example/mcp" }] }),
 		})
 		expect(loadServers(storage)).toEqual([])
 	})
 
 	it("discards entries with no usable url", () => {
 		const storage = fakeStorage({
-			"bhai.mcp.servers": JSON.stringify({
+			"bhzai.mcp.servers": JSON.stringify({
 				v: 1,
 				servers: [{ url: "https://ok.example/mcp" }, { name: "no url" }, null, { url: "" }],
 			}),

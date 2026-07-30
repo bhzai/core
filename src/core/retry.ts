@@ -1,6 +1,6 @@
 // Transport retry policy & request lifecycle events (ARCHITECTURE.md § 10.1,
 // § 8.1, § 8.5). This module sits between the agent loop (TASK_0025+) and any
-// `BHAIDriver.chat()` call, retrying only transient transport failures and
+// `BHZAIDriver.chat()` call, retrying only transient transport failures and
 // emitting the `request` lifecycle event (`before` → `retry`* → `after`) so
 // hosts can observe and patch outgoing driver calls.
 //
@@ -26,13 +26,13 @@
 // function for testability). No Node built-ins, no DOM, no imports from
 // `src/plugins/**`.
 //
-// PATH NOTE: TASK_0018 specifies `bhai/src/kernel/retry.ts`, but the package
+// PATH NOTE: TASK_0018 specifies `bhzai/src/kernel/retry.ts`, but the package
 // layout already established by TASK_0002/TASK_0003 places the kernel under
 // `src/core/` (see `src/core/index.ts` and the `./core` subpath export in
 // `package.json`). This file follows the existing repo convention; the
 // behavioral contract is unchanged.
 
-import type { BHAIDriver, ChatRequest, DriverEvent, EmitResult } from "../types/index.js"
+import type { BHZAIDriver, ChatRequest, DriverEvent, EmitResult } from "../types/index.js"
 
 /**
  * The dispatch primitive this module uses to fire the reserved `request`
@@ -68,7 +68,7 @@ export type RequestDispatch = (
  *   `{ payload }` shape).
  * - `state: 'after'` — fired once after the call settles (success or final
  *   failure); `status` is `'ok'` or `'error'`. `headers` is `undefined` for
- *   both bundled drivers since the `BHAIDriver` interface does not surface
+ *   both bundled drivers since the `BHZAIDriver` interface does not surface
  *   raw HTTP headers; a future driver plugin with real HTTP semantics may
  *   populate it.
  */
@@ -269,7 +269,7 @@ export function isRetriableError(error: unknown): boolean {
 }
 
 /**
- * Wrap a `BHAIDriver.chat()` call with transport retry policy and `request`
+ * Wrap a `BHZAIDriver.chat()` call with transport retry policy and `request`
  * lifecycle events (§ 10.1, § 8.5 step 8.2).
  *
  * Behavior:
@@ -333,7 +333,7 @@ export function isRetriableError(error: unknown): boolean {
  * @param delay Optional override of the delay function (for tests).
  */
 export async function* callDriverWithRetry(
-	driver: BHAIDriver,
+	driver: BHZAIDriver,
 	request: ChatRequest,
 	policy: RetryPolicy,
 	dispatch: RequestDispatch,

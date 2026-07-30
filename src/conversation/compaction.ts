@@ -1,9 +1,9 @@
 /** @file Compaction pipeline — context-window summarization and folding (TASK_0031) */
 
 import type { EmitResult } from "../types/events.js"
-import type { BHAIMessage } from "../types/message.js"
+import type { BHZAIMessage } from "../types/message.js"
 import { effectiveContextMessages } from "./agent-loop.js"
-import type { BHAIConversationImpl } from "./conversation.js"
+import type { BHZAIConversationImpl } from "./conversation.js"
 import { createMessage } from "./message.js"
 
 /**
@@ -45,7 +45,7 @@ const DEFAULT_KEEP_COUNT = 4
  */
 export type CompleteFn = (req: {
 	systemPrompt?: string
-	messages: BHAIMessage[]
+	messages: BHZAIMessage[]
 }) => Promise<{ text: string; usage?: { inputTokens: number; outputTokens: number } }>
 
 /**
@@ -55,9 +55,9 @@ export type CompleteFn = (req: {
  * Extends with optional patch fields that handlers may return during `before` state.
  */
 export interface CompactEventPayload {
-	conversation: BHAIConversationImpl
+	conversation: BHZAIConversationImpl
 	prompt: string
-	foldedMessages: BHAIMessage[]
+	foldedMessages: BHZAIMessage[]
 	summary: string | undefined
 	keepFrom: number
 	source: "manual" | "auto" | "emit"
@@ -100,7 +100,7 @@ export interface CompactEventPayload {
  * @internal
  */
 export async function runCompactionPipeline(
-	conversation: BHAIConversationImpl,
+	conversation: BHZAIConversationImpl,
 	source: "manual" | "auto" | "emit",
 	options: CompactOptions | undefined,
 	completeFn?: CompleteFn,
@@ -188,7 +188,7 @@ export async function runCompactionPipeline(
 		} as CompactEventPayload)
 
 		// Call the complete function (mocked in tests, real TASK_0032 later)
-		const defaultComplete = async (req: { systemPrompt?: string; messages: BHAIMessage[] }) => {
+		const defaultComplete = async (req: { systemPrompt?: string; messages: BHZAIMessage[] }) => {
 			// Stub: if no real complete() is injected, throw
 			// In real usage, this is replaced by the genuine bh.complete()
 			throw new Error(
@@ -204,7 +204,7 @@ export async function runCompactionPipeline(
 	}
 
 	// Insert the summary message at the fold point (immediately before the first retained message).
-	const summaryMessage: BHAIMessage = createMessage(
+	const summaryMessage: BHZAIMessage = createMessage(
 		{
 			role: "system",
 			content: summary,
@@ -251,7 +251,7 @@ export async function runCompactionPipeline(
  * @internal
  */
 export async function compact(
-	conversation: BHAIConversationImpl,
+	conversation: BHZAIConversationImpl,
 	options?: CompactOptions,
 	completeFn?: CompleteFn,
 ): Promise<void> {
@@ -282,7 +282,7 @@ export async function compact(
  * @internal
  */
 export async function compactViaEmit(
-	conversation: BHAIConversationImpl,
+	conversation: BHZAIConversationImpl,
 	options?: CompactOptions,
 	completeFn?: CompleteFn,
 ): Promise<void> {
@@ -310,7 +310,7 @@ export async function compactViaEmit(
  * @internal
  */
 export async function compactAuto(
-	conversation: BHAIConversationImpl,
+	conversation: BHZAIConversationImpl,
 	completeFn?: CompleteFn,
 ): Promise<void> {
 	// Same logic as compact() — resolve completeFn to bh.complete() if not provided.

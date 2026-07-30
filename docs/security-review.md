@@ -1,10 +1,10 @@
-# BHAI Security Review
+# BHZAI Security Review
 
 **Date**: 2026-07-20  
 **Scope**: ARCHITECTURE.md § 13 (Security considerations) — 5 bullets, 1 entry per bullet  
 **Task**: TASK_0041  
 
-This document audits the BHAI kernel's compliance with the five security commitments stated in ARCHITECTURE.md § 13, one entry per bullet. Each entry states whether the commitment is verified by an existing passing test, or filed as a gap against an earlier task that should have covered it.
+This document audits the BHZAI kernel's compliance with the five security commitments stated in ARCHITECTURE.md § 13, one entry per bullet. Each entry states whether the commitment is verified by an existing passing test, or filed as a gap against an earlier task that should have covered it.
 
 ---
 
@@ -12,9 +12,9 @@ This document audits the BHAI kernel's compliance with the five security commitm
 
 - **Requirement (one line)**: Plugins run with full host privileges; there is no sandbox; this fact must be documented loudly in user-facing materials.
 - **Status**: gap
-- **Gap details**: README.md and `BHAI.use()`'s TSDoc comment in `src/core/bhai.ts` do not yet contain an explicit statement that "plugins run with full host privileges, no sandbox." This is a documentation gap, not a code gap — the absence of sandboxing is trivially true by construction, but users must be told this explicitly to understand their threat model. Filed against `TASK_0043` (README and core documentation), which has not run as of this audit. `TASK_0043` should add the following statement (or equivalent) to both:
+- **Gap details**: README.md and `BHZAI.use()`'s TSDoc comment in `src/core/bhzai.ts` do not yet contain an explicit statement that "plugins run with full host privileges, no sandbox." This is a documentation gap, not a code gap — the absence of sandboxing is trivially true by construction, but users must be told this explicitly to understand their threat model. Filed against `TASK_0043` (README and core documentation), which has not run as of this audit. `TASK_0043` should add the following statement (or equivalent) to both:
   - In `README.md`: "⚠️ **Security**: Plugins run with full host privileges. Hosts must gate what they `use()` — the framework provides no sandbox."
-  - In `BHAI.use()`'s TSDoc: "Plugins run with the host's full privileges and are not sandboxed."
+  - In `BHZAI.use()`'s TSDoc: "Plugins run with the host's full privileges and are not sandboxed."
 
 ---
 
@@ -32,7 +32,7 @@ This document audits the BHAI kernel's compliance with the five security commitm
 
 ## 3. "The tool executor is the security boundary"
 
-- **Requirement (one line)**: BHAI validates tool parameters against JSON Schema, enforces timeouts and abort propagation; who may call what is enforced inside `execute()` and via the availability seam (§ 9.5).
+- **Requirement (one line)**: BHZAI validates tool parameters against JSON Schema, enforces timeouts and abort propagation; who may call what is enforced inside `execute()` and via the availability seam (§ 9.5).
 - **Status**: verified
 - **Proof (parameter validation)**: `src/conversation/tool-execution.test.ts` — test "tool input validation failure produces isError result" (line 698) — verifies that a tool call with parameters not satisfying `inputSchema` is rejected with an `isError: true` result and `execute()` is never called. PASSES.
 - **Proof (abort enforcement)**: `src/conversation/loop-termination.test.ts` — Test 7 "conversation.abort() mid-tool-call drives that call to error state + fires abort event" (line 345) — verifies that when `conversation.abort()` is called mid-execution, the tool's `AbortSignal` is used to cancel the call, driving it to error state and firing an `abort` event. PASSES.
@@ -63,7 +63,7 @@ This document audits the BHAI kernel's compliance with the five security commitm
 
 **All 5 bullets:** 4 verified (bullets 2, 3, 4, 5), 1 gap (bullet 1).
 
-**Gap filed against TASK_0043 (README and documentation)**: Explicit "plugins are trusted / no sandbox" statement required in both README.md and `BHAI.use()`'s TSDoc.
+**Gap filed against TASK_0043 (README and documentation)**: Explicit "plugins are trusted / no sandbox" statement required in both README.md and `BHZAI.use()`'s TSDoc.
 
 **Tests added in this audit**:
 - `src/tools/no-eval.test.ts` (3 tests): static regression checks for `eval()`, `new Function()`, and dynamic-string callbacks — no dynamic code evaluation appears in non-test source.

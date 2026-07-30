@@ -1,6 +1,6 @@
 /** @file The MCP servers panel's list as a reusable Lit element. */
 
-import type { McpServerState } from "@lucasschirm/bhai/plugins/mcp"
+import type { McpServerState } from "@bhzai/core/plugins/mcp"
 import { LitElement, html } from "lit"
 import { customElement, property, state } from "lit/decorators.js"
 import { classMap } from "lit/directives/class-map.js"
@@ -20,13 +20,13 @@ type SortKey = "name" | "status"
  * Rendered in the light DOM so the host page's global styles (and CSS variables)
  * continue to drive its appearance.
  *
- * @fires bhai-refresh - A server's refresh button was clicked. Detail: `{ id: string }`.
- * @fires bhai-retry - A server's retry button was clicked. Detail: `{ id: string }`.
- * @fires bhai-remove - A server's remove button was clicked. Detail: `{ id: string }`.
- * @fires bhai-show-error - A server's error-inspection button was clicked. Detail: `{ id: string }`.
+ * @fires bhzai-refresh - A server's refresh button was clicked. Detail: `{ id: string }`.
+ * @fires bhzai-retry - A server's retry button was clicked. Detail: `{ id: string }`.
+ * @fires bhzai-remove - A server's remove button was clicked. Detail: `{ id: string }`.
+ * @fires bhzai-show-error - A server's error-inspection button was clicked. Detail: `{ id: string }`.
  */
-@customElement("bhai-mcp-server-list")
-export class BhaiMcpServerList extends LitElement {
+@customElement("bhzai-mcp-server-list")
+export class BhzaiMcpServerList extends LitElement {
 	override createRenderRoot() {
 		return this
 	}
@@ -91,10 +91,10 @@ export class BhaiMcpServerList extends LitElement {
 						(state) => state.id,
 						(state) =>
 							html`
-								<bhai-mcp-server-card
+								<bhzai-mcp-server-card
 									class="mcp-server"
 									.state=${state}
-								></bhai-mcp-server-card>
+								></bhzai-mcp-server-card>
 							`,
 					)}
 				</div>
@@ -156,6 +156,6 @@ export class BhaiMcpServerList extends LitElement {
 
 declare global {
 	interface HTMLElementTagNameMap {
-		"bhai-mcp-server-list": BhaiMcpServerList
+		"bhzai-mcp-server-list": BhzaiMcpServerList
 	}
 }

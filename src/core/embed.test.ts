@@ -1,14 +1,14 @@
 /** @file Tests for TASK_0033: `embed()` embedding side channel */
 
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import type { BHAIDriver, ChatRequest, DriverEvent } from "../types/driver.js"
+import type { BHZAIDriver, ChatRequest, DriverEvent } from "../types/driver.js"
 import type { DriverCapabilities, ModelInfo } from "../types/model.js"
-import { BHAI } from "./bhai.js"
+import { BHZAI } from "./bhzai.js"
 import { type EmbedRequest, embed } from "./embed.js"
 import { AmbiguousModelError, NoModelError } from "./models.js"
 
 /**
- * Helper: create a minimal mock BHAIDriver with customizable `capabilities()`,
+ * Helper: create a minimal mock BHZAIDriver with customizable `capabilities()`,
  * `embed()`, and `chat()` methods for testing the embedding side channel.
  */
 function makeMockDriver(
@@ -22,7 +22,7 @@ function makeMockDriver(
 			signal?: AbortSignal
 		}) => Promise<{ embeddings: number[][]; usage?: { inputTokens: number; outputTokens: number } }>
 	},
-): BHAIDriver {
+): BHZAIDriver {
 	return {
 		id: driverId,
 		listModels: async () => [
@@ -55,10 +55,10 @@ function makeMockDriver(
 }
 
 /**
- * Helper: create a BHAI instance with registered drivers, ready for testing.
+ * Helper: create a BHZAI instance with registered drivers, ready for testing.
  */
-function setupBhai(...drivers: BHAIDriver[]): BHAI {
-	const bh = new BHAI()
+function setupbhzai(...drivers: BHZAIDriver[]): BHZAI {
+	const bh = new BHZAI()
 	for (const driver of drivers) {
 		bh.addDriver(driver)
 	}
@@ -76,7 +76,7 @@ describe("embed() — embedding side channel", () => {
 					embeddings: false,
 				},
 			})
-			const bh = setupBhai(driver)
+			const bh = setupbhzai(driver)
 			await bh.init()
 
 			await expect(
@@ -99,7 +99,7 @@ describe("embed() — embedding side channel", () => {
 					// embeddings intentionally omitted
 				},
 			})
-			const bh = setupBhai(driver)
+			const bh = setupbhzai(driver)
 			await bh.init()
 
 			await expect(
@@ -122,7 +122,7 @@ describe("embed() — embedding side channel", () => {
 					embeddings: false,
 				},
 			})
-			const bh = setupBhai(driver)
+			const bh = setupbhzai(driver)
 			await bh.init()
 
 			try {
@@ -155,7 +155,7 @@ describe("embed() — embedding side channel", () => {
 					usage: { inputTokens: 3, outputTokens: 0 },
 				})),
 			})
-			const bh = setupBhai(driver)
+			const bh = setupbhzai(driver)
 			await bh.init()
 
 			const result = await bh.embed({
@@ -181,7 +181,7 @@ describe("embed() — embedding side channel", () => {
 				},
 				embed: embedFn,
 			})
-			const bh = setupBhai(driver)
+			const bh = setupbhzai(driver)
 			await bh.init()
 
 			await bh.embed({
@@ -212,7 +212,7 @@ describe("embed() — embedding side channel", () => {
 					embeddings: [[1, 2, 3]],
 				}),
 			})
-			const bh = setupBhai(driver)
+			const bh = setupbhzai(driver)
 			await bh.init()
 
 			const result = await bh.embed({
@@ -236,7 +236,7 @@ describe("embed() — embedding side channel", () => {
 					embeddings: [[5]],
 				}),
 			})
-			const bh = setupBhai(driver)
+			const bh = setupbhzai(driver)
 			await bh.init()
 
 			const result = await bh.embed({
@@ -272,7 +272,7 @@ describe("embed() — embedding side channel", () => {
 				},
 				embed: embedFn,
 			})
-			const bh = setupBhai(driver)
+			const bh = setupbhzai(driver)
 			await bh.init()
 
 			const result = await bh.embed({
@@ -310,7 +310,7 @@ describe("embed() — embedding side channel", () => {
 					],
 				}),
 			})
-			const bh = setupBhai(driver)
+			const bh = setupbhzai(driver)
 			await bh.init()
 
 			const result = await bh.embed({
@@ -335,7 +335,7 @@ describe("embed() — embedding side channel", () => {
 				// Intentionally omit embed implementation
 				embed: undefined,
 			})
-			const bh = setupBhai(driver)
+			const bh = setupbhzai(driver)
 			await bh.init()
 
 			// Verify it's the distinct internal-consistency error, not a generic TypeError.
@@ -369,7 +369,7 @@ describe("embed() — embedding side channel", () => {
 				},
 				embed: undefined,
 			})
-			const bh = setupBhai(driver)
+			const bh = setupbhzai(driver)
 			await bh.init()
 
 			try {
@@ -410,7 +410,7 @@ describe("embed() — embedding side channel", () => {
 			// Replace capabilities with a spy.
 			driver.capabilities = capabilitiesFn
 
-			const bh = setupBhai(driver)
+			const bh = setupbhzai(driver)
 			await bh.init()
 
 			const controller = new AbortController()
@@ -430,7 +430,7 @@ describe("embed() — embedding side channel", () => {
 		})
 
 		it("does not resolve model if signal is already aborted", async () => {
-			const bh = new BHAI()
+			const bh = new BHZAI()
 			await bh.init()
 
 			const controller = new AbortController()
@@ -467,7 +467,7 @@ describe("embed() — embedding side channel", () => {
 				},
 			})
 
-			const bh = setupBhai(driver1, driver2)
+			const bh = setupbhzai(driver1, driver2)
 			await bh.init()
 
 			// Trying to use the bare model id should fail with AmbiguousModelError,
@@ -504,7 +504,7 @@ describe("embed() — embedding side channel", () => {
 				}),
 			})
 
-			const bh = setupBhai(driver1, driver2)
+			const bh = setupbhzai(driver1, driver2)
 			await bh.init()
 
 			// Qualified ref should succeed with driver1's embedding.
@@ -517,7 +517,7 @@ describe("embed() — embedding side channel", () => {
 		})
 
 		it("throws NoModelError when no model can be resolved", async () => {
-			const bh = new BHAI()
+			const bh = new BHZAI()
 			await bh.init()
 
 			// No drivers registered, no default model.
@@ -542,7 +542,7 @@ describe("embed() — embedding side channel", () => {
 					embeddings: [[1, 2, 3]],
 				}),
 			})
-			const bh = new BHAI({ defaultModel: "d/default-model" })
+			const bh = new BHZAI({ defaultModel: "d/default-model" })
 			bh.addDriver(driver)
 			await bh.init()
 
@@ -569,7 +569,7 @@ describe("embed() — embedding side channel", () => {
 					usage: { inputTokens: 5, outputTokens: 1 },
 				}),
 			})
-			const bh = setupBhai(driver)
+			const bh = setupbhzai(driver)
 			await bh.init()
 
 			const result = await bh.embed({
@@ -593,7 +593,7 @@ describe("embed() — embedding side channel", () => {
 					// No usage provided
 				}),
 			})
-			const bh = setupBhai(driver)
+			const bh = setupbhzai(driver)
 			await bh.init()
 
 			const result = await bh.embed({
@@ -617,7 +617,7 @@ describe("embed() — embedding side channel", () => {
 					embeddings: [[1]],
 				}),
 			})
-			const bh = setupBhai(driver)
+			const bh = setupbhzai(driver)
 			await bh.init()
 
 			const result = await bh.embed({
@@ -645,7 +645,7 @@ describe("embed() — embedding side channel", () => {
 				},
 				embed: embedFn,
 			})
-			const bh = setupBhai(driver)
+			const bh = setupbhzai(driver)
 			await bh.init()
 
 			const signal = new AbortController().signal
@@ -676,7 +676,7 @@ describe("embed() — embedding side channel", () => {
 				},
 				embed: embedFn,
 			})
-			const bh = setupBhai(driver)
+			const bh = setupbhzai(driver)
 			await bh.init()
 
 			await bh.embed({
@@ -706,7 +706,7 @@ describe("embed() — embedding side channel", () => {
 					embeddings: [[1, 2, 3]],
 				}),
 			})
-			const bh = setupBhai(driver)
+			const bh = setupbhzai(driver)
 			await bh.init()
 
 			// Call as instance method
@@ -718,7 +718,7 @@ describe("embed() — embedding side channel", () => {
 			expect(result.embeddings).toEqual([[1, 2, 3]])
 		})
 
-		it("exported embed() function works when passed BHAI instance explicitly", async () => {
+		it("exported embed() function works when passed BHZAI instance explicitly", async () => {
 			const driver = makeMockDriver("d", "m", {
 				capabilities: {
 					streaming: true,
@@ -730,7 +730,7 @@ describe("embed() — embedding side channel", () => {
 					embeddings: [[5, 6]],
 				}),
 			})
-			const bh = setupBhai(driver)
+			const bh = setupbhzai(driver)
 			await bh.init()
 
 			// Call the exported function directly with defaultModel undefined
@@ -757,7 +757,7 @@ describe("embed() — embedding side channel", () => {
 					throw testError
 				},
 			})
-			const bh = setupBhai(driver)
+			const bh = setupbhzai(driver)
 			await bh.init()
 
 			await expect(

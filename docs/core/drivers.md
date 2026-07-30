@@ -1,11 +1,11 @@
 # Driver Registry (`src/core/drivers.ts`)
 
-Documentation for the BHAI driver registry. Architecture reference:
+Documentation for the BHZAI driver registry. Architecture reference:
 ARCHITECTURE.md § 10.1.
 
 ## Overview
 
-The `DriverRegistry` stores `BHAIDriver` instances keyed by `id`. It is
+The `DriverRegistry` stores `BHZAIDriver` instances keyed by `id`. It is
 the kernel-side store of model-provider drivers (WebLLM, Ollama, or any
 future provider). It does **not** implement any actual driver — those
 are TASK_0019 (WebLLM) and TASK_0020 (Ollama). It implements the registry
@@ -15,9 +15,9 @@ catalogues.
 ## Public API
 
 ```typescript
-import { BHAI, type BHAIDriver, type ModelInfo } from "@lucasschirm/bhai";
+import { BHZAI, type BHZAIDriver, type ModelInfo } from "@bhzai/core";
 
-const bh = new BHAI();
+const bh = new BHZAI();
 
 bh.addDriver({
   id: "webllm",
@@ -30,10 +30,10 @@ bh.addDriver({
 const models = await bh.listModels(); // ModelInfo[] — merged across all drivers
 ```
 
-### `BHAIDriver` interface
+### `BHZAIDriver` interface
 
 ```typescript
-interface BHAIDriver {
+interface BHZAIDriver {
   id: string; // 'webllm', 'ollama', ...
   listModels(): Promise<ModelInfo[]>;
   capabilities(model: string): DriverCapabilities;
@@ -55,7 +55,7 @@ interface BHAIDriver {
 - `embed?` — optional. Only drivers whose
   `capabilities(model).embeddings === true` are expected to implement it.
 
-### `addDriver(driver: BHAIDriver): void`
+### `addDriver(driver: BHZAIDriver): void`
 
 Inserts (or replaces) the entry under `driver.id` and fires the
 `driver.registered` framework event with `{ driver }` (not blockable,

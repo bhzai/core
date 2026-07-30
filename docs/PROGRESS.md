@@ -1,6 +1,6 @@
-# BHAI Implementation Progress
+# BHZAI Implementation Progress
 
-Tracks the implementation status of each task in the BHAI framework build.
+Tracks the implementation status of each task in the BHZAI framework build.
 Source of truth for task files: `../tasks/` (parent repo).
 
 ## Legend
@@ -20,7 +20,7 @@ Source of truth for task files: `../tasks/` (parent repo).
 
 | Task | Title                                     | Status |
 | ---- | ----------------------------------------- | ------ |
-| 0003 | BHAI kernel class + `use()` (forms 1 & 2) | [x]    |
+| 0003 | BHZAI kernel class + `use()` (forms 1 & 2) | [x]    |
 | 0004 | Framework event bus                       | [x]    |
 | 0005 | Plugin lifecycle (init/dispose ordering)  | [x]    |
 | 0006 | Plugin configuration contract             | [x]    |
@@ -119,8 +119,8 @@ moves `<think>` parsing out of the WebLLM example and into the framework.
   installs a non-enumerable accessor over one key of `message.meta`, so a
   plugin field persists through the existing snapshot channel without
   appearing as a stray key in the wire shape.
-- **`src/types/message.ts`** — new `BHAIMessageExtensions`, the module-
-  augmentation target; `BHAIMessage` extends it. Ships one member, `think`.
+- **`src/types/message.ts`** — new `BHZAIMessageExtensions`, the module-
+  augmentation target; `BHZAIMessage` extends it. Ships one member, `think`.
 - **`src/conversation/message.ts`** (new) — `createMessage()`, now the single
   factory behind all four former construction sites (agent loop, system-prompt
   `prepend`, compaction summary, snapshot restore), plus `withMessageFields()`
@@ -146,7 +146,7 @@ the last phase of the v0.1 build. Summary:
 
 - **TASK_0039** — `src/plugins/interop/pi/index.ts`: `runPiExtension()`, a
   thin shim translating pi coding-agent extensions' `ExtensionAPI` onto real
-  BHAI kernel primitives (event bus, tool/command registries, config
+  BHZAI kernel primitives (event bus, tool/command registries, config
   contract, conversation surface). Implements all 15 non-`idle` rows of the
   §8.3 pi-column event-mapping table; TUI-bound calls (`ui`/`shortcuts`/
   `themes`/`session`) are recorded, call-site-specific no-ops. 9 tests in
@@ -158,14 +158,14 @@ the last phase of the v0.1 build. Summary:
   `runOpenCodePlugin()`, mapping an OpenCode-style plugin's returned hooks
   object (`tool`, `event`, `chat.message`/`chat.params`,
   `tool.execute.before`/`after`, `permission.ask`, `config`, `auth`) onto
-  BHAI primitives, including zod-like→JSON-Schema conversion via
+  BHZAI primitives, including zod-like→JSON-Schema conversion via
   `.toJSONSchema()` and `permission.ask` composing with (never bypassing)
   the same `tool(beforeCall)` seam every other approver uses. 7 tests in
   `opencode-adapter.test.ts`, including both directions of native-approver
   vs. `permission.ask` composition (spy-verified `execute` never runs in
   either blocking direction) and a real `resolveCredentials()` call proving
   tier-1 runtime credentials outrank the adapter's tier-2 `auth` hook.
-  **Also fixes GitHub issue #6**: `BHAI.init()` now registers
+  **Also fixes GitHub issue #6**: `BHZAI.init()` now registers
   `plugin.capabilities.tools` via `addTool()` at the start of `init()` (2
   new tests in `src/core/lifecycle.test.ts`).
 - **TASK_0041** — `docs/security-review.md`: audits all 5 ARCHITECTURE.md
@@ -187,8 +187,8 @@ the last phase of the v0.1 build. Summary:
   added (a real, runnable quickstart against a mocked Ollama HTTP layer,
   asserting genuinely non-empty response content); TSDoc pass over the
   public kernel API; closes the TASK_0041 bullet-1 gap (security callout
-  in the README + `BHAI.use()`'s TSDoc). **Also fixes GitHub issue #5**:
-  `BHAIConversationImpl.toJSON()` now delegates to `snapshot.ts`'s
+  in the README + `BHZAI.use()`'s TSDoc). **Also fixes GitHub issue #5**:
+  `BHZAIConversationImpl.toJSON()` now delegates to `snapshot.ts`'s
   `toSnapshot()` instead of inlining a duplicate copy.
 - **TASK_0044** — `docs/open-questions.md`: logs the 2 already-resolved
   ARCHITECTURE.md §16 items (decorator flavor, compaction summarizer
@@ -223,7 +223,7 @@ follow-up task.
 Conversations & the agent loop — see `docs/core/conversation.md` for the full
 writeup. Summary:
 
-- **TASK_0023** — `BHAIConversationImpl` (`src/conversation/conversation.ts`):
+- **TASK_0023** — `BHZAIConversationImpl` (`src/conversation/conversation.ts`):
   the conversation surface, its private mirrored `EventBus`, `bh.createConversation`/
   `bh.loadConversation`.
 - **TASK_0024** — `src/conversation/system-prompt.ts`: the `start` event,
@@ -236,7 +236,7 @@ writeup. Summary:
   opt-outs, original-call-order result reordering, validate-and-repair
   (`maxToolRepairs`, default 2).
 - **TASK_0027** — the bounded, multi-turn loop: `maxIterations` (default 8),
-  the universal `_meta['bhai/terminate']` hint, `turn(end)` veto via
+  the universal `_meta['BHZAI/terminate']` hint, `turn(end)` veto via
   `continueWith`, real `abort()` semantics via a shared root `AbortController`.
 - **TASK_0028** — `src/conversation/snapshot.ts`: the full versioned
   `{ v: 1, id, messages, model, params, usage, meta }` snapshot contract,
@@ -271,11 +271,11 @@ for full details. Summary:
   with a capability-guard pattern (throws if resolved driver lacks `embeddings`
   capability), input normalization (string → array), single-string and
   string-array arity support.
-- **TASK_0034** — `bh.getContributions<T>(key)` method added to `BHAI` class
-  in `src/core/bhai.ts`: generic multi-plugin accessor for registered capability
+- **TASK_0034** — `bh.getContributions<T>(key)` method added to `BHZAI` class
+  in `src/core/bhzai.ts`: generic multi-plugin accessor for registered capability
   contributions (e.g. `bh.getContributions<Retriever>('retriever')`), returns
   array in registration order, empty array for unregistered keys.
-- **TASK_0035** — `bh.dispose()` full teardown in `src/core/bhai.ts`:
+- **TASK_0035** — `bh.dispose()` full teardown in `src/core/bhzai.ts`:
   abort all live conversations (waits for idle), fire `dispose` event (before
   hooks per § 8.5), run plugin `dispose` hooks in reverse order, close every
   MCP session (via new optional `McpClientLike.close?()` in
@@ -309,7 +309,7 @@ green.
 ### TASK_0010: Command registry
 
 - `src/core/commands.ts` — `CommandRegistry` with `addCommand`/`listCommands`.
-- `src/types/command.ts` — `BHAICommandDefinition`, `BHAICommandContext`.
+- `src/types/command.ts` — `BHZAICommandDefinition`, `BHZAICommandContext`.
 - "Last registration wins" shadowing policy (consistent with tool/driver registries).
 - 9 tests in `src/core/commands.test.ts`.
 

@@ -2,15 +2,15 @@
 
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import "./providers-dialog.js"
-import type { BhaiProvidersDialog, ProviderViewState } from "./providers-dialog.js"
+import type { BhzaiProvidersDialog, ProviderViewState } from "./providers-dialog.js"
 
 /** A payload that becomes an element the moment it is parsed as HTML. */
 const XSS = '<img src=x onerror="globalThis.__pwned = true">'
 
 /** Build a providers-dialog fixture and wait for its first render. */
-async function fixture(): Promise<BhaiProvidersDialog> {
+async function fixture(): Promise<BhzaiProvidersDialog> {
 	document.body.innerHTML = ""
-	const dialog = document.createElement("bhai-providers-dialog") as BhaiProvidersDialog
+	const dialog = document.createElement("bhzai-providers-dialog") as BhzaiProvidersDialog
 	document.body.appendChild(dialog)
 	await dialog.updateComplete
 	return dialog
@@ -30,7 +30,7 @@ function sampleProviders(): ProviderViewState[] {
 	]
 }
 
-describe("BhaiProvidersDialog", () => {
+describe("BhzaiProvidersDialog", () => {
 	beforeEach(() => {
 		document.body.innerHTML = ""
 	})
@@ -127,14 +127,14 @@ describe("BhaiProvidersDialog", () => {
 		)
 	})
 
-	it("submitting the add form dispatches bhai-add-provider with the ollama type and baseUrl", async () => {
+	it("submitting the add form dispatches bhzai-add-provider with the ollama type and baseUrl", async () => {
 		const dialog = await fixture()
 		dialog.show()
 		dialog.showAddView()
 		await dialog.updateComplete
 
 		const spy = vi.fn()
-		dialog.addEventListener("bhai-add-provider", (event) => spy(event))
+		dialog.addEventListener("bhzai-add-provider", (event) => spy(event))
 
 		const urlInput = dialog.querySelector("input[name=api-url]") as HTMLInputElement
 		urlInput.value = "http://localhost:11434/api"

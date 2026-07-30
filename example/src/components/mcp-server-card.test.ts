@@ -1,25 +1,25 @@
 // @vitest-environment happy-dom
 
-import type { McpServerState } from "@lucasschirm/bhai/plugins/mcp"
+import type { McpServerState } from "@bhzai/core/plugins/mcp"
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { type BhaiMcpServerCard, SERVER_INDEX_KEYS } from "./mcp-server-card.js"
+import { type BhzaiMcpServerCard, SERVER_INDEX_KEYS } from "./mcp-server-card.js"
 
 /** A payload that becomes an element the moment it is parsed as HTML. */
 const XSS = '<img src=x onerror="globalThis.__pwned = true">'
 
 /** Handlers that record which action fired for which id. */
-function spyHandlers(card: BhaiMcpServerCard): { calls: string[] } {
+function spyHandlers(card: BhzaiMcpServerCard): { calls: string[] } {
 	const calls: string[] = []
-	card.addEventListener("bhai-refresh", (event) => {
+	card.addEventListener("bhzai-refresh", (event) => {
 		calls.push(`refresh:${(event as CustomEvent<{ id: string }>).detail.id}`)
 	})
-	card.addEventListener("bhai-retry", (event) => {
+	card.addEventListener("bhzai-retry", (event) => {
 		calls.push(`retry:${(event as CustomEvent<{ id: string }>).detail.id}`)
 	})
-	card.addEventListener("bhai-remove", (event) => {
+	card.addEventListener("bhzai-remove", (event) => {
 		calls.push(`remove:${(event as CustomEvent<{ id: string }>).detail.id}`)
 	})
-	card.addEventListener("bhai-show-error", (event) => {
+	card.addEventListener("bhzai-show-error", (event) => {
 		calls.push(`error:${(event as CustomEvent<{ id: string }>).detail.id}`)
 	})
 	return { calls }
@@ -39,9 +39,9 @@ function serverState(overrides: Partial<McpServerState> = {}): McpServerState {
 }
 
 /** Build a card fixture and wait for its first render. */
-async function fixture(state: McpServerState): Promise<BhaiMcpServerCard> {
+async function fixture(state: McpServerState): Promise<BhzaiMcpServerCard> {
 	document.body.innerHTML = ""
-	const card = document.createElement("bhai-mcp-server-card") as BhaiMcpServerCard
+	const card = document.createElement("bhzai-mcp-server-card") as BhzaiMcpServerCard
 	card.className = "mcp-server"
 	card.state = state
 	document.body.appendChild(card)
@@ -49,7 +49,7 @@ async function fixture(state: McpServerState): Promise<BhaiMcpServerCard> {
 	return card
 }
 
-describe("BhaiMcpServerCard", () => {
+describe("BhzaiMcpServerCard", () => {
 	beforeEach(() => {
 		document.body.innerHTML = ""
 	})

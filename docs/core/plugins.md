@@ -1,6 +1,6 @@
-# Plugin System (`src/core/bhai.ts`, `src/core/decorators.ts`, `src/core/lifecycle.ts`, `src/core/config.ts`)
+# Plugin System (`src/core/bhzai.ts`, `src/core/decorators.ts`, `src/core/lifecycle.ts`, `src/core/config.ts`)
 
-Documentation for BHAI's plugin model: the three accepted authoring forms,
+Documentation for BHZAI's plugin model: the three accepted authoring forms,
 the canonical normalization contract, lifecycle ordering, the config
 contract, and the TC39 stage-3 decorator form. Architecture reference:
 ARCHITECTURE.md § 7.
@@ -10,10 +10,10 @@ ARCHITECTURE.md § 7.
 Every plugin form normalizes to one internal shape:
 
 ```typescript
-interface BHAIPlugin {
+interface BHZAIPlugin {
   name: string;
-  setup(bh: BHAI): void | Promise<void>;
-  capabilities?: BHAIPluginCapabilities; // form 2 only
+  setup(bh: BHZAI): void | Promise<void>;
+  capabilities?: BHZAIPluginCapabilities; // form 2 only
 }
 ```
 
@@ -33,7 +33,7 @@ bh.use((bh) => {
 ```
 
 The function IS the plugin's `setup`. It runs immediately at `use()` time,
-receives the `BHAI` instance, and registers whatever capabilities it
+receives the `BHZAI` instance, and registers whatever capabilities it
 needs by calling kernel methods on that instance. The plugin name is
 derived from the function's `name` property (or `"anonymous"` if absent).
 
@@ -44,8 +44,8 @@ bh.use({
   name: "my-plugin",
   initialize: ({ bh }) => { /* ... */ },
   dispose: ({ bh }) => { /* ... */ },
-  tools: [/* BHAIToolDefinition[] */],
-  commands: { /* Record<string, BHAICommandDefinition> */ },
+  tools: [/* BHZAIToolDefinition[] */],
+  commands: { /* Record<string, BHZAICommandDefinition> */ },
   configSchema: { type: "object", properties: { /* ... */ } },
   modelSource: async () => [/* ModelInfo[] */],
 });
@@ -61,8 +61,8 @@ synchronously at `use()` time so typos like `initalize` fail fast):
 | `dispose` | TASK_0005 | runs during `bh.dispose()` |
 | `modelSource` | TASK_0015 | contributes `ModelInfo[]` to `listModels()` |
 | `getMcps` | TASK_0015 | returns `McpServerConfig[]` to attach |
-| `tools` | TASK_0008 | `BHAIToolDefinition[]` registered at `use()` time |
-| `commands` | TASK_0010 | `Record<string, BHAICommandDefinition>` |
+| `tools` | TASK_0008 | `BHZAIToolDefinition[]` registered at `use()` time |
+| `commands` | TASK_0010 | `Record<string, BHZAICommandDefinition>` |
 | `configSchema` | TASK_0006 | declares the plugin's config schema |
 | `auth` | TASK_0015 / § 10.4 | credential resolution hook |
 | `retriever` | future (§ 11.8) | RAG retrieval hook |
@@ -88,12 +88,12 @@ bh.use(new TaskListPlugin());
 Uses **TC39 stage-3 native decorators** only — NOT `experimentalDecorators`.
 `tsconfig.json` does not set `experimentalDecorators` or
 `emitDecoratorMetadata`. The `@Plugin` decorator stamps a
-`BHAI_PLUGIN_META` symbol on the class; `use()` detects form-3 instances
+`bhzai_PLUGIN_META` symbol on the class; `use()` detects form-3 instances
 by reading that symbol at runtime (not by structural typing).
 
 Decorators:
 
-- `@Plugin(name?)` — marks a class as a BHAI plugin. The decorated class
+- `@Plugin(name?)` — marks a class as a BHZAI plugin. The decorated class
   must satisfy the empty marker interface `BHPlugin`.
 - `@On(event)` — registers a method as an event handler on the framework
   bus. Runs during `setup()`.
@@ -128,24 +128,24 @@ values and do not constitute a "change" to a live config.
 
 Beyond tools, commands, and events, a plugin can attach typed per-message data.
 `bh.defineMessageField(name, { metaKey?, default? })` installs a non-enumerable
-accessor on every `BHAIMessage`, backed by a key in the message's `meta` bag —
+accessor on every `BHZAIMessage`, backed by a key in the message's `meta` bag —
 so the value persists with the conversation snapshot for free, and never leaks
 into the snapshot's wire shape as a stray top-level key.
 
 ```ts
 // Declare the type (merges through the package barrel).
-declare module "@lucasschirm/bhai" {
-  interface BHAIMessageExtensions {
+declare module "@bhzai/core" {
+  interface BHZAIMessageExtensions {
     sentiment?: "positive" | "negative"
   }
 }
 
-export const sentimentPlugin: BHAIPluginCapabilities = {
+export const sentimentPlugin: BHZAIPluginCapabilities = {
   name: "sentiment",
   initialize({ bh }) {
     bh.defineMessageField("sentiment")
     bh.on("conversation.message", (payload) => {
-      const { message, state } = payload as { message: BHAIMessage; state: string }
+      const { message, state } = payload as { message: BHZAIMessage; state: string }
       if (state === "sent") message.sentiment = classify(message.content)
     })
   },
@@ -153,7 +153,7 @@ export const sentimentPlugin: BHAIPluginCapabilities = {
 ```
 
 Field names are exclusive: registering one twice, or shadowing a structural
-member of `BHAIMessage`, throws. Namespace the storage with `metaKey` (e.g.
+member of `BHZAIMessage`, throws. Namespace the storage with `metaKey` (e.g.
 `{ metaKey: "acme:sentiment" }`) when several plugins might want the same
 public name.
 
@@ -166,7 +166,7 @@ TypeScript ≥ 5.0.
 
 ## Test coverage
 
-- `src/core/bhai.test.ts` (21 tests) — `use()` normalization for forms 1
+- `src/core/bhzai.test.ts` (21 tests) — `use()` normalization for forms 1
   & 2, capability-key allowlist, duplicate-name de-duplication.
 - `src/core/decorators.test.ts` (6 tests) — `@Plugin`/`@On`/`@Tool` form
   3 detection and registration.

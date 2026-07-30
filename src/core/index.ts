@@ -1,16 +1,16 @@
-// Core kernel barrel — populated by later tasks (kernel types, BHAI class,
+// Core kernel barrel — populated by later tasks (kernel types, BHZAI class,
 // Conversation, event bus, decorators; see ARCHITECTURE.md §§ 6-11).
 //
 // ENVIRONMENT BOUNDARY (§ 5): files under src/core/** depend only on web-standard
 // APIs (fetch, AbortController, ReadableStream/async iterables, crypto.randomUUID,
 // structuredClone). No Node built-ins, no DOM, no imports from src/plugins/**.
 export {
-	BHAI,
-	type BHAIHostOptions,
-	type BHAIPlugin,
-	type BHAIPluginCapabilities,
-	type BHAIPluginFactory,
-	type BHAIPluginLike,
+	BHZAI,
+	type BHZAIHostOptions,
+	type BHZAIPlugin,
+	type BHZAIPluginCapabilities,
+	type BHZAIPluginFactory,
+	type BHZAIPluginLike,
 	type ConfigChangedPayload,
 	type ModelAddedPayload,
 	type ModelChangedPayload,
@@ -18,7 +18,7 @@ export {
 	type ModelsChangedPayload,
 	type PluginContributions,
 	type PluginStatus,
-} from "./bhai.js"
+} from "./bhzai.js"
 export { CommandRegistry } from "./commands.js"
 // Open message-field contract — plugin-declared accessors over `message.meta`.
 export {
@@ -34,7 +34,7 @@ export {
 	type Handler,
 } from "./event-bus.js"
 export {
-	BHAI_PLUGIN_META,
+	BHZAI_PLUGIN_META,
 	Plugin,
 	On,
 	Tool,
@@ -55,10 +55,10 @@ export {
 	resolveModelSourceHooks,
 } from "./mcp-integration.js"
 // TASK_0023: Conversation surface — the primary object hosts and plugins interact with.
-// Note: BHAIConversation interface is exported from types/index.ts (via types/tool.ts);
+// Note: BHZAIConversation interface is exported from types/index.ts (via types/tool.ts);
 // only the implementation class is exported here.
 export {
-	BHAIConversationImpl,
+	BHZAIConversationImpl,
 	type CreateConversationOptions,
 	type ConversationSnapshot,
 } from "../conversation/conversation.js"
@@ -72,7 +72,7 @@ export {
 	toSnapshot,
 	fromSnapshot,
 } from "../conversation/snapshot.js"
-// The canonical message factory — every BHAIMessage in the system is built here.
+// The canonical message factory — every BHZAIMessage in the system is built here.
 export {
 	createMessage,
 	withMessageFields,

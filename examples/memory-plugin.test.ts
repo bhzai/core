@@ -1,18 +1,18 @@
 /** @file Tests for memory-plugin (TASK_0037) — agent-memory pattern integration tests */
 
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { BHAI } from "../src/core/bhai.js"
-import type { BHAIDriver, ChatRequest, DriverEvent } from "../src/types/driver.js"
-import type { BHAIMessage, MemoryRecord, MemoryStore } from "../src/types/index.js"
+import { BHZAI } from "../src/core/bhzai.js"
+import type { BHZAIDriver, ChatRequest, DriverEvent } from "../src/types/driver.js"
+import type { BHZAIMessage, MemoryRecord, MemoryStore } from "../src/types/index.js"
 import { memoryPlugin } from "./memory-plugin.js"
 
-/** Test-only type for accessing private methods on BHAI and BHAIConversation. */
-interface TestableBAHI extends BHAI {
-	_getTool(name: string): ReturnType<BHAI["_getTool"]>
+/** Test-only type for accessing private methods on BHZAI and BHZAIConversation. */
+interface TestableBAHI extends BHZAI {
+	_getTool(name: string): ReturnType<BHZAI["_getTool"]>
 }
 
 /** Test-only type for accessing private methods on conversation. */
-interface TestableBHAIConversation {
+interface TestablebhzaiConversation {
 	_dispatchConversationEvent<Payload>(
 		event: string,
 		payload: Payload,
@@ -20,18 +20,18 @@ interface TestableBHAIConversation {
 }
 
 /**
- * Helper: construct a minimal mock BHAIMessage.
+ * Helper: construct a minimal mock BHZAIMessage.
  *
  * @param role - Message role: 'user', 'assistant', 'system', or 'tool'
  * @param content - Message text content
  * @param overrides - Optional partial overrides for the message
- * @returns A complete BHAIMessage-shaped object
+ * @returns A complete BHZAIMessage-shaped object
  */
 function makeMessage(
 	role: "user" | "assistant" | "system" | "tool",
 	content: string,
-	overrides?: Partial<BHAIMessage>,
-): BHAIMessage {
+	overrides?: Partial<BHZAIMessage>,
+): BHZAIMessage {
 	return {
 		id: crypto.randomUUID(),
 		role,
@@ -46,14 +46,14 @@ function makeMessage(
 }
 
 /**
- * Helper: create a mock BHAIDriver that yields configurable responses.
+ * Helper: create a mock BHZAIDriver that yields configurable responses.
  *
  * @param responseYieldFn - Optional generator to customize driver responses per test
  * @returns A minimal mock driver with chat() as a vi.fn()
  */
 function makeMockDriver(
 	responseYieldFn?: (request: ChatRequest) => AsyncIterable<DriverEvent>,
-): BHAIDriver {
+): BHZAIDriver {
 	const defaultYield = async function* (): AsyncIterable<DriverEvent> {
 		yield { type: "delta", text: "response" }
 		yield { type: "usage", inputTokens: 10, outputTokens: 2 }
@@ -101,12 +101,12 @@ function makeMockMemoryStore(): MemoryStore {
 }
 
 describe("Memory Plugin (TASK_0037)", () => {
-	let bh: BHAI
+	let bh: BHZAI
 	let mockMemoryStore: MemoryStore
-	let mockDriver: BHAIDriver
+	let mockDriver: BHZAIDriver
 
 	beforeEach(async () => {
-		bh = new BHAI()
+		bh = new BHZAI()
 		mockMemoryStore = makeMockMemoryStore()
 		mockDriver = makeMockDriver()
 
@@ -150,7 +150,7 @@ describe("Memory Plugin (TASK_0037)", () => {
 			// Create a conversation to get access to its event bus.
 			const conversation = (await bh.createConversation({
 				model: "test-driver/test-model",
-			})) as unknown as TestableBHAIConversation
+			})) as unknown as TestablebhzaiConversation
 
 			// Mock the memory store's search to return two hits.
 			const memories: MemoryRecord[] = [
@@ -205,7 +205,7 @@ describe("Memory Plugin (TASK_0037)", () => {
 			// Create a conversation.
 			const conversation = (await bh.createConversation({
 				model: "test-driver/test-model",
-			})) as unknown as TestableBHAIConversation
+			})) as unknown as TestablebhzaiConversation
 
 			// Mock the store's search to return no hits.
 			vi.mocked(mockMemoryStore.search).mockResolvedValueOnce([])
@@ -230,7 +230,7 @@ describe("Memory Plugin (TASK_0037)", () => {
 			// Create a conversation.
 			const conversation = (await bh.createConversation({
 				model: "test-driver/test-model",
-			})) as unknown as TestableBHAIConversation
+			})) as unknown as TestablebhzaiConversation
 
 			// Create two test messages to be "folded away".
 			const foldedMessages = [
@@ -288,7 +288,7 @@ describe("Memory Plugin (TASK_0037)", () => {
 			// Create a conversation.
 			const conversation = (await bh.createConversation({
 				model: "test-driver/test-model",
-			})) as unknown as TestableBHAIConversation
+			})) as unknown as TestablebhzaiConversation
 
 			// Create test messages.
 			const foldedMessages = [makeMessage("user", "some message")]

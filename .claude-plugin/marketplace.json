@@ -1,8 +1,8 @@
 {
-	"name": "bhai",
-	"description": "Repository-local Claude Code plugins for the bhai project.",
+	"name": "bhzai",
+	"description": "Repository-local Claude Code plugins for the bhzai project.",
 	"owner": {
-		"name": "bhai"
+		"name": "bhzai"
 	},
 	"plugins": [
 		{

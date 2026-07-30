@@ -1,5 +1,5 @@
 {
-	"name": "@lucasschirm/bhai",
+	"name": "@bhzai/core",
 	"version": "0.1.0",
 	"type": "module",
 	"license": "MIT",
@@ -48,7 +48,7 @@
 		"format": "biome format --write .",
 		"test": "vitest run",
 		"test:watch": "vitest",
-		"preview": "pnpm run build && pnpm --filter bhai-example run preview",
+		"preview": "pnpm run build && pnpm --filter bhzai-example run preview",
 		"prepare": "husky"
 	},
 	"devDependencies": {

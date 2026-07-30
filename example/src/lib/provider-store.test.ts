@@ -56,13 +56,13 @@ describe("loadProviders / saveProviders", () => {
 	})
 
 	it("returns an empty list for corrupt JSON rather than throwing", () => {
-		const storage = fakeStorage({ "bhai.providers.ollama": "{not json" })
+		const storage = fakeStorage({ "bhzai.providers.ollama": "{not json" })
 		expect(loadProviders(storage)).toEqual([])
 	})
 
 	it("discards a payload from an unknown schema version", () => {
 		const storage = fakeStorage({
-			"bhai.providers.ollama": JSON.stringify({
+			"bhzai.providers.ollama": JSON.stringify({
 				v: 99,
 				providers: [{ id: "a", baseUrl: "http://localhost:11434", token: "" }],
 			}),
@@ -72,7 +72,7 @@ describe("loadProviders / saveProviders", () => {
 
 	it("discards entries with no usable id or baseUrl", () => {
 		const storage = fakeStorage({
-			"bhai.providers.ollama": JSON.stringify({
+			"bhzai.providers.ollama": JSON.stringify({
 				v: 1,
 				providers: [
 					{ id: "ok", baseUrl: "http://localhost:11434", token: "" },

@@ -8,7 +8,7 @@
 
 import { describe, expect, it, vi } from "vitest"
 
-import type { BHAIDriver, ModelInfo } from "../types/index.js"
+import type { BHZAIDriver, ModelInfo } from "../types/index.js"
 import {
 	AmbiguousModelError,
 	type ConversationModelState,
@@ -48,8 +48,8 @@ function mockModel(
 	}
 }
 
-/** Build a mock BHAIDriver that reports a fixed list of models. */
-function mockDriver(id: string, models: ModelInfo[]): BHAIDriver {
+/** Build a mock BHZAIDriver that reports a fixed list of models. */
+function mockDriver(id: string, models: ModelInfo[]): BHZAIDriver {
 	return {
 		id,
 		listModels: vi.fn(async () => models),
@@ -59,7 +59,7 @@ function mockDriver(id: string, models: ModelInfo[]): BHAIDriver {
 			reasoning: false,
 		})),
 		chat: vi.fn(async function* () {}),
-	} as unknown as BHAIDriver
+	} as unknown as BHZAIDriver
 }
 
 // ---------------------------------------------------------------------------

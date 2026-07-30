@@ -1,21 +1,21 @@
 /** @file Compaction pipeline tests (TASK_0031) */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { BHAI } from "../core/bhai.js"
-import type { BHAIDriver, DriverEvent } from "../types/driver.js"
-import type { BHAIMessage } from "../types/message.js"
+import { BHZAI } from "../core/bhzai.js"
+import type { BHZAIDriver, DriverEvent } from "../types/driver.js"
+import type { BHZAIMessage } from "../types/message.js"
 import { effectiveContextMessages } from "./agent-loop.js"
 import type { CompactEventPayload, CompleteFn } from "./compaction.js"
-import type { BHAIConversationImpl } from "./conversation.js"
+import type { BHZAIConversationImpl } from "./conversation.js"
 
 /**
- * Helper: construct a minimal mock BHAIMessage.
+ * Helper: construct a minimal mock BHZAIMessage.
  */
 function makeMessage(
 	role: "user" | "assistant" | "system",
 	content: string,
-	overrides?: Partial<BHAIMessage>,
-): BHAIMessage {
+	overrides?: Partial<BHZAIMessage>,
+): BHZAIMessage {
 	return {
 		id: crypto.randomUUID(),
 		role,
@@ -32,7 +32,7 @@ function makeMessage(
 /**
  * Helper: construct a mock driver with configurable contextWindow.
  */
-function makeMockDriver(contextWindow?: number): BHAIDriver {
+function makeMockDriver(contextWindow?: number): BHZAIDriver {
 	const driverCapabilities = {
 		streaming: true,
 		toolCalls: false,
@@ -85,10 +85,10 @@ function makeSlowMockComplete(summary: string, delayMs = 50): CompleteFn {
 }
 
 describe("Compaction Pipeline (TASK_0031)", () => {
-	let bh: BHAI
+	let bh: BHZAI
 
 	beforeEach(async () => {
-		bh = new BHAI()
+		bh = new BHZAI()
 		bh.addDriver(makeMockDriver())
 		await bh.init()
 	})
@@ -101,7 +101,7 @@ describe("Compaction Pipeline (TASK_0031)", () => {
 		it("fires before → compacting → complete in order with summary insertion", async () => {
 			const conversation = (await bh.createConversation({
 				model: "test-driver/test-model",
-			})) as BHAIConversationImpl
+			})) as BHZAIConversationImpl
 
 			// Add test messages
 			const messages = [
@@ -203,14 +203,14 @@ describe("Compaction Pipeline (TASK_0031)", () => {
 					yield { type: "delta", text: "Response" } as DriverEvent
 					yield { type: "done", stopReason: "stop" } as DriverEvent
 				},
-			} as BHAIDriver
+			} as BHZAIDriver
 
 			bh.addDriver(mockDriverWithUsage)
 
 			const conversation = (await bh.createConversation({
 				model: "usage-test-driver/test-model",
 				compaction: { auto: true, reserveTokens: 100 },
-			})) as BHAIConversationImpl
+			})) as BHZAIConversationImpl
 
 			// Pre-populate with 0 usage to start
 			expect(conversation.usage.inputTokens).toBe(0)
@@ -290,14 +290,14 @@ describe("Compaction Pipeline (TASK_0031)", () => {
 					yield { type: "delta", text: "Response" } as DriverEvent
 					yield { type: "done", stopReason: "stop" } as DriverEvent
 				},
-			} as BHAIDriver
+			} as BHZAIDriver
 
 			bh.addDriver(mockDriverNoUsage)
 
 			const conversation = (await bh.createConversation({
 				model: "no-usage-test-driver/test-model",
 				compaction: { auto: true, reserveTokens: 100 },
-			})) as BHAIConversationImpl
+			})) as BHZAIConversationImpl
 
 			expect(conversation.usage.inputTokens).toBe(0)
 
@@ -342,7 +342,7 @@ describe("Compaction Pipeline (TASK_0031)", () => {
 		it("runs the real pipeline with source='emit' and inserts summary message", async () => {
 			const conversation = (await bh.createConversation({
 				model: "test-driver/test-model",
-			})) as BHAIConversationImpl
+			})) as BHZAIConversationImpl
 
 			// Add test messages
 			const messages = [
@@ -374,7 +374,7 @@ describe("Compaction Pipeline (TASK_0031)", () => {
 			)
 
 			// Call the real conversation.emit('compact', {}) method (not runCompactionPipeline directly).
-			// This exercises the actual interception wiring in BHAIConversationImpl.emit().
+			// This exercises the actual interception wiring in BHZAIConversationImpl.emit().
 			const emitResult = await conversation.emit("compact", {})
 
 			// Verify source was 'emit' in all event payloads
@@ -396,7 +396,7 @@ describe("Compaction Pipeline (TASK_0031)", () => {
 		it("applies custom { prompt } replacement", async () => {
 			const conversation = (await bh.createConversation({
 				model: "test-driver/test-model",
-			})) as BHAIConversationImpl
+			})) as BHZAIConversationImpl
 
 			const messages = [makeMessage("user", "Hello"), makeMessage("assistant", "Hi")]
 			for (const msg of messages) {
@@ -427,7 +427,7 @@ describe("Compaction Pipeline (TASK_0031)", () => {
 		it("applies appendPrompt modifications", async () => {
 			const conversation = (await bh.createConversation({
 				model: "test-driver/test-model",
-			})) as BHAIConversationImpl
+			})) as BHZAIConversationImpl
 
 			const messages = [makeMessage("user", "Hello"), makeMessage("assistant", "Hi")]
 			for (const msg of messages) {
@@ -464,7 +464,7 @@ describe("Compaction Pipeline (TASK_0031)", () => {
 		it("skips bh.complete() when { summary, keepFrom } is provided", async () => {
 			const conversation = (await bh.createConversation({
 				model: "test-driver/test-model",
-			})) as BHAIConversationImpl
+			})) as BHZAIConversationImpl
 
 			const messages = [
 				makeMessage("user", "Message 1"),
@@ -506,7 +506,7 @@ describe("Compaction Pipeline (TASK_0031)", () => {
 		it("aborts pipeline with no state change when { block: true } is returned", async () => {
 			const conversation = (await bh.createConversation({
 				model: "test-driver/test-model",
-			})) as BHAIConversationImpl
+			})) as BHZAIConversationImpl
 
 			const messages = [
 				makeMessage("user", "Message 1"),
@@ -571,7 +571,7 @@ describe("Compaction Pipeline (TASK_0031)", () => {
 		it("reads status='compacting' only during the in-flight LLM call", async () => {
 			const conversation = (await bh.createConversation({
 				model: "test-driver/test-model",
-			})) as BHAIConversationImpl
+			})) as BHZAIConversationImpl
 
 			const messages = [makeMessage("user", "Test")]
 			conversation._pushMessage(messages[0])
@@ -615,7 +615,7 @@ describe("Compaction Pipeline (TASK_0031)", () => {
 		it("keeps all pre-compaction messages and adds exactly one summary", async () => {
 			const conversation = (await bh.createConversation({
 				model: "test-driver/test-model",
-			})) as BHAIConversationImpl
+			})) as BHZAIConversationImpl
 
 			const originalMessages = [
 				makeMessage("user", "Message 1"),

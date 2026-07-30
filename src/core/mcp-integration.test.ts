@@ -8,16 +8,16 @@
 //    partial-failure rejection.
 //  - `resolveModelSourceHooks()` — hook resolution order, concatenation,
 //    no de-duplication, partial-failure rejection.
-//  - `BHAI.addMcp()` — the public kernel method delegating to the registry.
-//  - `BHAI.init()` — the `getMcps`/`modelSource` resolution seam firing
+//  - `BHZAI.addMcp()` — the public kernel method delegating to the registry.
+//  - `BHZAI.init()` — the `getMcps`/`modelSource` resolution seam firing
 //    after `initialize` hooks and before the `initialize` event.
-//  - `BHAI.listModels()` — the merged driver + modelSource catalogue.
+//  - `BHZAI.listModels()` — the merged driver + modelSource catalogue.
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import { ToolRegistry } from "../tools/registry.js"
 import type { McpServerConfig, ModelInfo } from "../types/index.js"
-import { BHAI } from "./bhai.js"
+import { BHZAI } from "./bhzai.js"
 import { EventBus } from "./event-bus.js"
 import {
 	type McpClientFactory,
@@ -301,26 +301,26 @@ describe("resolveModelSourceHooks", () => {
 })
 
 // ---------------------------------------------------------------------------
-// BHAI.addMcp() — public kernel method.
+// BHZAI.addMcp() — public kernel method.
 // ---------------------------------------------------------------------------
 
-describe("BHAI.addMcp()", () => {
+describe("BHZAI.addMcp()", () => {
 	it("throws if the MCP plugin is not registered", async () => {
-		const bh = new BHAI()
+		const bh = new BHZAI()
 		await expect(bh.addMcp({ url: "https://example.com/mcp" })).rejects.toThrow(
 			/MCP plugin is not registered/,
 		)
 	})
 
 	it("delegates to the registry after registerMcpClientFactory()", async () => {
-		const bh = new BHAI()
+		const bh = new BHZAI()
 		bh.registerMcpClientFactory(mockFactory())
 		const handle = await bh.addMcp({ url: "https://example.com/mcp", name: "srv" })
 		expect(handle.serverName).toBe("srv")
 	})
 
 	it("forwards options opaquely", async () => {
-		const bh = new BHAI()
+		const bh = new BHZAI()
 		bh.registerMcpClientFactory(mockFactory())
 		const opts = { autoApproveTools: true }
 		const handle = await bh.addMcp({ url: "https://example.com/mcp", name: "srv" }, opts)
@@ -329,13 +329,13 @@ describe("BHAI.addMcp()", () => {
 })
 
 // ---------------------------------------------------------------------------
-// BHAI.init() — getMcps/modelSource resolution seam.
+// BHZAI.init() — getMcps/modelSource resolution seam.
 // ---------------------------------------------------------------------------
 
-describe("BHAI.init() — getMcps/modelSource resolution", () => {
+describe("BHZAI.init() — getMcps/modelSource resolution", () => {
 	it("resolves getMcps hooks after initialize hooks and before the initialize event", async () => {
 		const order: string[] = []
-		const bh = new BHAI()
+		const bh = new BHZAI()
 		bh.registerMcpClientFactory(mockFactory())
 		bh.use({
 			name: "p1",
@@ -357,7 +357,7 @@ describe("BHAI.init() — getMcps/modelSource resolution", () => {
 	})
 
 	it("resolves modelSource hooks and merges into listModels()", async () => {
-		const bh = new BHAI()
+		const bh = new BHZAI()
 		bh.use({
 			name: "p1",
 			modelSource: async () => [mockModel("custom/x")],
@@ -368,7 +368,7 @@ describe("BHAI.init() — getMcps/modelSource resolution", () => {
 	})
 
 	it("listModels() returns only driver models before init() runs", async () => {
-		const bh = new BHAI()
+		const bh = new BHZAI()
 		bh.use({
 			name: "p1",
 			modelSource: async () => [mockModel("custom/x")],
@@ -379,7 +379,7 @@ describe("BHAI.init() — getMcps/modelSource resolution", () => {
 	})
 
 	it("merges driver models AND modelSource hook results after init()", async () => {
-		const bh = new BHAI()
+		const bh = new BHZAI()
 		// Register a mock driver.
 		bh.addDriver({
 			id: "mock-driver",
@@ -401,7 +401,7 @@ describe("BHAI.init() — getMcps/modelSource resolution", () => {
 	})
 
 	it("init() rejects if a getMcps hook throws (partial-failure)", async () => {
-		const bh = new BHAI()
+		const bh = new BHZAI()
 		bh.registerMcpClientFactory(mockFactory())
 		bh.use({
 			name: "p1",
@@ -413,7 +413,7 @@ describe("BHAI.init() — getMcps/modelSource resolution", () => {
 	})
 
 	it("init() rejects if a modelSource hook throws (partial-failure)", async () => {
-		const bh = new BHAI()
+		const bh = new BHZAI()
 		bh.use({
 			name: "p1",
 			modelSource: async () => {
@@ -424,7 +424,7 @@ describe("BHAI.init() — getMcps/modelSource resolution", () => {
 	})
 
 	it("init() is idempotent — getMcps/modelSource hooks do not re-resolve on second init()", async () => {
-		const bh = new BHAI()
+		const bh = new BHZAI()
 		bh.registerMcpClientFactory(mockFactory())
 		let getMcpsCalls = 0
 		let modelSourceCalls = 0

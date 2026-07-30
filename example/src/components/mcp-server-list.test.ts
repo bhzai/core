@@ -1,11 +1,11 @@
 // @vitest-environment happy-dom
 
-import type { McpServerState, McpServerTool } from "@lucasschirm/bhai/plugins/mcp"
+import type { McpServerState, McpServerTool } from "@bhzai/core/plugins/mcp"
 import { beforeEach, describe, expect, it } from "vitest"
 import "./mcp-server-card.js"
 import "./mcp-server-list.js"
-import type { BhaiMcpServerCard } from "./mcp-server-card.js"
-import type { BhaiMcpServerList } from "./mcp-server-list.js"
+import type { BhzaiMcpServerCard } from "./mcp-server-card.js"
+import type { BhzaiMcpServerList } from "./mcp-server-list.js"
 
 /** Build a server snapshot with sane defaults. */
 function serverState(
@@ -34,25 +34,25 @@ function tools(n: number): McpServerTool[] {
 }
 
 /** Wait for every child server card to finish its update cycle. */
-async function awaitCards(list: BhaiMcpServerList): Promise<void> {
+async function awaitCards(list: BhzaiMcpServerList): Promise<void> {
 	await Promise.all(
-		Array.from(list.querySelectorAll("bhai-mcp-server-card")).map(
-			(card) => (card as BhaiMcpServerCard).updateComplete,
+		Array.from(list.querySelectorAll("bhzai-mcp-server-card")).map(
+			(card) => (card as BhzaiMcpServerCard).updateComplete,
 		),
 	)
 }
 
 /** Build a server-list fixture and wait for its first render. */
-async function fixture(): Promise<BhaiMcpServerList> {
+async function fixture(): Promise<BhzaiMcpServerList> {
 	document.body.innerHTML = ""
-	const list = document.createElement("bhai-mcp-server-list") as BhaiMcpServerList
+	const list = document.createElement("bhzai-mcp-server-list") as BhzaiMcpServerList
 	document.body.appendChild(list)
 	await list.updateComplete
 	await awaitCards(list)
 	return list
 }
 
-describe("BhaiMcpServerList", () => {
+describe("BhzaiMcpServerList", () => {
 	beforeEach(() => {
 		document.body.innerHTML = ""
 	})

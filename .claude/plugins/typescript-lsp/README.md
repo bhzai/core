@@ -16,7 +16,7 @@ finding out at `pnpm typecheck` time.
 ## How it gets loaded
 
 `.claude/settings.json` registers the repository as a plugin marketplace
-(`.claude-plugin/marketplace.json`) and enables `typescript-lsp@bhai`, so anyone
+(`.claude-plugin/marketplace.json`) and enables `typescript-lsp@bhzai`, so anyone
 who clones the repo and trusts the folder gets it — nothing to install by hand.
 
 The marketplace source is the directory `"."`, which Claude Code resolves

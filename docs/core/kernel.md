@@ -1,16 +1,16 @@
-# BHAI Kernel (`src/core/bhai.ts`)
+# BHZAI Kernel (`src/core/bhzai.ts`)
 
-Documentation for the `BHAI` kernel class — the framework entry point every
+Documentation for the `BHZAI` kernel class — the framework entry point every
 host instantiates and every plugin registers onto. Architecture reference:
 ARCHITECTURE.md § 6.
 
 ## Overview
 
-`BHAI` is the single class a host constructs. It owns:
+`BHZAI` is the single class a host constructs. It owns:
 
 1. **Plugin registration** via `use()` (TASK_0003) — normalizes the three
    accepted plugin forms (factory function, capability object, decorated
-   class instance) into one canonical internal `BHAIPlugin` shape
+   class instance) into one canonical internal `BHZAIPlugin` shape
    `{ name, setup(bh), capabilities? }`.
 2. **The framework event bus** (TASK_0004) exposed as `on()`/`emit()`.
 3. **Plugin lifecycle** (TASK_0005): `init()` runs every plugin's
@@ -41,9 +41,9 @@ are fully implemented. `addMcp()` is implemented (TASK_0015).
 ## Public API
 
 ```typescript
-import { BHAI, type BHAIHostOptions } from "@lucasschirm/bhai";
+import { BHZAI, type BHZAIHostOptions } from "@bhzai/core";
 
-const bh = new BHAI({ defaultModel: "webllm/Llama-3.2-3B" });
+const bh = new BHZAI({ defaultModel: "webllm/Llama-3.2-3B" });
 
 bh.use(myFactoryPlugin);          // form 1: bare factory function
 bh.use({ name: "cap", tools: [] }); // form 2: capability object
@@ -54,7 +54,7 @@ await bh.init();
 await bh.dispose();
 ```
 
-### Constructor: `BHAIHostOptions`
+### Constructor: `BHZAIHostOptions`
 
 - `config?: Record<string, Record<string, unknown>>` — per-plugin config
   values keyed by plugin name (§ 7.4). Equivalent to calling `setConfig`
@@ -64,10 +64,10 @@ await bh.dispose();
 - `systemPrompt?: string` — base system prompt injected into conversation
   preambles (TASK_0023 / § 11.6).
 
-### `use(plugin: BHAIPluginLike): this`
+### `use(plugin: BHZAIPluginLike): this`
 
 Accepts one of three forms and normalizes it to the canonical
-`BHAIPlugin` shape:
+`BHZAIPlugin` shape:
 
 - **Form 1 — factory function** (`(bh) => void | Promise<void>`): the
   function IS the plugin's `setup`; runs immediately at `use()` time.
@@ -77,7 +77,7 @@ Accepts one of three forms and normalizes it to the canonical
   `conversationStore`, `memoryStore`). Keys outside this allowlist are
   rejected synchronously so typos like `initalize` fail fast.
 - **Form 3 — `@Plugin`-decorated class instance** (added by TASK_0007):
-  detected at runtime via a `BHAI_PLUGIN_META` symbol stamped by the
+  detected at runtime via a `bhzai_PLUGIN_META` symbol stamped by the
   `@Plugin` decorator, not by structural typing.
 
 Duplicate `use()` calls with the same plugin name are ignored. Returns
@@ -100,7 +100,7 @@ lifecycle (TASK_0032 / TASK_0033):
 **`complete(req: CompleteRequest): Promise<CompleteResult>`** — single LLM
 call with no conversation. The `req` shape mirrors `ChatRequest` (model,
 messages, systemPrompt, params, signal). The `messages` field accepts either
-a string (normalized to single user message) or a `BHAIMessage[]` array.
+a string (normalized to single user message) or a `BHZAIMessage[]` array.
 Returns `{ text: string, usage: { inputTokens, outputTokens } }`. Model
 resolution uses the same four-tier resolver as conversations, including
 default-model fallback. **Zero conversation-bus events fire** (`message`,
@@ -162,7 +162,7 @@ keys to contribute.
 
 ### Tools: `addTool` / `removeTool` / `listTools`
 
-See `tools.md`. Two `addTool` overloads: full `BHAIToolDefinition` form
+See `tools.md`. Two `addTool` overloads: full `BHZAIToolDefinition` form
 and a sugar form `addTool(name, parameters, execute)` (description
 defaults to `''`).
 
@@ -175,7 +175,7 @@ driver in parallel.
 
 `defineMessageField(name, { metaKey?, default? })` declares a message field —
 the open message contract. It installs a **non-enumerable** accessor on every
-`BHAIMessage` the kernel builds, reading and writing one key inside the
+`BHZAIMessage` the kernel builds, reading and writing one key inside the
 message's `meta` bag. Plugins get `message.myField` ergonomics while the value
 persists through `meta`, which already round-trips via
 `toPlainMessage`/`fromSnapshot`; non-enumerability keeps the accessor out of
@@ -186,7 +186,7 @@ Throws on a reserved name (`id`, `role`, `content`, `blocks`, `time`, `meta`,
 Call it from a plugin's `setup()` or `initialize` hook — fields registered after
 a message exists do not retroactively appear on it.
 
-Pair it with a module augmentation of `BHAIMessageExtensions` (see
+Pair it with a module augmentation of `BHZAIMessageExtensions` (see
 `types.md`) so the field typechecks. Core registers one field itself, `think`,
 which `CreateConversationOptions.parseThink` populates.
 
@@ -199,13 +199,13 @@ See `command-registry.md`.
 
 ## Environment boundary
 
-`bhai.ts` uses only web-standard APIs (`crypto.randomUUID()`). `ajv` is
+`bhzai.ts` uses only web-standard APIs (`crypto.randomUUID()`). `ajv` is
 the only runtime dependency in `src/core/` — a pure-JS JSON Schema
 validator with no environment-specific bindings.
 
 ## Test coverage
 
-21 tests in `src/core/bhai.test.ts` (core lifecycle, registration, event bus wiring, config).
+21 tests in `src/core/bhzai.test.ts` (core lifecycle, registration, event bus wiring, config).
 
 TASK_0032–TASK_0035 add new test files:
 - 22 tests in `src/core/complete.test.ts` (one-shot LLM utility, model resolution, abort signals, synthetic message mutation guards).

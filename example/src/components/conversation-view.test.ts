@@ -2,17 +2,17 @@
 
 import { beforeEach, describe, expect, it } from "vitest"
 import "./conversation-view.js"
-import type { BhaiConversation } from "./conversation-view.js"
+import type { BhzaiConversation } from "./conversation-view.js"
 
 /** Build the conversation custom element. */
-function fixture(): BhaiConversation {
+function fixture(): BhzaiConversation {
 	document.body.innerHTML = ""
-	const el = document.createElement("bhai-conversation") as BhaiConversation
+	const el = document.createElement("bhzai-conversation") as BhzaiConversation
 	document.body.appendChild(el)
 	return el
 }
 
-describe("BhaiConversation", () => {
+describe("BhzaiConversation", () => {
 	beforeEach(() => {
 		document.body.innerHTML = ""
 	})
@@ -103,7 +103,7 @@ describe("BhaiConversation", () => {
 
 	it("tolerates a missing empty state", async () => {
 		document.body.innerHTML = ""
-		const view = document.createElement("bhai-conversation") as BhaiConversation
+		const view = document.createElement("bhzai-conversation") as BhzaiConversation
 		document.body.appendChild(view)
 
 		expect(() => view.clearEmptyState()).not.toThrow()

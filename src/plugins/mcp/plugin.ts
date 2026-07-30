@@ -18,7 +18,7 @@
 // cannot do is `addMcp()` before `init()` — that throws, as it did before this
 // plugin existed.
 
-import type { BHAI, BHAIPluginCapabilities } from "../../core/bhai.js"
+import type { BHZAI, BHZAIPluginCapabilities } from "../../core/bhzai.js"
 import type { ToolRegistry } from "../../tools/registry.js"
 import type { McpServerConfig } from "../../types/mcp.js"
 import { McpClient, type McpClientOptions } from "./client.js"
@@ -56,7 +56,7 @@ export interface McpPluginOptions {
  * (the zero-config {@link mcpPlugin} form). A `WeakMap` rather than a `Map`:
  * a disposed kernel must not be kept alive by this lookup.
  */
-const managers: WeakMap<BHAI, McpManager> = new WeakMap()
+const managers: WeakMap<BHZAI, McpManager> = new WeakMap()
 
 /**
  * Build the MCP plugin and its manager together.
@@ -66,10 +66,10 @@ const managers: WeakMap<BHAI, McpManager> = new WeakMap()
  * Calling a manager method before `bh.init()` therefore throws a specific,
  * actionable error rather than a `TypeError` on an undefined kernel.
  *
- * ONE KERNEL PER CALL: the returned pair is bound to the first `BHAI` it is
+ * ONE KERNEL PER CALL: the returned pair is bound to the first `BHZAI` it is
  * `use()`d on. Registering the same object on a second kernel throws — two
  * kernels sharing one manager would have it report servers attached to
- * whichever initialized last. Call this once per `BHAI` instance.
+ * whichever initialized last. Call this once per `BHZAI` instance.
  *
  * @example
  * ```ts
@@ -80,12 +80,12 @@ const managers: WeakMap<BHAI, McpManager> = new WeakMap()
  * ```
  */
 export function createMcpPlugin(options?: McpPluginOptions): {
-	plugin: BHAIPluginCapabilities
+	plugin: BHZAIPluginCapabilities
 	manager: McpManager
 } {
-	let bound: BHAI | undefined
+	let bound: BHZAI | undefined
 
-	const requireBound = (): BHAI => {
+	const requireBound = (): BHZAI => {
 		if (!bound) {
 			throw new Error(
 				"McpManager: the MCP plugin has not been initialized yet. " +
@@ -103,12 +103,12 @@ export function createMcpPlugin(options?: McpPluginOptions): {
 
 	const manager = new McpManager(host, { clientOptions: options?.clientOptions })
 
-	const plugin: BHAIPluginCapabilities = {
+	const plugin: BHZAIPluginCapabilities = {
 		name: options?.name ?? "mcp",
 		initialize({ bh }) {
 			if (bound && bound !== bh) {
 				throw new Error(
-					"createMcpPlugin(): this plugin is already bound to a different BHAI instance. " +
+					"createMcpPlugin(): this plugin is already bound to a different BHZAI instance. " +
 						"Call createMcpPlugin() once per kernel.",
 				)
 			}
@@ -140,7 +140,7 @@ export function createMcpPlugin(options?: McpPluginOptions): {
  * Reach for `createMcpPlugin()` instead when you need client options,
  * declarative servers, or a direct handle on the manager.
  */
-export const mcpPlugin: BHAIPluginCapabilities = {
+export const mcpPlugin: BHZAIPluginCapabilities = {
 	name: "mcp",
 	initialize({ bh }) {
 		const host: McpManagerHost = {
@@ -162,6 +162,6 @@ export const mcpPlugin: BHAIPluginCapabilities = {
  * {@link createMcpPlugin} form also hands the manager back directly, which
  * avoids the "did init run yet?" question entirely.
  */
-export function getMcpManager(bh: BHAI): McpManager | undefined {
+export function getMcpManager(bh: BHZAI): McpManager | undefined {
 	return managers.get(bh)
 }

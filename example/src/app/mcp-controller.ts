@@ -8,11 +8,11 @@
  * from `manager.list()` on write so storage cannot drift from the screen.
  */
 
-import type { McpManager } from "@lucasschirm/bhai/plugins/mcp"
+import type { McpManager } from "@bhzai/core/plugins/mcp"
 
-import type { BhaiMcpAddForm } from "../components/mcp-add-form.js"
-import type { BhaiMcpErrorDialog } from "../components/mcp-error-dialog.js"
-import type { BhaiMcpServerList } from "../components/mcp-server-list.js"
+import type { BhzaiMcpAddForm } from "../components/mcp-add-form.js"
+import type { BhzaiMcpErrorDialog } from "../components/mcp-error-dialog.js"
+import type { BhzaiMcpServerList } from "../components/mcp-server-list.js"
 import { loadServers, parseHeaderLines, saveServers, validateServerUrl } from "../lib/mcp-store.js"
 
 /** Everything the MCP controller drives. */
@@ -20,11 +20,11 @@ export interface McpControllerDeps {
 	/** The manager handed back by `createMcpPlugin()`. */
 	manager: McpManager
 	/** The server-list custom element. */
-	serverList: BhaiMcpServerList
+	serverList: BhzaiMcpServerList
 	/** The add-server form custom element. */
-	form: BhaiMcpAddForm
+	form: BhzaiMcpAddForm
 	/** The error-details dialog custom element. */
-	dialog: BhaiMcpErrorDialog
+	dialog: BhzaiMcpErrorDialog
 }
 
 /** Controller returned by {@link createMcpController}. */
@@ -111,15 +111,15 @@ export function createMcpController(deps: McpControllerDeps): McpController {
 			})
 			serverList.states = manager.list()
 
-			serverList.addEventListener("bhai-refresh", (event) => {
+			serverList.addEventListener("bhzai-refresh", (event) => {
 				const { id } = (event as CustomEvent<{ id: string }>).detail
 				void manager.refresh(id)
 			})
-			serverList.addEventListener("bhai-retry", (event) => {
+			serverList.addEventListener("bhzai-retry", (event) => {
 				const { id } = (event as CustomEvent<{ id: string }>).detail
 				void manager.retry(id)
 			})
-			serverList.addEventListener("bhai-remove", (event) => {
+			serverList.addEventListener("bhzai-remove", (event) => {
 				const { id } = (event as CustomEvent<{ id: string }>).detail
 				void (async () => {
 					try {
@@ -130,7 +130,7 @@ export function createMcpController(deps: McpControllerDeps): McpController {
 					}
 				})()
 			})
-			serverList.addEventListener("bhai-show-error", (event) => {
+			serverList.addEventListener("bhzai-show-error", (event) => {
 				const { id } = (event as CustomEvent<{ id: string }>).detail
 				const state = manager.get(id)
 				if (state?.error) dialog.show(state.error)

@@ -7,7 +7,7 @@
 
 import { describe, expect, it, vi } from "vitest"
 
-import type { BHAIDriver, DriverCapabilities, ModelInfo } from "../types/index.js"
+import type { BHZAIDriver, DriverCapabilities, ModelInfo } from "../types/index.js"
 import { DriverRegistry } from "./drivers.js"
 import { EventBus } from "./event-bus.js"
 
@@ -30,7 +30,7 @@ function modelFor(driver: string, id: string): ModelInfo {
 }
 
 /** Build a mock driver with a fixed model list and a `capabilities()` stub. */
-function mockDriver(id: string, models: ModelInfo[], caps: DriverCapabilities = CAPS): BHAIDriver {
+function mockDriver(id: string, models: ModelInfo[], caps: DriverCapabilities = CAPS): BHZAIDriver {
 	return {
 		id,
 		listModels: async () => models,
@@ -114,7 +114,7 @@ describe("DriverRegistry.listModels — merge", () => {
 	it("rejects if any one driver's listModels() rejects (no silent swallow)", async () => {
 		const { registry } = freshRegistry()
 		registry.addDriver(mockDriver("good", [modelFor("good", "g1")]))
-		const bad: BHAIDriver = {
+		const bad: BHZAIDriver = {
 			id: "bad",
 			listModels: async () => {
 				throw new Error("boom")
@@ -190,9 +190,9 @@ describe("DriverRegistry.get / size accessors", () => {
 	})
 })
 
-describe("BHAIDriver interface conformance", () => {
+describe("BHZAIDriver interface conformance", () => {
 	it("a driver without embed() satisfies the interface (embed is optional)", () => {
-		const driver: BHAIDriver = {
+		const driver: BHZAIDriver = {
 			id: "no-embed",
 			listModels: async () => [],
 			capabilities: () => CAPS,
@@ -203,7 +203,7 @@ describe("BHAIDriver interface conformance", () => {
 	})
 
 	it("a driver with embed() satisfies the interface", () => {
-		const driver: BHAIDriver = {
+		const driver: BHZAIDriver = {
 			id: "with-embed",
 			listModels: async () => [],
 			capabilities: () => ({ ...CAPS, embeddings: true }),

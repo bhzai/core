@@ -8,7 +8,7 @@
 // four-tier resolution order that picks a model for a conversation, and
 // `setModel(ref)`'s switching semantics.
 //
-// PATH NOTE: TASK_0022 specifies `bhai/src/kernel/models.ts`, but the repo
+// PATH NOTE: TASK_0022 specifies `bhzai/src/kernel/models.ts`, but the repo
 // convention established by TASK_0002 is `src/core/` (see
 // `src/core/AGENTS.md`). This file follows the existing convention; the
 // behavioral contract is unchanged.
@@ -17,7 +17,7 @@
 // env reads. The `listModels` function calls `driver.listModels()` (which
 // itself uses `fetch`), but this module adds no environment-specific code.
 
-import type { BHAIDriver, ModelInfo } from "../types/index.js"
+import type { BHZAIDriver, ModelInfo } from "../types/index.js"
 
 // ---------------------------------------------------------------------------
 // Error types
@@ -170,7 +170,7 @@ export function resolveModelRef(ref: string, catalogue: ModelInfo[]): string {
  * task's own resolved assumption.
  */
 export async function listModels(
-	drivers: ReadonlyArray<BHAIDriver>,
+	drivers: ReadonlyArray<BHZAIDriver>,
 	modelSourceContributions: ReadonlyArray<ModelInfo>,
 ): Promise<ModelInfo[]> {
 	const driverIds = new Set(drivers.map((d) => d.id))
@@ -213,7 +213,7 @@ export async function listModels(
 export interface ResolveConversationModelOptions {
 	/** Tier 1: `createConversation({ model })` — explicit per-conversation. */
 	explicitModel?: string
-	/** Tier 2: `new BHAI({ defaultModel })` — host-wide default. */
+	/** Tier 2: `new BHZAI({ defaultModel })` — host-wide default. */
 	defaultModel?: string
 	/**
 	 * Tier 3: the blockable `model.resolve` framework event. Returns a
@@ -231,7 +231,7 @@ export interface ResolveConversationModelOptions {
  * 1. **Explicit model** (`createConversation({ model })`) — always wins
  *    ordering priority, but still gets validated/qualified via
  *    `resolveModelRef` (can throw `AmbiguousModelError`/`ModelNotFoundError`).
- * 2. **Default model** (`new BHAI({ defaultModel })`) — consulted only if
+ * 2. **Default model** (`new BHZAI({ defaultModel })`) — consulted only if
  *    tier 1 was absent.
  * 3. **`model.resolve` event** — dispatched only if tiers 1–2 produced
  *    nothing; if a handler returns `{ model }`, resolve/validate that ref.
@@ -293,7 +293,7 @@ export interface ModelSelectedPayload {
 /**
  * Minimal conversation-state shape that {@link setModel} operates on.
  *
- * The full `BHAIConversation` class is TASK_0023's — a different task. This
+ * The full `BHZAIConversation` class is TASK_0023's — a different task. This
  * task models `setModel`'s core logic as a standalone function taking this
  * minimal shape; TASK_0023 is expected to call into this logic rather than
  * reimplement it.
@@ -332,7 +332,7 @@ export interface SetModelResult {
  *    (mirroring § 11.5's `'steer'` `deliverAs` semantics — "delivered after
  *    the current turn's tool calls settle, before the next LLM call"). The
  *    caller can call `abort()` first for an immediate mid-stream switch.
- * 3. **History porting**: no special code — each driver maps `BHAIMessage[]`
+ * 3. **History porting**: no special code — each driver maps `BHZAIMessage[]`
  *    to its own wire format at `chat()` call time.
  * 4. **Capability re-application**: the new model's `capabilities()` govern
  *    the next `chat()` call; this function only ensures `activeModelRef` is

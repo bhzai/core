@@ -1,11 +1,11 @@
-/** @file Quickstart example for BHAI — demonstrates kernel initialization, plugin registration, and a simple agent loop */
+/** @file Quickstart example for BHZAI — demonstrates kernel initialization, plugin registration, and a simple agent loop */
 
-import { BHAI } from "@lucasschirm/bhai"
-import { Ollama } from "@lucasschirm/bhai/plugins/ollama"
+import { BHZAI } from "@bhzai/core"
+import { Ollama } from "@bhzai/core/plugins/ollama"
 
 /**
- * Quickstart entry point — demonstrates core BHAI workflow:
- * 1. Create a BHAI instance
+ * Quickstart entry point — demonstrates core BHZAI workflow:
+ * 1. Create a BHZAI instance
  * 2. Register a driver (Ollama) and a custom tool
  * 3. Initialize the kernel
  * 4. Create a conversation
@@ -14,8 +14,8 @@ import { Ollama } from "@lucasschirm/bhai/plugins/ollama"
  * @returns A promise resolving to an object with the assistant's response content
  */
 export async function runQuickstart(): Promise<{ content: string }> {
-	// 1. Create a BHAI instance
-	const bh = new BHAI()
+	// 1. Create a BHZAI instance
+	const bh = new BHZAI()
 
 	// 2. Register the Ollama driver (which talks to a local/remote Ollama server)
 	bh.addDriver(new Ollama({ baseUrl: "http://localhost:11434" }))

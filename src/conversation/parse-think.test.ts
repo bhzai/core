@@ -2,14 +2,14 @@
 
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import type { Mock } from "vitest"
-import { BHAI } from "../core/bhai.js"
-import type { BHAIDriver, ChatRequest, DriverEvent } from "../types/driver.js"
+import { BHZAI } from "../core/bhzai.js"
+import type { BHZAIDriver, ChatRequest, DriverEvent } from "../types/driver.js"
 import { sendMessage } from "./agent-loop.js"
-import type { BHAIConversationImpl } from "./conversation.js"
+import type { BHZAIConversationImpl } from "./conversation.js"
 
 function makeMockDriver(
 	scriptedEvents: DriverEvent[],
-): BHAIDriver & { chat: Mock<(request: ChatRequest) => AsyncIterable<DriverEvent>> } {
+): BHZAIDriver & { chat: Mock<(request: ChatRequest) => AsyncIterable<DriverEvent>> } {
 	return {
 		id: "mock-driver-id",
 		listModels: async () => [
@@ -31,9 +31,9 @@ function makeMockDriver(
 	}
 }
 
-/** Build a BHAI whose driver streams `chunks` as text deltas, then stops. */
-function bhStreaming(chunks: string[]): BHAI {
-	const bh = new BHAI()
+/** Build a BHZAI whose driver streams `chunks` as text deltas, then stops. */
+function bhStreaming(chunks: string[]): BHZAI {
+	const bh = new BHZAI()
 	bh.addDriver(
 		makeMockDriver([
 			...chunks.map((text) => ({ type: "delta" as const, text })),
@@ -44,7 +44,7 @@ function bhStreaming(chunks: string[]): BHAI {
 }
 
 /** Collect every `message.delta` payload fired on a conversation. */
-function recordDeltas(conversation: BHAIConversationImpl): Array<{ kind: string; delta: string }> {
+function recordDeltas(conversation: BHZAIConversationImpl): Array<{ kind: string; delta: string }> {
 	const seen: Array<{ kind: string; delta: string }> = []
 	conversation.on("message.delta", (payload) => {
 		const p = payload as { kind: string; delta: string }
@@ -55,7 +55,7 @@ function recordDeltas(conversation: BHAIConversationImpl): Array<{ kind: string;
 
 describe("parseThink", () => {
 	describe("enabled", () => {
-		let bh: BHAI
+		let bh: BHZAI
 
 		beforeEach(() => {
 			bh = bhStreaming(["<think>reasoning</think>answer"])
@@ -65,7 +65,7 @@ describe("parseThink", () => {
 			const conversation = (await bh.createConversation({
 				model: "mock-driver-id/mock-model",
 				parseThink: true,
-			})) as BHAIConversationImpl
+			})) as BHZAIConversationImpl
 
 			const assistant = await sendMessage(conversation, "hi")
 
@@ -80,7 +80,7 @@ describe("parseThink", () => {
 			const conversation = (await bh.createConversation({
 				model: "mock-driver-id/mock-model",
 				parseThink: true,
-			})) as BHAIConversationImpl
+			})) as BHZAIConversationImpl
 			const deltas = recordDeltas(conversation)
 
 			await sendMessage(conversation, "hi")
@@ -98,7 +98,7 @@ describe("parseThink", () => {
 					model: "mock-driver-id/mock-model",
 					parseThink: true,
 				},
-			)) as BHAIConversationImpl
+			)) as BHZAIConversationImpl
 			const deltas = recordDeltas(conversation)
 
 			await sendMessage(conversation, "hi")
@@ -120,7 +120,7 @@ describe("parseThink", () => {
 			]).createConversation({
 				model: "mock-driver-id/mock-model",
 				parseThink: true,
-			})) as BHAIConversationImpl
+			})) as BHZAIConversationImpl
 
 			const assistant = await sendMessage(conversation, "hi")
 
@@ -134,7 +134,7 @@ describe("parseThink", () => {
 			]).createConversation({
 				model: "mock-driver-id/mock-model",
 				parseThink: true,
-			})) as BHAIConversationImpl
+			})) as BHZAIConversationImpl
 
 			const assistant = await sendMessage(conversation, "hi")
 
@@ -146,7 +146,7 @@ describe("parseThink", () => {
 			const conversation = (await bhStreaming(["just ", "text"]).createConversation({
 				model: "mock-driver-id/mock-model",
 				parseThink: true,
-			})) as BHAIConversationImpl
+			})) as BHZAIConversationImpl
 
 			const assistant = await sendMessage(conversation, "hi")
 
@@ -156,7 +156,7 @@ describe("parseThink", () => {
 
 		it("does not leak a think block across turns", async () => {
 			// An unterminated block in turn 1 must not swallow turn 2's answer.
-			const bh2 = new BHAI()
+			const bh2 = new BHZAI()
 			let turn = 0
 			bh2.addDriver({
 				id: "mock-driver-id",
@@ -183,7 +183,7 @@ describe("parseThink", () => {
 			const conversation = (await bh2.createConversation({
 				model: "mock-driver-id/mock-model",
 				parseThink: true,
-			})) as BHAIConversationImpl
+			})) as BHZAIConversationImpl
 
 			const first = await sendMessage(conversation, "one")
 			expect(first.think).toBe("never closed")
@@ -198,11 +198,11 @@ describe("parseThink", () => {
 			const conversation = (await bh.createConversation({
 				model: "mock-driver-id/mock-model",
 				parseThink: true,
-			})) as BHAIConversationImpl
+			})) as BHZAIConversationImpl
 
 			await sendMessage(conversation, "hi")
 
-			const reloaded = (await bh.loadConversation(conversation.toJSON())) as BHAIConversationImpl
+			const reloaded = (await bh.loadConversation(conversation.toJSON())) as BHZAIConversationImpl
 			const assistant = reloaded.messages.find((m) => m.role === "assistant")
 
 			expect(assistant?.think).toBe("reasoning")
@@ -210,7 +210,7 @@ describe("parseThink", () => {
 		})
 
 		it("leaves a driver's native reasoning-delta channel on meta.reasoning", async () => {
-			const bh2 = new BHAI()
+			const bh2 = new BHZAI()
 			bh2.addDriver(
 				makeMockDriver([
 					{ type: "reasoning-delta", text: "native" },
@@ -221,7 +221,7 @@ describe("parseThink", () => {
 			const conversation = (await bh2.createConversation({
 				model: "mock-driver-id/mock-model",
 				parseThink: true,
-			})) as BHAIConversationImpl
+			})) as BHZAIConversationImpl
 
 			const assistant = await sendMessage(conversation, "hi")
 
@@ -237,7 +237,7 @@ describe("parseThink", () => {
 				"<think>reasoning</think>answer",
 			]).createConversation({
 				model: "mock-driver-id/mock-model",
-			})) as BHAIConversationImpl
+			})) as BHZAIConversationImpl
 			const deltas = recordDeltas(conversation)
 
 			const assistant = await sendMessage(conversation, "hi")
@@ -251,7 +251,7 @@ describe("parseThink", () => {
 			const conversation = (await bhStreaming(["<think>x</think>y"]).createConversation({
 				model: "mock-driver-id/mock-model",
 				parseThink: false,
-			})) as BHAIConversationImpl
+			})) as BHZAIConversationImpl
 
 			const assistant = await sendMessage(conversation, "hi")
 			expect(assistant.content).toBe("<think>x</think>y")

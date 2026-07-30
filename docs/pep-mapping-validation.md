@@ -1,18 +1,18 @@
-# PEP–BHAI Mapping Validation
+# PEP–BHZAI Mapping Validation
 
 **Date**: 2026-07-20  
-**Scope**: ARCHITECTURE.md § 14 ("How PEP consumes BHAI (#1338 mapping)") — all 12 table rows  
+**Scope**: ARCHITECTURE.md § 14 ("How PEP consumes BHZAI (#1338 mapping)") — all 12 table rows  
 **Task**: TASK_0042
 
-This document audits every row of the § 14 mapping table, confirming that each claimed BHAI extension point actually exists and behaves as described. Each entry states whether the row is verified by existing tests, filed as a gap against an earlier task, or explicitly out of scope for v0.1.
+This document audits every row of the § 14 mapping table, confirming that each claimed BHZAI extension point actually exists and behaves as described. Each entry states whether the row is verified by existing tests, filed as a gap against an earlier task, or explicitly out of scope for v0.1.
 
 ---
 
 ## 1. `LlmDriver` abstraction, Ollama driver (#1340)
 
-- **BHAI extension point**: `BHAIDriver` — the POC's `OllamaDriverService` becomes a thin wrapper over `bhai/ollama`
+- **BHZAI extension point**: `BHZAIDriver` — the POC's `OllamaDriverService` becomes a thin wrapper over `bhzai/ollama`
 - **Status**: verified — see TASK_0009 / TASK_0020; tests `listModels`, `chat`, `capabilities`, `embed`
-- **Notes**: `BHAIDriver` interface is defined in `src/types/driver.ts` (lines 100–127) with `id`, `listModels()`, `capabilities()`, `chat()`, and optional `embed?()` methods. The Ollama driver (`src/plugins/ollama/index.ts`) implements this interface fully. Tests in `src/plugins/ollama/index.test.ts` verify:
+- **Notes**: `BHZAIDriver` interface is defined in `src/types/driver.ts` (lines 100–127) with `id`, `listModels()`, `capabilities()`, `chat()`, and optional `embed?()` methods. The Ollama driver (`src/plugins/ollama/index.ts`) implements this interface fully. Tests in `src/plugins/ollama/index.test.ts` verify:
   - `listModels()` maps `/api/tags` response to `ModelInfo[]` with correct field mappings (lines 107–170)
   - `chat()` parses NDJSON stream into `DriverEvent`s: delta, usage, done, and tool-call events (lines 257–460)
   - `capabilities()` reads model capabilities from `/api/show` cache and falls back to conservative defaults (lines 173–253)
@@ -24,9 +24,9 @@ This document audits every row of the § 14 mapping table, confirming that each 
 
 ## 2. WebLLM client runtime, browser agent loop (#1935)
 
-- **BHAI extension point**: `bhai/webllm` driver + the kernel loop running in the browser; record-driven artifact URLs via driver options
+- **BHZAI extension point**: `bhzai/webllm` driver + the kernel loop running in the browser; record-driven artifact URLs via driver options
 - **Status**: verified — see TASK_0019; tests `listModels`, `chat`, `capabilities`, abort handling
-- **Notes**: The WebLLM driver (`src/plugins/webllm/index.ts`) implements `BHAIDriver` with engine injection (no static `@mlc-ai/web-llm` import). Tests in `src/plugins/webllm/index.test.ts` verify driver event translation, abort handling, and progress dispatch (21 tests, all passing). 
+- **Notes**: The WebLLM driver (`src/plugins/webllm/index.ts`) implements `BHZAIDriver` with engine injection (no static `@mlc-ai/web-llm` import). Tests in `src/plugins/webllm/index.test.ts` verify driver event translation, abort handling, and progress dispatch (21 tests, all passing). 
   
   Environment-agnosticism verified: grep of `src/core/` and `src/conversation/` (excluding test files) finds zero Node built-in imports (`node:*`), confirming the kernel loop uses only web-standard APIs (fetch, AbortController, ReadableStream, crypto.randomUUID, structuredClone, queueMicrotask) and has no DOM dependencies.
 
@@ -34,7 +34,7 @@ This document audits every row of the § 14 mapping table, confirming that each 
 
 ## 3. Tool execution endpoint + `model_scope` (#1934)
 
-- **BHAI extension point**: a PEP plugin whose tools `execute` by POSTing to `/agentic-ai/tools/:name/execute`; `model_scope` applied in the § 9.5 availability seam
+- **BHZAI extension point**: a PEP plugin whose tools `execute` by POSTing to `/agentic-ai/tools/:name/execute`; `model_scope` applied in the § 9.5 availability seam
 - **Status**: verified — see TASK_0017; tests demonstrate context-handler tool filtering
 - **Notes**: The § 9.5 availability seam (`src/tools/availability.ts`) defines `resolveAvailableTools()` with a 3-step resolution order: static `ToolFilter`, `context`-event patch tools, driver-capability gating. TASK_0017's tests in `src/tools/availability.test.ts` (31 tests) demonstrate that a `context`-event handler can add/drop tool definitions per conversation, which is the mechanism a `model_scope` check would use. The PEP-side tool-execution endpoint itself is host code, out of scope.
 
@@ -42,7 +42,7 @@ This document audits every row of the § 14 mapping table, confirming that each 
 
 ## 4. DB-driven tools, access policies, confirmation (#1341)
 
-- **BHAI extension point**: host plugin: `aai_tools` rows → `addTool` definitions; confirmation via blockable `tool(beforeCall)`
+- **BHZAI extension point**: host plugin: `aai_tools` rows → `addTool` definitions; confirmation via blockable `tool(beforeCall)`
 - **Status**: verified — see TASK_0041 security review + TASK_0008 dynamic registration
 - **Notes**: 
 
@@ -54,7 +54,7 @@ This document audits every row of the § 14 mapping table, confirming that each 
   The approval gate is the same seam used for both local and MCP tools; see TASK_0041 for full proof.
 
   **(b) Dynamic tool registration (`addTool` at any time):**
-  `src/core/bhai.ts` lines 699–710: `addTool()` method has no "must be called before init()" restriction — it only checks `assertNotDisposed()` (line 704). This allows tools to be added at any time after BHAI creation.
+  `src/core/bhzai.ts` lines 699–710: `addTool()` method has no "must be called before init()" restriction — it only checks `assertNotDisposed()` (line 704). This allows tools to be added at any time after BHZAI creation.
   - `src/tools/registry.test.ts` lines 44–176: tests demonstrate `addTool()` registration, shadowing, and `tool.registered` event firing.
   - `src/conversation/agent-loop.ts` line 380: `const allTools = bh.listTools()` is called per-request in the agent loop (at the start of each turn's context event). This ensures dynamically added tools are picked up on the conversation's next LLM call.
   - `src/conversation/agent-loop.test.ts` lines 132–201: test "context event handler can patch tools, and deep copy protects real state" demonstrates that tools registered via `bh.addTool()` appear in the context event payload and are sent to the driver.
@@ -63,19 +63,19 @@ This document audits every row of the § 14 mapping table, confirming that each 
 
 ## 5. UI-context snapshots (#1936)
 
-- **BHAI extension point**: `message(before)` middleware appending the delimited context block
+- **BHZAI extension point**: `message(before)` middleware appending the delimited context block
 - **Status**: verified — see TASK_0025; tests `message(before)` handlers mutating messages
 - **Notes**: `src/conversation/agent-loop.test.ts` lines 71–129 contain two tests verifying the `message(before)` state:
   - "message(before) handler returning { block: true } prevents driver call and resolves with blocked message" — confirms that `message(before)` handlers can block the entire request.
   - "message(before) handler modifying user message content affects driver input" — confirms that a handler calling `message.append()` or `setContent()` mutates the message before driver delivery.
   
-  The `BHAIMessage` interface (`src/types/message.ts`) exposes `append()` and `setContent()` methods for middleware to use. These tests verify end-to-end that messages are mutable at the `before` stage.
+  The `BHZAIMessage` interface (`src/types/message.ts`) exposes `append()` and `setContent()` methods for middleware to use. These tests verify end-to-end that messages are mutable at the `before` stage.
 
 ---
 
 ## 6. Context management & memory (#1938)
 
-- **BHAI extension point**: `context`-event plugin + a `MemoryStore` backed by `llm_memories`
+- **BHZAI extension point**: `context`-event plugin + a `MemoryStore` backed by `llm_memories`
 - **Status**: verified — see TASK_0037; tests demonstrate both recall-on-start and extraction-on-compact
 - **Notes**: 
 
@@ -92,7 +92,7 @@ This document audits every row of the § 14 mapping table, confirming that each 
 
 ## 7. RAG phase 2 — embeddings, indexing, `search_semantic` (#1937)
 
-- **BHAI extension point**: § 11.8 RAG plugin: `bh.embed()` over the Ollama driver for indexing, a `Retriever` backed by `llm_chunks` with retrieval-time row-access re-checks, `search_semantic` as the Shape-1 tool
+- **BHZAI extension point**: § 11.8 RAG plugin: `bh.embed()` over the Ollama driver for indexing, a `Retriever` backed by `llm_chunks` with retrieval-time row-access re-checks, `search_semantic` as the Shape-1 tool
 - **Status**: verified — see TASK_0033, TASK_0038; tests demonstrate `bh.embed()`, Shape 1 tool, Shape 2 injection
 - **Notes**: 
 
@@ -106,15 +106,15 @@ This document audits every row of the § 14 mapping table, confirming that each 
   - **Shape 1** (agentic `search_knowledge` tool): `examples/rag-plugin.test.ts` lines 60–106, test "aggregates results from both retrievers with no re-sorting" — verifies that the `search_knowledge` tool invokes all registered `Retriever` plugins, aggregates results, and returns them as content blocks with source metadata. PASSES.
   - **Shape 2** (automatic `context`-event injection): `examples/rag-plugin.test.ts` lines 109–150, test "sorts by score descending across all retrievers and truncates to topK" — verifies that a `context` event handler automatically retrieves chunks, sorts by score, truncates to `topK`, and injects them into the context event payload. PASSES.
 
-  Retrieval-time row-access re-checks (the PEP-specific `llm_chunks` permission detail) are host-owned and not BHAI-testable — this is explicitly stated in § 11.8.
+  Retrieval-time row-access re-checks (the PEP-specific `llm_chunks` permission detail) are host-owned and not bhzai-testable — this is explicitly stated in § 11.8.
 
 ---
 
 ## 8. Typed response renderers (#1343)
 
-- **BHAI extension point**: host-side consumer of `message.delta`/`message(sent)` — rendering never enters the kernel
+- **BHZAI extension point**: host-side consumer of `message.delta`/`message(sent)` — rendering never enters the kernel
 - **Status**: verified — see TASK_0004, TASK_0025; events fire with stable payload shapes
-- **Notes**: No new BHAI mechanism is needed for this row (rendering is out of scope by design). Verification confirms the events exist and fire with stable, documented shapes:
+- **Notes**: No new BHZAI mechanism is needed for this row (rendering is out of scope by design). Verification confirms the events exist and fire with stable, documented shapes:
   - `message.delta` event: tested in `src/conversation/agent-loop.test.ts` lines 206–240 — verifies deltas accumulate for text and reasoning separately, firing for each streaming chunk.
   - `message(sent)` event: tested in `src/core/storage.test.ts` lines 91–128 (auto-save on `message(sent)`) — verifies the event fires after each message is sent.
   - Event bus and message-pipeline tests (`src/core/event-bus.test.ts`, agent-loop.test.ts) demonstrate the full event firing order per § 8.5.
@@ -125,7 +125,7 @@ This document audits every row of the § 14 mapping table, confirming that each 
 
 ## 9. Chat persistence (#1344, `llm_conversations`)
 
-- **BHAI extension point**: `ConversationStore` implementation over the PEP API
+- **BHZAI extension point**: `ConversationStore` implementation over the PEP API
 - **Status**: verified — see TASK_0029; tests prove auto-save wiring on `message(sent)`
 - **Notes**: 
 
@@ -143,7 +143,7 @@ This document audits every row of the § 14 mapping table, confirming that each 
 
 ## 10. Socket.IO streaming (#1344)
 
-- **BHAI extension point**: server host forwards `DriverEvent`s onto the socket; the event shape is already transport-agnostic
+- **BHZAI extension point**: server host forwards `DriverEvent`s onto the socket; the event shape is already transport-agnostic
 - **Status**: verified — see TASK_0009; `DriverEvent` is a plain discriminated union
 - **Notes**: `src/types/driver.ts` lines 46–56 define `DriverEvent` as a discriminated union with type-tagged variants:
   - `{ type: "delta"; text: string }`
@@ -159,7 +159,7 @@ This document audits every row of the § 14 mapping table, confirming that each 
 
 ## 11. Wait/continuation (#1390)
 
-- **BHAI extension point**: v0.2 suspension plugin over the serializable snapshot (§ 11.2)
+- **BHZAI extension point**: v0.2 suspension plugin over the serializable snapshot (§ 11.2)
 - **Status**: out of scope for v0.1
 - **Justification**: Per ARCHITECTURE.md § 14's own right-hand cell ("v0.2 suspension plugin") and § 15's roadmap, which explicitly places suspension/wait under v0.2 and not v0.1 MVP. This row represents future work, not a missing feature. No gap is filed because no v0.1 promise was made.
 
@@ -167,7 +167,7 @@ This document audits every row of the § 14 mapping table, confirming that each 
 
 ## 12. Reasoning pre-stage (#1391/#1392)
 
-- **BHAI extension point**: `context` + `turn` event plugins; `reasoning-delta` driver events feed the thinking display
+- **BHZAI extension point**: `context` + `turn` event plugins; `reasoning-delta` driver events feed the thinking display
 - **Status**: verified — see TASK_0004, TASK_0018, TASK_0019, TASK_0020; tests demonstrate event subscriptions and reasoning event support
 - **Notes**: The v0.1 primitives required for plugins are in place:
 
@@ -194,7 +194,7 @@ This document audits every row of the § 14 mapping table, confirming that each 
 
 | Row | Status | Rationale |
 |-----|--------|-----------|
-| 1 | verified | BHAIDriver interface + Ollama implementation + tests (listModels, chat, capabilities, embed) |
+| 1 | verified | BHZAIDriver interface + Ollama implementation + tests (listModels, chat, capabilities, embed) |
 | 2 | verified | WebLLM driver + no Node imports in core/conversation |
 | 3 | verified | Availability seam + context-handler tool filtering tests |
 | 4 | verified | Cross-ref TASK_0041 for blockable `tool(beforeCall)` + addTool dynamic registration + listTools per-request |

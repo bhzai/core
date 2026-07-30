@@ -1,17 +1,17 @@
 /** @file Agent loop core — sendMessage, context event, message states (TASK_0025, TASK_0026, TASK_0027, TASK_0030) */
 
 import Ajv from "ajv"
-import type { BHAI } from "../core/bhai.js"
+import type { BHZAI } from "../core/bhzai.js"
 import { parseModelRef } from "../core/models.js"
 import { DEFAULT_RETRY_POLICY, callDriverWithRetry } from "../core/retry.js"
 import type { RequestDispatch, RequestEventPayload, RetryPolicy } from "../core/retry.js"
 import { resolveAvailableTools } from "../tools/availability.js"
 import { normalizeToolResult } from "../tools/registry.js"
 import type { CallToolResult, ContentBlock } from "../types/content.js"
-import type { BHAIDriver, ChatRequest, DriverEvent } from "../types/driver.js"
-import type { BHAIToolDefinition } from "../types/index.js"
-import type { BHAIMessage, ConversationStatus } from "../types/message.js"
-import type { BHAIConversationImpl } from "./conversation.js"
+import type { BHZAIDriver, ChatRequest, DriverEvent } from "../types/driver.js"
+import type { BHZAIToolDefinition } from "../types/index.js"
+import type { BHZAIMessage, ConversationStatus } from "../types/message.js"
+import type { BHZAIConversationImpl } from "./conversation.js"
 import { createMessage, withMessageFields } from "./message.js"
 import { computePreContextSystemPrompt, ensureStarted } from "./system-prompt.js"
 import { createThinkSplitter } from "./think-stream.js"
@@ -65,7 +65,7 @@ export interface AddOptions {
  * @param conversation The conversation to filter.
  * @returns Messages whose meta.contextIncluded is not false.
  */
-export function effectiveContextMessages(conversation: BHAIConversationImpl): BHAIMessage[] {
+export function effectiveContextMessages(conversation: BHZAIConversationImpl): BHZAIMessage[] {
 	return conversation.messages.filter((msg) => msg.meta.contextIncluded !== false)
 }
 
@@ -101,15 +101,15 @@ export function applyContextSystemPromptPatch(
 }
 
 /**
- * Construct a BHAIMessage from a string or ContentBlock array.
+ * Construct a BHZAIMessage from a string or ContentBlock array.
  *
  * @internal Used by sendMessage and addMessage (including tool results).
  */
 function constructMessage(
 	content: string | ContentBlock[],
 	role: "user" | "assistant" | "system" | "tool",
-	conversation: BHAIConversationImpl,
-): BHAIMessage {
+	conversation: BHZAIConversationImpl,
+): BHZAIMessage {
 	return createMessage({ role, content }, conversation._getBh()._getMessageFields())
 }
 
@@ -138,12 +138,12 @@ function constructMessage(
  *
  * **Bounded termination conditions (TASK_0027 § 11.2)**:
  * - **Natural stop**: stopReason !== 'tool-calls' (driver produced no tool calls)
- * - **Universal terminate hint**: every tool result carries _meta['bhai/terminate']: true (strict "every")
+ * - **Universal terminate hint**: every tool result carries _meta['BHZAI/terminate']: true (strict "every")
  * - **maxIterations**: iteration >= maxIterations (default 8; configurable per conversation)
  * - **Abort**: conversation._getAbortSignal().aborted (fires abort event, returns with meta.aborted=true)
  *
  * **Blocked message contract**: If message(before) blocks, sendMessage() RESOLVES
- * (does not reject) with a synthetic BHAIMessage flagged `meta.blocked: true`
+ * (does not reject) with a synthetic BHZAIMessage flagged `meta.blocked: true`
  * and `meta.blockedReason?: string`. No driver call, no loop events, status
  * returns to/remains 'idle'.
  *
@@ -153,10 +153,10 @@ function constructMessage(
  * @returns Promise resolving with the assistant's response message (or a blocked message).
  */
 export async function sendMessage(
-	conversation: BHAIConversationImpl,
+	conversation: BHZAIConversationImpl,
 	content: string | ContentBlock[],
 	options?: SendOptions,
-): Promise<BHAIMessage> {
+): Promise<BHZAIMessage> {
 	const bh = conversation._getBh()
 
 	// TASK_0030: Busy-check at entry point.
@@ -168,7 +168,7 @@ export async function sendMessage(
 			)
 		}
 		// Queue the message and return a promise that resolves later.
-		return new Promise<BHAIMessage>((resolve, reject) => {
+		return new Promise<BHZAIMessage>((resolve, reject) => {
 			if (deliverAs === "steer") {
 				conversation._pushSteerQueue({ content, resolve, reject })
 			} else {
@@ -226,7 +226,7 @@ export async function sendMessage(
 	// Step 5: Apply any patches from message(before), append message, fire message(waiting).
 	const patchedMessage = withMessageFields(
 		userMessage,
-		beforeResult.patch as Partial<BHAIMessage>,
+		beforeResult.patch as Partial<BHZAIMessage>,
 		bh._getMessageFields(),
 	)
 	conversation._pushMessage(patchedMessage)
@@ -250,10 +250,10 @@ export async function sendMessage(
 	const retryPolicy = createOptions.retryPolicy ?? DEFAULT_RETRY_POLICY
 
 	let iteration = 0
-	let lastAssistantMessage: BHAIMessage | undefined
+	let lastAssistantMessage: BHZAIMessage | undefined
 	let pendingSteerResolutions: Array<{
 		content: string | ContentBlock[]
-		resolve: (msg: BHAIMessage) => void
+		resolve: (msg: BHZAIMessage) => void
 		reject: (err: unknown) => void
 	}> = []
 
@@ -357,7 +357,7 @@ export async function sendMessage(
 			blocks: structuredClone(msg.blocks),
 			time: msg.time,
 			meta: structuredClone(msg.meta),
-		})) as BHAIMessage[]
+		})) as BHZAIMessage[]
 
 		const contextPayload = {
 			conversation,
@@ -375,7 +375,7 @@ export async function sendMessage(
 		// Apply patches: use patched values if returned, otherwise use base.
 		const contextPatch = contextResult.patch as Record<string, unknown> | undefined
 		const effectiveMessages =
-			(contextPatch?.messages as BHAIMessage[] | undefined) ?? contextPayload.messages
+			(contextPatch?.messages as BHZAIMessage[] | undefined) ?? contextPayload.messages
 		const effectiveSystemPrompt = applyContextSystemPromptPatch(contextPayload.systemPrompt, {
 			systemPrompt: contextPatch?.systemPrompt as string | undefined,
 			appendSystemPrompt: contextPatch?.appendSystemPrompt as string | undefined,
@@ -583,7 +583,7 @@ export async function sendMessage(
 
 		// Termination condition (b): check if all tool results carry the terminate hint.
 		const allTerminate =
-			toolResults.length > 0 && toolResults.every((r) => r._meta?.["bhai/terminate"] === true)
+			toolResults.length > 0 && toolResults.every((r) => r._meta?.["BHZAI/terminate"] === true)
 
 		// Fire turn(end) event for this iteration (TASK_0027).
 		// This fires regardless of naturalStop/allTerminate, giving plugins a chance to veto.
@@ -678,7 +678,7 @@ export async function sendMessage(
  * conversation.messages once all calls settle.
  *
  * @param conversation The active conversation.
- * @param bh The BHAI kernel instance.
+ * @param bh The BHZAI kernel instance.
  * @param toolCallBuffer The buffered tool-call events from the driver.
  * @param advertisedTools The tools that were actually offered to the model.
  * @param turn The current turn number (for logging/debugging).
@@ -686,10 +686,10 @@ export async function sendMessage(
  * @internal
  */
 async function executeToolBatch(
-	conversation: BHAIConversationImpl,
-	bh: BHAI,
+	conversation: BHZAIConversationImpl,
+	bh: BHZAI,
 	toolCallBuffer: DriverEvent[],
-	advertisedTools: BHAIToolDefinition[],
+	advertisedTools: BHZAIToolDefinition[],
 	turn: number,
 ): Promise<CallToolResult[]> {
 	// Filter to tool-call events only, in emission order.
@@ -972,11 +972,11 @@ async function executeToolBatch(
  * @returns Promise resolving with the added message.
  */
 export async function addMessage(
-	conversation: BHAIConversationImpl,
+	conversation: BHZAIConversationImpl,
 	content: string | ContentBlock[],
 	role: "user" | "assistant" | "system",
 	options?: AddOptions,
-): Promise<BHAIMessage> {
+): Promise<BHZAIMessage> {
 	const message = constructMessage(content, role, conversation)
 
 	// Merge metadata with contextIncluded convention.

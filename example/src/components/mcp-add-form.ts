@@ -7,7 +7,7 @@ import { customElement, query } from "lit/decorators.js"
 export interface McpFormValues {
 	/** The endpoint URL as typed. */
 	url: string
-	/** The optional BHAI-local server name as typed. */
+	/** The optional bhzai-local server name as typed. */
 	name: string
 	/** The raw headers textarea contents, one `Key: Value` per line. */
 	headersText: string
@@ -19,11 +19,11 @@ export interface McpFormValues {
  * Rendered in the light DOM so the host page's global styles (and CSS variables)
  * continue to drive its appearance.
  *
- * @fires bhai-submit - Dispatched when the user submits the form. Call
+ * @fires bhzai-submit - Dispatched when the user submits the form. Call
  *   `event.preventDefault()` if you want to handle it entirely in JavaScript.
  */
-@customElement("bhai-mcp-add-form")
-export class BhaiMcpAddForm extends LitElement {
+@customElement("bhzai-mcp-add-form")
+export class BhzaiMcpAddForm extends LitElement {
 	override createRenderRoot() {
 		return this
 	}
@@ -142,13 +142,13 @@ export class BhaiMcpAddForm extends LitElement {
 
 	private _onSubmit(event: SubmitEvent): void {
 		event.preventDefault()
-		this.dispatchEvent(new CustomEvent("bhai-submit", { bubbles: true, composed: true }))
+		this.dispatchEvent(new CustomEvent("bhzai-submit", { bubbles: true, composed: true }))
 		this._onSubmitHandler?.()
 	}
 }
 
 declare global {
 	interface HTMLElementTagNameMap {
-		"bhai-mcp-add-form": BhaiMcpAddForm
+		"bhzai-mcp-add-form": BhzaiMcpAddForm
 	}
 }

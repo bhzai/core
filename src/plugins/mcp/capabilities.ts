@@ -7,7 +7,7 @@
 //    advertises. This shape is THIS TASK'S OWN INVENTION — the architecture
 //    doc describes each capability's *behavior* but never gives the literal
 //    opt-in API surface. The closest precedent in this task group is
-//    TASK_0010 inventing `BHAICommandContext` for the same reason
+//    TASK_0010 inventing `BHZAICommandContext` for the same reason
 //    ("explicitly documenting an inferred design decision").
 //  - Build the conditional `capabilities` object sent during `initialize`:
 //    a key is included ONLY if the corresponding opt-in was supplied, and
@@ -34,7 +34,7 @@
 // approval gate / event bus — no `fetch` directly (it uses the
 // `McpClient`'s transport methods), no Node built-ins.
 
-import type { BHAIDriver, ChatRequest } from "../../types/index.js"
+import type { BHZAIDriver, ChatRequest } from "../../types/index.js"
 import type { ApprovalCall, ApprovalGate, McpApprovalOptions } from "./approval.js"
 
 // ---------------------------------------------------------------------------
@@ -129,7 +129,7 @@ export interface Root {
  * the architecture doc's silence on the literal opt-in surface (the doc
  * describes each capability's *behavior* but not the API a host uses to
  * turn a feature on). The closest precedent in this task group is
- * TASK_0010 inventing `BHAICommandContext` for the same reason. The shape
+ * TASK_0010 inventing `BHZAICommandContext` for the same reason. The shape
  * is threaded into the `McpClient` at construction time (and through
  * `bh.addMcp()` by TASK_0015) — a capability key is included in the
  * `initialize` request's `capabilities` object IFF the corresponding
@@ -303,9 +303,9 @@ export interface InboundRequestResult {
  */
 export interface SamplingDriverRegistry {
 	/** Look up a registered driver by id. */
-	getDriver(id: string): BHAIDriver | undefined
+	getDriver(id: string): BHZAIDriver | undefined
 	/** All registered drivers, in registration order. */
-	drivers(): BHAIDriver[]
+	drivers(): BHZAIDriver[]
 }
 
 /**
@@ -476,8 +476,8 @@ async function checkSamplingApproval(
 async function selectSamplingDriver(
 	sampling: NonNullable<McpClientCapabilityOptions["sampling"]>,
 	drivers: SamplingDriverRegistry,
-): Promise<{ driver: BHAIDriver; model: string } | { error: JsonRpcError }> {
-	let driver: BHAIDriver | undefined
+): Promise<{ driver: BHZAIDriver; model: string } | { error: JsonRpcError }> {
+	let driver: BHZAIDriver | undefined
 	if (sampling.driver) {
 		driver = drivers.getDriver(sampling.driver)
 		if (!driver) {
@@ -557,8 +557,8 @@ export async function handleSampling(
 	const { driver, model } = selection
 	// Build the ChatRequest. The server's `messages` is typed opaquely
 	// (`unknown`); this task casts it to the driver's expected
-	// `BHAIMessage[]` shape. A real conversion layer (mapping MCP sampling
-	// message roles/content to BHAI's `BHAIMessage`) is out of scope for
+	// `BHZAIMessage[]` shape. A real conversion layer (mapping MCP sampling
+	// message roles/content to BHZAI's `BHZAIMessage`) is out of scope for
 	// this task — the architecture doc does not specify it, and the
 	// drivers in this task group are mocks. A future task may add a
 	// proper translator.
@@ -597,7 +597,7 @@ export async function handleSampling(
  * `chat()` throws.
  */
 async function consumeSamplingChat(
-	driver: BHAIDriver,
+	driver: BHZAIDriver,
 	chatRequest: ChatRequest,
 ): Promise<{ text: string; stopReason: string | undefined } | { error: JsonRpcError }> {
 	let text = ""

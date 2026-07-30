@@ -1,6 +1,6 @@
-/** @file Reactive model picker that consumes a live `BHAI` catalogue. */
+/** @file Reactive model picker that consumes a live `BHZAI` catalogue. */
 
-import type { ModelInfo } from "@lucasschirm/bhai"
+import type { ModelInfo } from "@bhzai/core"
 import { LitElement, html } from "lit"
 import { customElement, property } from "lit/decorators.js"
 
@@ -11,11 +11,11 @@ import "@lucasschirm/litjs-typeahead"
  * `models` property. The host feeds it from `bh.listModels()` and the kernel's
  * model lifecycle events; it never touches DOM directly.
  *
- * @fires bhai-change - Dispatched when the user selects a model.
+ * @fires bhzai-change - Dispatched when the user selects a model.
  *   Detail: `{ model: ModelInfo, ref: string }`.
  */
-@customElement("bhai-model-select")
-export class BhaiModelSelect extends LitElement {
+@customElement("bhzai-model-select")
+export class BhzaiModelSelect extends LitElement {
 	override createRenderRoot() {
 		return this
 	}
@@ -56,7 +56,7 @@ export class BhaiModelSelect extends LitElement {
 		this.selectedModelId = value
 		const model = this.selectedModel
 		this.dispatchEvent(
-			new CustomEvent("bhai-change", {
+			new CustomEvent("bhzai-change", {
 				detail: { model, ref: model?.ref ?? "" },
 				bubbles: true,
 				composed: true,
@@ -67,6 +67,6 @@ export class BhaiModelSelect extends LitElement {
 
 declare global {
 	interface HTMLElementTagNameMap {
-		"bhai-model-select": BhaiModelSelect
+		"bhzai-model-select": BhzaiModelSelect
 	}
 }

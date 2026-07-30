@@ -1,7 +1,7 @@
 # `src/plugins/interop/pi/` — pi coding-agent extension interop
 
 ## Purpose & scope
-Adapter (TASK_0039) bridging a subset of pi coding-agent extensions onto BHAI's plugin surface (ARCHITECTURE.md § 12). Lets a host reuse existing pi extensions (tools, commands, hooks, events) without rewriting them as BHAI plugins, by translating portable pi-style factory functions onto BHAI kernel primitives.
+Adapter (TASK_0039) bridging a subset of pi coding-agent extensions onto BHZAI's plugin surface (ARCHITECTURE.md § 12). Lets a host reuse existing pi extensions (tools, commands, hooks, events) without rewriting them as BHZAI plugins, by translating portable pi-style factory functions onto BHZAI kernel primitives.
 
 ## Key files
 - `index.ts` — implementation of `runPiExtension(factory, bh, pluginName?)`, the shim factory runner. Defines:
@@ -13,7 +13,7 @@ Adapter (TASK_0039) bridging a subset of pi coding-agent extensions onto BHAI's 
 ## Architecture
 
 ### Event mapping (§ 8.3)
-All 15 non-idle pi event names map to BHAI framework/conversation events:
+All 15 non-idle pi event names map to BHZAI framework/conversation events:
 - **before_agent_start** → conversation `start`
 - **agent_start/agent_end** → conversation `loop` (state-discriminated)
 - **input** → conversation `message` with `state='before'`, `role='user'`
@@ -43,6 +43,6 @@ All 15 non-idle pi event names map to BHAI framework/conversation events:
 - **Blockable events**: all handlers run in registration order, awaited sequentially; returned patches shallow-merge and chain; `{ block: true }` stops handler chain (on `tool(beforeCall)` and `request(before)` only).
 
 ## Consumers
-- `src/index.ts` re-exports this entry as `@lucasschirm/bhai` root export.
+- `src/index.ts` re-exports this entry as `@bhzai/core` root export.
 - `tsup.config.ts` builds `plugins/interop/pi/index` to `dist/plugins/interop/pi/index.js` + `.d.ts`.
-- Hosts with an existing pi extension ecosystem import `@lucasschirm/bhai/plugins/interop/pi` to run unmodified pi factories.
+- Hosts with an existing pi extension ecosystem import `@bhzai/core/plugins/interop/pi` to run unmodified pi factories.

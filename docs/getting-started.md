@@ -1,16 +1,16 @@
 # Getting Started & Tooling (`package.json`, `tsconfig.json`, `tsup.config.ts`, `vitest.config.ts`, `biome.json`)
 
-Documentation for the BHAI package scaffolding and tooling setup
+Documentation for the BHZAI package scaffolding and tooling setup
 established by TASK_0001. Architecture reference: ARCHITECTURE.md § 5.
 
 ## Package identity
 
-- **Name**: `@lucasschirm/bhai`
+- **Name**: `@bhzai/core`
 - **Version**: `0.1.0`
 - **License**: MIT
 - **Type**: `"module"` — ESM only, per § 5.
 - **`sideEffects: false`** — enables tree-shaking of unused subpath
-  exports. This is what lets `import { Bhai } from '@lucasschirm/bhai'`
+  exports. This is what lets `import { BHZAI } from '@bhzai/core'`
   drop unused plugins even though the root barrel re-exports all of
   them.
 - **`engines.node`**: `">=20"` (native `fetch`, `structuredClone`, modern
@@ -36,11 +36,11 @@ established by TASK_0001. Architecture reference: ARCHITECTURE.md § 5.
 ```
 
 1. **Root `.`** — batteries-included superset. Re-exports core + every
-   plugin. `import { Bhai, WebLLM } from '@lucasschirm/bhai';`
+   plugin. `import { BHZAI, WebLLM } from '@bhzai/core';`
 2. **`./core`** — the kernel only. Minimal surface, zero plugin code.
-   `import Bhai from '@lucasschirm/bhai/core';`
+   `import BHZAI from '@bhzai/core/core';`
 3. **`./plugins/*`** — one entry per plugin, each independently
-   importable. `import WebLLM from '@lucasschirm/bhai/plugins/webllm';`
+   importable. `import WebLLM from '@bhzai/core/plugins/webllm';`
 
 Top-level `main` / `types` fallbacks point at `dist/index.js` /
 `dist/index.d.ts` for older tooling that ignores `exports`.
@@ -79,7 +79,7 @@ means updating both files (see `.claude/rules/packaging.md`).
   `.d.ts`, per § 5's "TypeScript-first with `.d.ts` maps" rule.
 - **Native TC39 stage-3 decorators only** — `experimentalDecorators`
   and `emitDecoratorMetadata` are NOT set. The architecture doc (§ 7.2
-  form 3) is explicit that BHAI uses TC39 stage-3 decorators, which
+  form 3) is explicit that BHZAI uses TC39 stage-3 decorators, which
   require TypeScript ≥ 5.0.
 
 ### `vitest` (test runner)

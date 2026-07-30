@@ -3,10 +3,10 @@
 // `resolveCredentials` is a kernel-level function that drivers and the MCP
 // client consult before any authenticated call, following a strict three-tier
 // priority chain (runtime values → registered `auth` hooks in plugin order →
-// unauthenticated) so that BHAI never reads secrets from files/env itself and
+// unauthenticated) so that BHZAI never reads secrets from files/env itself and
 // never persists credentials beyond a single resolution call.
 //
-// PATH NOTE: TASK_0021 specifies `bhai/src/kernel/credentials.ts`, but the
+// PATH NOTE: TASK_0021 specifies `bhzai/src/kernel/credentials.ts`, but the
 // repo convention established by TASK_0002 is `src/core/` (see
 // `src/core/AGENTS.md`). This file follows the existing convention; the
 // behavioral contract is unchanged.
@@ -102,7 +102,7 @@ export interface CredentialResolver {
  *   responsible for passing its own already-known runtime value in; this
  *   function does not discover it from options the caller received.
  * @param authHooks Tier-2 registered `auth` hooks in plugin-registration
- *   order. The caller (typically the `BHAI` kernel) supplies this list by
+ *   order. The caller (typically the `BHZAI` kernel) supplies this list by
  *   reading its plugin registry; this function itself does not access the
  *   plugin registry, keeping it a pure function with no kernel coupling.
  * @returns The resolved credentials, or `undefined` if no tier produced a

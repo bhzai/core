@@ -29,10 +29,10 @@ factory**; without it every attach fails with:
 > `bh.addMcp(): the MCP plugin is not registered. Call `bh.use(mcpPlugin)` …`
 
 ```typescript
-import { BHAI } from "@lucasschirm/bhai";
-import { mcpPlugin } from "@lucasschirm/bhai/plugins/mcp";
+import { BHZAI } from "@bhzai/core";
+import { mcpPlugin } from "@bhzai/core/plugins/mcp";
 
-const bh = new BHAI();
+const bh = new BHZAI();
 bh.use(mcpPlugin);          // must happen before init()
 await bh.init();
 
@@ -66,13 +66,13 @@ import {
   McpTimeoutError,
   type McpClientOptions,
   type ToolListDiff,
-} from "@lucasschirm/bhai/plugins/mcp";
+} from "@bhzai/core/plugins/mcp";
 ```
 
 ### `mcpPlugin` / `createMcpPlugin()`
 
-- `mcpPlugin: BHAIPluginCapabilities` — zero-config form. Holds no per-kernel
-  state, so it is safe to register on several `BHAI` instances; each gets its
+- `mcpPlugin: BHZAIPluginCapabilities` — zero-config form. Holds no per-kernel
+  state, so it is safe to register on several `BHZAI` instances; each gets its
   own manager, reachable via `getMcpManager(bh)`.
 - `createMcpPlugin(options?): { plugin, manager }` — configurable form,
   handing the manager back directly. Bound to the first kernel it is `use()`d
@@ -132,7 +132,7 @@ new McpClient(config: McpServerConfig, toolRegistry: ToolRegistry, options?: Mcp
 
 - `config.url` — streamable-HTTP MCP endpoint URL (required).
 - `config.headers` — extra HTTP headers on every outbound request (optional).
-- `config.name` — BHAI-local server name for tool namespacing (optional;
+- `config.name` — bhzai-local server name for tool namespacing (optional;
   derived from URL hostname if omitted).
 - `config.deferred` — skip discovery at connect time (TASK_0016) (optional).
 - `options.callTimeoutMs` — per-call timeout in milliseconds (default 60_000).
@@ -154,7 +154,7 @@ new McpClient(config: McpServerConfig, toolRegistry: ToolRegistry, options?: Mcp
 
 #### Accessors
 
-- `serverName: string` — the BHAI-local server name.
+- `serverName: string` — the bhzai-local server name.
 - `capabilities: ServerCapabilities | null` — server-declared capabilities.
 - `supportsListChanged: boolean` — whether the server declared
   `tools.listChanged`.
@@ -223,6 +223,6 @@ normalization, duplicate-name refusal, retry/refresh, detach cleanup
 isolation.
 
 13 tests in `src/plugins/mcp/plugin.test.ts` — the seam end to end against a
-real `BHAI` kernel: pre-registration refusal, tool registration after attach,
+real `BHZAI` kernel: pre-registration refusal, tool registration after attach,
 per-kernel manager isolation, declarative `servers`, `clientOptions`
 forwarding and per-attach override, and detach through the kernel.

@@ -13,11 +13,11 @@
  * and embedding are host/plugin concerns.
  */
 
-import type { BHAI } from "../src/core/bhai.js"
-import type { BHAIPluginCapabilities } from "../src/core/index.js"
+import type { BHZAI } from "../src/core/bhzai.js"
+import type { BHZAIPluginCapabilities } from "../src/core/index.js"
 import type {
-	BHAIMessage,
-	BHAIToolDefinition,
+	BHZAIMessage,
+	BHZAIToolDefinition,
 	CallToolResult,
 	ToolInvocation,
 } from "../src/types/index.js"
@@ -67,7 +67,7 @@ export interface Retriever {
  * Implements § 11.8's code samples exactly. Retrievers registered after `initialize()` runs
  * do not retroactively appear (both shapes close over the retriever list computed at init time).
  */
-export const ragPlugin: BHAIPluginCapabilities = {
+export const ragPlugin: BHZAIPluginCapabilities = {
 	name: "rag",
 
 	/**
@@ -87,9 +87,9 @@ export const ragPlugin: BHAIPluginCapabilities = {
 	 * Initialize the RAG plugin: register the `search_knowledge` tool and the
 	 * automatic `context` injection handler.
 	 *
-	 * @param bh - The BHAI kernel instance
+	 * @param bh - The BHZAI kernel instance
 	 */
-	async initialize({ bh }: { bh: BHAI }) {
+	async initialize({ bh }: { bh: BHZAI }) {
 		/**
 		 * Capture the retriever list at init time. Retrievers registered *after*
 		 * this function runs are not expected to retroactively appear; the sample
@@ -109,7 +109,7 @@ export const ragPlugin: BHAIPluginCapabilities = {
 		 * to invoke this based on the user's query and conversation context.
 		 * Aggregates results from all registered `Retriever` contributions.
 		 */
-		const searchKnowledgeTool: BHAIToolDefinition = {
+		const searchKnowledgeTool: BHZAIToolDefinition = {
 			name: "search_knowledge",
 			description: "Semantic search over the indexed knowledge sources.",
 			inputSchema: {
@@ -165,10 +165,10 @@ export const ragPlugin: BHAIPluginCapabilities = {
 		bh.on("conversation.context", async (payload: unknown) => {
 			/**
 			 * Type-cast the payload to extract messages. The full event payload is
-			 * { conversation, messages: BHAIMessage[], systemPrompt, tools }, but we
+			 * { conversation, messages: BHZAIMessage[], systemPrompt, tools }, but we
 			 * only need messages here.
 			 */
-			const { messages } = payload as { messages: BHAIMessage[] }
+			const { messages } = payload as { messages: BHZAIMessage[] }
 
 			/**
 			 * Find the last user-role message in the conversation. If none exists,

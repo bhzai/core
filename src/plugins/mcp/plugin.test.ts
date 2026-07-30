@@ -1,6 +1,6 @@
 // mcpPlugin / createMcpPlugin tests — the kernel seam and its wiring.
 //
-// These run against the REAL `BHAI` kernel (not a fake) because the whole
+// These run against the REAL `BHZAI` kernel (not a fake) because the whole
 // point of this module is the kernel handshake: `use()` → `init()` →
 // `registerMcpClientFactory` → `addMcp()`. A fake kernel would assert the
 // mock's behavior instead of the contract. `fetch` is stubbed so the
@@ -9,7 +9,7 @@
 
 import { afterEach, describe, expect, it, vi } from "vitest"
 
-import { BHAI } from "../../core/bhai.js"
+import { BHZAI } from "../../core/bhzai.js"
 import { createMcpPlugin, getMcpManager, mcpPlugin } from "./plugin.js"
 
 // ---------------------------------------------------------------------------
@@ -66,7 +66,7 @@ afterEach(() => {
 
 describe("mcpPlugin — kernel seam", () => {
 	it("bh.addMcp() refuses to attach when no MCP plugin is registered", async () => {
-		const bh = new BHAI()
+		const bh = new BHZAI()
 		await bh.init()
 
 		await expect(bh.addMcp({ url: "https://example.com/mcp" })).rejects.toThrow(
@@ -76,7 +76,7 @@ describe("mcpPlugin — kernel seam", () => {
 
 	it("registering mcpPlugin makes bh.addMcp() work and registers the discovered tools", async () => {
 		stubMcpServer([{ name: "search", description: "Search things" }])
-		const bh = new BHAI()
+		const bh = new BHZAI()
 		bh.use(mcpPlugin)
 		await bh.init()
 
@@ -88,7 +88,7 @@ describe("mcpPlugin — kernel seam", () => {
 
 	it("exposes a manager for the zero-config form via getMcpManager", async () => {
 		stubMcpServer([{ name: "search", description: "Search things" }])
-		const bh = new BHAI()
+		const bh = new BHZAI()
 		bh.use(mcpPlugin)
 		await bh.init()
 
@@ -102,8 +102,8 @@ describe("mcpPlugin — kernel seam", () => {
 
 	it("does not leak manager state between kernels", async () => {
 		stubMcpServer()
-		const first = new BHAI()
-		const second = new BHAI()
+		const first = new BHZAI()
+		const second = new BHZAI()
 		first.use(mcpPlugin)
 		second.use(mcpPlugin)
 		await first.init()
@@ -114,7 +114,7 @@ describe("mcpPlugin — kernel seam", () => {
 	})
 
 	it("returns undefined from getMcpManager before init has run", () => {
-		const bh = new BHAI()
+		const bh = new BHZAI()
 		bh.use(mcpPlugin)
 
 		expect(getMcpManager(bh)).toBeUndefined()
@@ -128,7 +128,7 @@ describe("mcpPlugin — kernel seam", () => {
 describe("createMcpPlugin", () => {
 	it("hands back a manager that works once the kernel is initialized", async () => {
 		stubMcpServer([{ name: "a", description: "tool a" }])
-		const bh = new BHAI()
+		const bh = new BHZAI()
 		const { plugin, manager } = createMcpPlugin()
 		bh.use(plugin)
 		await bh.init()
@@ -152,7 +152,7 @@ describe("createMcpPlugin", () => {
 
 	it("attaches `servers` declaratively during init via the getMcps hook", async () => {
 		stubMcpServer([{ name: "declared", description: "from config" }])
-		const bh = new BHAI()
+		const bh = new BHZAI()
 		const { plugin } = createMcpPlugin({
 			servers: [{ url: "https://example.com/mcp", name: "preset" }],
 		})
@@ -165,7 +165,7 @@ describe("createMcpPlugin", () => {
 
 	it("forwards plugin-level clientOptions to every client it constructs", async () => {
 		const stub = stubMcpServer()
-		const bh = new BHAI()
+		const bh = new BHZAI()
 		const { plugin } = createMcpPlugin({
 			clientOptions: { roots: { getRoots: () => [] } },
 		})
@@ -183,7 +183,7 @@ describe("createMcpPlugin", () => {
 	})
 
 	it("lets per-attach options override the plugin-level defaults", async () => {
-		const bh = new BHAI()
+		const bh = new BHZAI()
 		const { plugin } = createMcpPlugin({ clientOptions: { callTimeoutMs: 60_000 } })
 		bh.use(plugin)
 		await bh.init()
@@ -238,7 +238,7 @@ describe("createMcpPlugin", () => {
 
 	it("honors a custom plugin name for activation toggles", async () => {
 		stubMcpServer()
-		const bh = new BHAI()
+		const bh = new BHZAI()
 		const { plugin } = createMcpPlugin({ name: "mcp-internal" })
 		bh.use(plugin)
 		await bh.init()
@@ -249,13 +249,13 @@ describe("createMcpPlugin", () => {
 	it("refuses to bind one plugin instance to two kernels", async () => {
 		stubMcpServer()
 		const { plugin } = createMcpPlugin()
-		const first = new BHAI()
-		const second = new BHAI()
+		const first = new BHZAI()
+		const second = new BHZAI()
 		first.use(plugin)
 		await first.init()
 
 		second.use(plugin)
-		await expect(second.init()).rejects.toThrow(/already bound to a different BHAI instance/)
+		await expect(second.init()).rejects.toThrow(/already bound to a different BHZAI instance/)
 	})
 })
 
@@ -269,7 +269,7 @@ describe("createMcpPlugin — detach through the real kernel", () => {
 			{ name: "a", description: "tool a" },
 			{ name: "b", description: "tool b" },
 		])
-		const bh = new BHAI()
+		const bh = new BHZAI()
 		const { plugin, manager } = createMcpPlugin()
 		bh.use(plugin)
 		await bh.init()

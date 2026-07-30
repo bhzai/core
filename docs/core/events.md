@@ -1,8 +1,8 @@
 # Core events
 
-This document lists every event the BHAI kernel dispatches, the name pattern it
+This document lists every event the BHZAI kernel dispatches, the name pattern it
 follows, and the exact timing of dispatch. All framework events travel through
-the single `EventBus` instance owned by the `BHAI` kernel (see `event-bus.md`)
+the single `EventBus` instance owned by the `BHZAI` kernel (see `event-bus.md`)
 and are published with `bh.on(event, handler)`.
 
 ## Reserved namespace
@@ -39,7 +39,7 @@ are explicitly allowed to `emit()` (it triggers the compaction pipeline).
 | `models.changed` | prefix | `{ added, removed, changed }` | Once after all `model.added`/`model.changed`/`model.removed` events for a single refresh have settled. `changed` entries are `{ model, previous }`. |
 | `model.selected` | prefix | `{ model, previousModel, source }` | When a conversation's active model is switched (`setModel` applied or queued). `source` is `'set'`, `'load'`, or `'resolve'`. |
 
-All `model.*` and `models.*` events are dispatched by `BHAI.listModels()` and
+All `model.*` and `models.*` events are dispatched by `BHZAI.listModels()` and
 its callers (`addDriver`, `init`, `enablePlugin`/`disablePlugin`).
 
 ## Conversation events (mirrored)

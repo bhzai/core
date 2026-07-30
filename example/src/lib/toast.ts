@@ -1,7 +1,7 @@
 /**
  * @file Thin wrapper around `toastify-js` for surfacing transient errors.
  *
- * Example-only — `toastify-js` is never imported from the bhai package. The
+ * Example-only — `toastify-js` is never imported from the BHZAI package. The
  * CSS is imported as a side-effect so the toast styling ships with the bundle.
  */
 

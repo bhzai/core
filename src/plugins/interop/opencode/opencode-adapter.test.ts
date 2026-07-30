@@ -2,12 +2,12 @@
 
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import type { Mock } from "vitest"
-import type { BHAIConversationImpl } from "../../../conversation/conversation.js"
-import { BHAI } from "../../../core/bhai.js"
+import type { BHZAIConversationImpl } from "../../../conversation/conversation.js"
+import { BHZAI } from "../../../core/bhzai.js"
 import type { CredentialResolver, CredentialScope, Credentials } from "../../../core/credentials.js"
 import { resolveCredentials } from "../../../core/credentials.js"
-import type { BHAIDriver, ChatRequest, DriverEvent } from "../../../types/driver.js"
-import type { BHAIConversation } from "../../../types/index.js"
+import type { BHZAIDriver, ChatRequest, DriverEvent } from "../../../types/driver.js"
+import type { BHZAIConversation } from "../../../types/index.js"
 import { type OpenCodePluginFn, runOpenCodePlugin } from "./index.js"
 
 /**
@@ -27,7 +27,7 @@ interface ToolEventPayload {
  */
 function makeMockDriver(
 	scriptedEvents: DriverEvent[],
-): BHAIDriver & { chat: Mock<(request: ChatRequest) => AsyncIterable<DriverEvent>> } {
+): BHZAIDriver & { chat: Mock<(request: ChatRequest) => AsyncIterable<DriverEvent>> } {
 	let callCount = 0
 	return {
 		id: "mock-driver-id",
@@ -66,11 +66,11 @@ function makeMockDriver(
 }
 
 describe("TASK_0040: OpenCode plugin interop adapter", () => {
-	let bh: BHAI
-	let mockDriver: BHAIDriver & { chat: Mock<(request: ChatRequest) => AsyncIterable<DriverEvent>> }
+	let bh: BHZAI
+	let mockDriver: BHZAIDriver & { chat: Mock<(request: ChatRequest) => AsyncIterable<DriverEvent>> }
 
 	beforeEach(() => {
-		bh = new BHAI()
+		bh = new BHZAI()
 		// Register mock driver
 		mockDriver = makeMockDriver([
 			{ type: "delta", text: "Hello world" },
@@ -80,10 +80,10 @@ describe("TASK_0040: OpenCode plugin interop adapter", () => {
 	})
 
 	// =========================================================================
-	// Test 1: tool hook registers a real BHAI tool with correctly converted
+	// Test 1: tool hook registers a real BHZAI tool with correctly converted
 	// JSON Schema inputSchema
 	// =========================================================================
-	it("tool hook registers a real BHAI tool with correctly converted JSON Schema inputSchema", async () => {
+	it("tool hook registers a real BHZAI tool with correctly converted JSON Schema inputSchema", async () => {
 		// Create a mock zod-like schema with toJSONSchema() method
 		const mockSchema = {
 			toJSONSchema: () => ({
@@ -132,7 +132,7 @@ describe("TASK_0040: OpenCode plugin interop adapter", () => {
 		// This test verifies that the OpenCode plugin's tool execution hooks are
 		// properly registered and triggered through a real agent loop.
 
-		const bh2 = new BHAI()
+		const bh2 = new BHZAI()
 		const hooksCalled: string[] = []
 
 		const mockSchema = {
@@ -177,7 +177,7 @@ describe("TASK_0040: OpenCode plugin interop adapter", () => {
 		])
 		bh2.addDriver(mockToolDriver)
 
-		// Initialize BHAI first (following Test 1 pattern)
+		// Initialize BHZAI first (following Test 1 pattern)
 		await bh2.init()
 
 		// Then register the plugin (the adapter works in both orders, but this ensures handlers are wired)
@@ -189,7 +189,7 @@ describe("TASK_0040: OpenCode plugin interop adapter", () => {
 		// Create a conversation and trigger a tool call
 		const conversation = (await bh2.createConversation({
 			model: "mock-driver-id/mock-model",
-		})) as BHAIConversationImpl
+		})) as BHZAIConversationImpl
 
 		// Send a message that will trigger the tool call
 		await conversation.sendMessage("Call the test tool")
@@ -252,7 +252,7 @@ describe("TASK_0040: OpenCode plugin interop adapter", () => {
 
 		const conversation = (await bh.createConversation({
 			model: "mock-driver-id/mock-model",
-		})) as BHAIConversationImpl
+		})) as BHZAIConversationImpl
 
 		// Register a native blocker on the conversation BEFORE sending the message
 		// This ensures it runs first in the handler registration order
@@ -317,7 +317,7 @@ describe("TASK_0040: OpenCode plugin interop adapter", () => {
 
 		const conversation = (await bh.createConversation({
 			model: "mock-driver-id/mock-model",
-		})) as BHAIConversationImpl
+		})) as BHZAIConversationImpl
 
 		// Register a native APPROVER on the conversation
 		// This runs first, but OpenCode's permission.ask (which runs later) should block it
@@ -355,8 +355,8 @@ describe("TASK_0040: OpenCode plugin interop adapter", () => {
 			}),
 		})
 
-		// Create BHAI WITHOUT pre-supplied config (so the plugin's schema drives validation)
-		const bh2 = new BHAI()
+		// Create BHZAI WITHOUT pre-supplied config (so the plugin's schema drives validation)
+		const bh2 = new BHZAI()
 		bh2.addDriver(makeMockDriver([{ type: "done", stopReason: "stop" }]))
 
 		// Register the plugin BEFORE init() so its config schema is declared
@@ -379,7 +379,7 @@ describe("TASK_0040: OpenCode plugin interop adapter", () => {
 		// This test verifies that the OpenCode adapter's auth hook is registered as a tier-2
 		// credential resolver, and that tier-1 runtime values still override it per § 10.4.
 
-		const bh2 = new BHAI()
+		const bh2 = new BHZAI()
 
 		const plugin: OpenCodePluginFn = async () => ({
 			config: () => ({

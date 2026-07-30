@@ -80,7 +80,7 @@ Each file is production-quality, not pseudo-code. Copy the general flow:
 ## Test coverage
 
 Each example plugin has a companion `.test.ts` file in the same directory.
-These are NOT mocked or stubbed — they use real `BHAI` instances with mock
+These are NOT mocked or stubbed — they use real `BHZAI` instances with mock
 drivers and real kernel events. The test suite is part of the normal
 `pnpm test` gate.
 

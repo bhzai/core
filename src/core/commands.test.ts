@@ -8,11 +8,11 @@
 
 import { describe, expect, it, vi } from "vitest"
 
-import type { BHAICommandContext, BHAICommandDefinition } from "../types/index.js"
+import type { BHZAICommandContext, BHZAICommandDefinition } from "../types/index.js"
 import { CommandRegistry } from "./commands.js"
 
 /** Build a minimal valid command definition with overridable fields. */
-function makeCommand(overrides: Partial<BHAICommandDefinition> = {}): BHAICommandDefinition {
+function makeCommand(overrides: Partial<BHZAICommandDefinition> = {}): BHZAICommandDefinition {
 	return {
 		description: "a test command",
 		handler: async () => "ok",
@@ -20,8 +20,8 @@ function makeCommand(overrides: Partial<BHAICommandDefinition> = {}): BHAIComman
 	}
 }
 
-/** A minimal `BHAICommandContext` fixture for handler-invocation tests. */
-const mockCtx: BHAICommandContext = {}
+/** A minimal `BHZAICommandContext` fixture for handler-invocation tests. */
+const mockCtx: BHZAICommandContext = {}
 
 describe("CommandRegistry.addCommand", () => {
 	it("registers a command that is retrievable via listCommands()", () => {
@@ -37,7 +37,7 @@ describe("CommandRegistry.addCommand", () => {
 	it("the registered handler is invoked with (args, ctx) when run", async () => {
 		const registry = new CommandRegistry()
 		const handler = vi.fn(
-			async (_args: string[], _ctx: BHAICommandContext): Promise<unknown> => "ran",
+			async (_args: string[], _ctx: BHZAICommandContext): Promise<unknown> => "ran",
 		)
 		registry.addCommand("foo", { description: "d", handler })
 		// Simulated host dispatch: the test directly calls the stored handler

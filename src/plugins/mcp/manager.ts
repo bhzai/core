@@ -20,7 +20,7 @@ import type { McpHandle } from "../../core/mcp-integration.js"
 // lands them in different rollup chunks and the build warns about the resulting
 // circular chunk dependency.
 import type { McpServerConfig } from "../../types/mcp.js"
-import type { BHAIToolDefinition, ToolFilter } from "../../types/tool.js"
+import type { BHZAIToolDefinition, ToolFilter } from "../../types/tool.js"
 import { deriveServerName } from "./client.js"
 import type { McpClientOptions } from "./client.js"
 
@@ -60,7 +60,7 @@ export interface McpServerError {
 
 /** One discovered tool, in the shape a UI wants rather than the registry's. */
 export interface McpServerTool {
-	/** The BHAI-local registry key: `mcp__<server>__<tool>`. */
+	/** The bhzai-local registry key: `mcp__<server>__<tool>`. */
 	name: string
 	/** The bare remote tool name, with the `mcp__<server>__` prefix stripped. */
 	shortName: string
@@ -79,7 +79,7 @@ export interface McpServerState {
 	/** The config this entry was created with. */
 	readonly config: McpServerConfig
 	/**
-	 * The BHAI-local server name used to namespace tools. Resolved from
+	 * The bhzai-local server name used to namespace tools. Resolved from
 	 * `config.name`, falling back to the URL hostname the same way
 	 * {@link McpClient} derives it, so the namespace prefix is known before the
 	 * handshake completes.
@@ -97,7 +97,7 @@ export interface McpServerState {
 }
 
 /**
- * The narrow slice of `BHAI` the manager needs. Declared as an interface —
+ * The narrow slice of `BHZAI` the manager needs. Declared as an interface —
  * rather than importing the kernel class — for the same reason
  * {@link McpClientLike} exists on the kernel side: it keeps the dependency
  * one-directional and lets the manager be unit-tested against a fake host
@@ -105,7 +105,7 @@ export interface McpServerState {
  */
 export interface McpManagerHost {
 	addMcp(config: McpServerConfig, options?: unknown): Promise<McpHandle>
-	listTools(filter?: ToolFilter): BHAIToolDefinition[]
+	listTools(filter?: ToolFilter): BHZAIToolDefinition[]
 	removeTool(name: string): void
 }
 

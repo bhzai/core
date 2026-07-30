@@ -12,8 +12,8 @@ export type StatusState = "cold" | "warming" | "ready" | "generating"
  * Rendered in the light DOM so the host page's global styles (and CSS variables)
  * continue to drive its appearance.
  */
-@customElement("bhai-status-indicator")
-export class BhaiStatusIndicator extends LitElement {
+@customElement("bhzai-status-indicator")
+export class BhzaiStatusIndicator extends LitElement {
 	override createRenderRoot() {
 		return this
 	}
@@ -40,6 +40,6 @@ export class BhaiStatusIndicator extends LitElement {
 
 declare global {
 	interface HTMLElementTagNameMap {
-		"bhai-status-indicator": BhaiStatusIndicator
+		"bhzai-status-indicator": BhzaiStatusIndicator
 	}
 }

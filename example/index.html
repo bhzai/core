@@ -6,9 +6,9 @@
   <meta name="color-scheme" content="dark" />
   <meta
     name="description"
-    content="bhai · local — run WebLLM-powered models directly in your browser"
+    content="bhzai · local — run WebLLM-powered models directly in your browser"
   />
-  <title>bhai · local — WebLLM chat</title>
+  <title>bhzai · local — WebLLM chat</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -22,29 +22,29 @@
 </head>
 <body>
   <header class="statusbar">
-    <span class="wordmark">bhai · local</span>
+    <span class="wordmark">bhzai · local</span>
     <div class="center-container">
-      <bhai-model-select
+      <bhzai-model-select
         id="model-select"
         class="model-select"
         placeholder="Select a model…"
-      ></bhai-model-select>
-      <bhai-provider-cog id="provider-cog"></bhai-provider-cog>
+      ></bhzai-model-select>
+      <bhzai-provider-cog id="provider-cog"></bhzai-provider-cog>
     </div>
-    <bhai-status-indicator
+    <bhzai-status-indicator
       id="status"
       class="status"
       state="cold"
       label="cold"
-    ></bhai-status-indicator>
+    ></bhzai-status-indicator>
   </header>
 
   <main class="layout">
-    <bhai-conversation
+    <bhzai-conversation
       id="conversation"
       class="conversation"
       aria-live="polite"
-    ></bhai-conversation>
+    ></bhzai-conversation>
 
     <aside class="telemetry" id="telemetry">
       <!--
@@ -52,25 +52,25 @@
         that must survive a turn (the cold-start panel, the MCP panel below)
         lives outside it in its own host.
       -->
-      <bhai-cold-start id="cold-start"></bhai-cold-start>
+      <bhzai-cold-start id="cold-start"></bhzai-cold-start>
 
-      <bhai-telemetry id="telemetry-stats"></bhai-telemetry>
+      <bhzai-telemetry id="telemetry-stats"></bhzai-telemetry>
 
       <section class="telemetry-panel mcp-panel" id="mcp-panel" aria-labelledby="mcp-panel-title">
         <div class="telemetry-eyebrow" id="mcp-panel-title">MCP servers</div>
 
-        <bhai-mcp-server-list id="mcp-servers"></bhai-mcp-server-list>
+        <bhzai-mcp-server-list id="mcp-servers"></bhzai-mcp-server-list>
 
-        <bhai-mcp-add-form id="mcp-add"></bhai-mcp-add-form>
+        <bhzai-mcp-add-form id="mcp-add"></bhzai-mcp-add-form>
       </section>
     </aside>
   </main>
 
-  <bhai-mcp-error-dialog id="mcp-error-dialog"></bhai-mcp-error-dialog>
+  <bhzai-mcp-error-dialog id="mcp-error-dialog"></bhzai-mcp-error-dialog>
 
-  <bhai-providers-dialog id="providers-dialog"></bhai-providers-dialog>
+  <bhzai-providers-dialog id="providers-dialog"></bhzai-providers-dialog>
 
-  <bhai-composer id="composer" class="composer"></bhai-composer>
+  <bhzai-composer id="composer" class="composer"></bhzai-composer>
 
   <script type="module" src="/src/main.ts"></script>
 </body>

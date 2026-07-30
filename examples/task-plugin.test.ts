@@ -1,8 +1,8 @@
 /** @file Tests for TASK_0036: Task-management plugin reference example */
 
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { BHAI } from "../src/core/bhai.js"
-import type { BHAIDriver, ChatRequest, DriverEvent } from "../src/types/index.js"
+import { BHZAI } from "../src/core/bhzai.js"
+import type { BHZAIDriver, ChatRequest, DriverEvent } from "../src/types/index.js"
 import { type Task, taskPlugin } from "./task-plugin.js"
 
 /**
@@ -10,7 +10,7 @@ import { type Task, taskPlugin } from "./task-plugin.js"
  * The driver is not actually called in these tests; it exists only to satisfy
  * conversation creation's model resolution.
  */
-function makeMockDriver(): BHAIDriver {
+function makeMockDriver(): BHZAIDriver {
 	return {
 		id: "test-driver",
 		listModels: async () => [
@@ -39,10 +39,10 @@ function makeMockDriver(): BHAIDriver {
 }
 
 describe("TASK_0036: Task-management plugin", () => {
-	let bh: BHAI
+	let bh: BHZAI
 
 	beforeEach(async () => {
-		bh = new BHAI()
+		bh = new BHZAI()
 		bh.use(taskPlugin)
 		bh.addDriver(makeMockDriver())
 		await bh.init()

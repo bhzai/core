@@ -5,7 +5,7 @@
  * Loose JSON Schema (2020-12 dialect) alias.
  *
  * Deliberate scope decision (not an oversight): a fully-typed JSON Schema AST is
- * out of scope for BHAI's MVP and would be its own significant undertaking. We
+ * out of scope for BHZAI's MVP and would be its own significant undertaking. We
  * model it as `Record<string, unknown>` and let downstream code that needs to
  * inspect specific keywords (e.g. TASK_0006's `default` keyword lookup) narrow
  * locally. The "wire-compatible" note in § 9.1 refers to the dialect, not to a

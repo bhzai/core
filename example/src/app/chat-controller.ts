@@ -5,16 +5,16 @@
  * passed in, and everything model-related through the kernel and the engine.
  */
 
-import type { BHAI, BHAIConversation } from "@lucasschirm/bhai"
-import type { WebLLM } from "@lucasschirm/bhai/plugins/webllm"
+import type { BHZAI, BHZAIConversation } from "@bhzai/core"
+import type { WebLLM } from "@bhzai/core/plugins/webllm"
 import type * as webllm from "@mlc-ai/web-llm"
 
-import type { BhaiColdStart } from "../components/cold-start-panel.js"
-import type { BhaiComposer } from "../components/composer.js"
-import type { BhaiConversation } from "../components/conversation-view.js"
-import type { BhaiModelSelect } from "../components/model-select.js"
-import type { BhaiStatusIndicator } from "../components/status-indicator.js"
-import type { BhaiTelemetry } from "../components/telemetry-panel.js"
+import type { BhzaiColdStart } from "../components/cold-start-panel.js"
+import type { BhzaiComposer } from "../components/composer.js"
+import type { BhzaiConversation } from "../components/conversation-view.js"
+import type { BhzaiModelSelect } from "../components/model-select.js"
+import type { BhzaiStatusIndicator } from "../components/status-indicator.js"
+import type { BhzaiTelemetry } from "../components/telemetry-panel.js"
 import { formatSeconds, formatTokens, formatTps } from "../lib/format.js"
 import { parseRuntimeStats } from "../lib/stats.js"
 import { thermalColor, thermalRatio } from "../lib/thermal.js"
@@ -48,19 +48,19 @@ function asMessageDelta(payload: unknown): MessageDelta | null {
 /** Everything the chat controller drives. */
 export interface ChatControllerDeps {
 	/** The kernel, already initialized. */
-	bh: BHAI
+	bh: BHZAI
 	/** The host-owned MLC engine, for `runtimeStatsText()`. */
 	engine: webllm.MLCEngine
 	/** The registered WebLLM driver, for `capabilities()`. */
 	driver: WebLLM
 	/** UI custom elements. */
 	ui: {
-		status: BhaiStatusIndicator
-		composer: BhaiComposer
-		conversation: BhaiConversation
-		telemetry: BhaiTelemetry
-		coldStart: BhaiColdStart
-		modelSelect: BhaiModelSelect
+		status: BhzaiStatusIndicator
+		composer: BhzaiComposer
+		conversation: BhzaiConversation
+		telemetry: BhzaiTelemetry
+		coldStart: BhzaiColdStart
+		modelSelect: BhzaiModelSelect
 	}
 }
 
@@ -82,11 +82,11 @@ export interface ChatController {
 export function createChatController(deps: ChatControllerDeps): ChatController {
 	const { bh, engine, driver, ui } = deps
 
-	let conversation: BHAIConversation | null = null
+	let conversation: BHZAIConversation | null = null
 	/** Whether the selected model's weights have been downloaded this session. */
 	let modelLoaded = false
 	/** The turn currently streaming, or null between turns. */
-	let turn: ReturnType<BhaiConversation["beginAssistantTurn"]> | null = null
+	let turn: ReturnType<BhzaiConversation["beginAssistantTurn"]> | null = null
 	/** `performance.now()` at send time, for TTFT. */
 	let sendStartTime = 0
 	/** `performance.now()` at the first delta of the current turn. */

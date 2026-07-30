@@ -6,7 +6,7 @@ ARCHITECTURE.md § 8.
 ## Overview
 
 `EventBus` is the single dispatch mechanism underpinning every observable
-behavior in BHAI. One instance lives on each `BHAI` kernel (the framework
+behavior in BHZAI. One instance lives on each `BHZAI` kernel (the framework
 bus); TASK_0023 will instantiate one per `Conversation` too, reusing this
 exact class unchanged.
 
@@ -31,7 +31,7 @@ asymmetry:
 ## Public API
 
 ```typescript
-import { EventBus, type Handler, type BlockSignal } from "@lucasschirm/bhai";
+import { EventBus, type Handler, type BlockSignal } from "@bhzai/core";
 ```
 
 ### `EventBus`

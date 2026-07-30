@@ -1,16 +1,16 @@
 /** @file Conversation serialization contract (TASK_0028) — snapshot shape, round-trip serialization, and version policy */
 
-import type { BHAI } from "../core/bhai.js"
+import type { BHZAI } from "../core/bhzai.js"
 import type { MessageFieldRegistry } from "../core/message-fields.js"
 import type { ContentBlock } from "../types/content.js"
 import type { GenerationParams } from "../types/driver.js"
-import type { BHAIMessage } from "../types/message.js"
-import type { BHAIConversationImpl } from "./conversation.js"
+import type { BHZAIMessage } from "../types/message.js"
+import type { BHZAIConversationImpl } from "./conversation.js"
 import type { CreateConversationOptions } from "./conversation.js"
 import { createMessage } from "./message.js"
 
 /**
- * Plain-JSON representation of a {@link BHAIMessage}, excluding methods.
+ * Plain-JSON representation of a {@link BHZAIMessage}, excluding methods.
  *
  * Used during snapshot serialization to strip the `append()` and `setContent()` methods
  * (which are not JSON-serializable) while preserving all data fields. When a snapshot
@@ -98,9 +98,9 @@ export interface ConversationSnapshot {
 }
 
 /**
- * Convert a live {@link BHAIMessage} to plain-JSON form by stripping methods.
+ * Convert a live {@link BHZAIMessage} to plain-JSON form by stripping methods.
  *
- * The live in-memory `BHAIMessage` objects carry two methods (`append`, `setContent`)
+ * The live in-memory `BHZAIMessage` objects carry two methods (`append`, `setContent`)
  * alongside their data fields — these are not JSON-serializable and must be stripped.
  * This function copies every data field (`id`, `role`, `content`, `blocks`, `time`, `meta`)
  * into a fresh plain object with no method properties.
@@ -113,7 +113,7 @@ export interface ConversationSnapshot {
  *
  * @internal
  */
-export function toPlainMessage(message: BHAIMessage): PlainMessage {
+export function toPlainMessage(message: BHZAIMessage): PlainMessage {
 	return {
 		id: message.id,
 		role: message.role,
@@ -140,7 +140,7 @@ export function toPlainMessage(message: BHAIMessage): PlainMessage {
  *
  * @internal
  */
-export function toSnapshot(conversation: BHAIConversationImpl): ConversationSnapshot {
+export function toSnapshot(conversation: BHZAIConversationImpl): ConversationSnapshot {
 	return {
 		v: 1,
 		id: conversation.id,
@@ -163,7 +163,7 @@ export function toSnapshot(conversation: BHAIConversationImpl): ConversationSnap
  * 2. **Shape validation**: confirms `id` is non-empty string and `messages` is an array.
  *    Each message must loosely match the plain-message shape. Throws on shape mismatch.
  *
- * 3. **Reconstruction**: builds a new `BHAIConversationImpl`, restores `id`/`messages`/
+ * 3. **Reconstruction**: builds a new `BHZAIConversationImpl`, restores `id`/`messages`/
  *    `usage`/`meta`/`params` from snapshot, re-attaches `append()`/`setContent()` methods
  *    (which throw if called on a reloaded message — documented as consistent with § 11.1's
  *    "legal only while state === 'before'" rule), and marks the conversation as already-
@@ -188,7 +188,7 @@ export function toSnapshot(conversation: BHAIConversationImpl): ConversationSnap
  * short/truncated `messages` array.
  *
  * @param snapshot Untrusted snapshot data from storage (validated here)
- * @param bh The BHAI instance (provides model registries and event bus)
+ * @param bh The BHZAI instance (provides model registries and event bus)
  * @param options Creation options for the reconstructed conversation (optional, merged with snapshot state)
  * @returns A fully functional, live conversation ready for `sendMessage()` or other use
  * @throws On version mismatch (`v !== 1`), shape validation failure, or model resolution failure
@@ -197,9 +197,9 @@ export function toSnapshot(conversation: BHAIConversationImpl): ConversationSnap
  */
 export async function fromSnapshot(
 	snapshot: unknown,
-	bh: BHAI,
+	bh: BHZAI,
 	options?: CreateConversationOptions,
-): Promise<BHAIConversationImpl> {
+): Promise<BHZAIConversationImpl> {
 	// =========================================================================
 	// STEP 1: Version check
 	// =========================================================================
@@ -256,7 +256,7 @@ export async function fromSnapshot(
 	// =========================================================================
 	// STEP 3: Reconstruction — build new conversation and restore state
 	// =========================================================================
-	const conversation = new (await import("./conversation.js")).BHAIConversationImpl(bh, options)
+	const conversation = new (await import("./conversation.js")).BHZAIConversationImpl(bh, options)
 
 	// Reconstruct via a new internal method `_restoreFromSnapshot()`:
 	// Re-attaches `append()`/`setContent()` methods to plain messages.
@@ -264,7 +264,7 @@ export async function fromSnapshot(
 	// § 11.1's "legal only while state === 'before'" rule.
 	const plainMessages = messages as PlainMessage[]
 	const messageFields = bh._getMessageFields()
-	const restoredMessages: BHAIMessage[] = plainMessages.map((plain) =>
+	const restoredMessages: BHZAIMessage[] = plainMessages.map((plain) =>
 		createMessageFromPlain(plain, messageFields),
 	)
 
@@ -336,7 +336,7 @@ export async function fromSnapshot(
 }
 
 /**
- * Helper to reconstruct a full {@link BHAIMessage} from a {@link PlainMessage}.
+ * Helper to reconstruct a full {@link BHZAIMessage} from a {@link PlainMessage}.
  *
  * Re-attaches the `append()` and `setContent()` methods. Since a reloaded message
  * is never in the `'before'` lifecycle state, these methods throw with a clear error
@@ -347,7 +347,7 @@ export async function fromSnapshot(
  *
  * @internal
  */
-function createMessageFromPlain(plain: PlainMessage, fields?: MessageFieldRegistry): BHAIMessage {
+function createMessageFromPlain(plain: PlainMessage, fields?: MessageFieldRegistry): BHZAIMessage {
 	// Fields are installed on reloaded messages too, so `message.think` (and any
 	// plugin field) keeps reading the value persisted inside `meta`.
 	return createMessage(

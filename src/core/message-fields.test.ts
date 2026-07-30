@@ -1,12 +1,12 @@
 /** @file Tests for the open message-field contract (accessors over message.meta). */
 
 import { describe, expect, it } from "vitest"
-import type { BHAIMessage } from "../types/message.js"
-import { BHAI } from "./bhai.js"
+import type { BHZAIMessage } from "../types/message.js"
+import { BHZAI } from "./bhzai.js"
 import { MessageFieldRegistry, applyMessageFields } from "./message-fields.js"
 
 /** A bare message object, standing in for one built by the conversation layer. */
-function plainMessage(meta: Record<string, unknown> = {}): BHAIMessage {
+function plainMessage(meta: Record<string, unknown> = {}): BHZAIMessage {
 	return {
 		id: "m1",
 		role: "assistant",
@@ -48,7 +48,7 @@ describe("MessageFieldRegistry", () => {
 	it("honors metaKey and default overrides", () => {
 		const registry = new MessageFieldRegistry()
 		registry.define("sentiment", { metaKey: "acme:sentiment", default: "neutral" })
-		const message = registry.applyTo(plainMessage()) as BHAIMessage & { sentiment?: string }
+		const message = registry.applyTo(plainMessage()) as BHZAIMessage & { sentiment?: string }
 
 		expect(message.sentiment).toBe("neutral")
 
@@ -73,10 +73,10 @@ describe("MessageFieldRegistry", () => {
 		expect((serialized.meta as Record<string, unknown>).think).toBe("secret-reasoning")
 	})
 
-	it("rejects reserved BHAIMessage member names", () => {
+	it("rejects reserved BHZAIMessage member names", () => {
 		const registry = new MessageFieldRegistry()
 		for (const reserved of ["id", "role", "content", "blocks", "time", "meta", "append"]) {
-			expect(() => registry.define(reserved)).toThrow(/reserved BHAIMessage member/)
+			expect(() => registry.define(reserved)).toThrow(/reserved BHZAIMessage member/)
 		}
 	})
 
@@ -120,7 +120,7 @@ describe("MessageFieldRegistry", () => {
 
 describe("bh.defineMessageField", () => {
 	it("registers the built-in think field on every instance", () => {
-		const bh = new BHAI()
+		const bh = new BHZAI()
 		expect(bh._getMessageFields().has("think")).toBe(true)
 		// So a second registration by a plugin is rejected rather than silently
 		// hijacking the built-in's storage.
@@ -128,10 +128,10 @@ describe("bh.defineMessageField", () => {
 	})
 
 	it("exposes a plugin-declared field on messages the kernel builds", () => {
-		const bh = new BHAI()
+		const bh = new BHZAI()
 		bh.defineMessageField("sentiment", { default: "neutral" })
 
-		const message = bh._getMessageFields().applyTo(plainMessage()) as BHAIMessage & {
+		const message = bh._getMessageFields().applyTo(plainMessage()) as BHZAIMessage & {
 			sentiment?: string
 		}
 		expect(message.sentiment).toBe("neutral")
@@ -140,7 +140,7 @@ describe("bh.defineMessageField", () => {
 	})
 
 	it("refuses registration after dispose()", async () => {
-		const bh = new BHAI()
+		const bh = new BHZAI()
 		await bh.init()
 		await bh.dispose()
 		expect(() => bh.defineMessageField("late")).toThrow(/disposed/)

@@ -8,7 +8,7 @@
 
 `resolveCredentials` is a kernel-level function that drivers and the MCP
 client consult before any authenticated call, following a strict three-tier
-priority chain so that BHAI never reads secrets from files/env itself and
+priority chain so that BHZAI never reads secrets from files/env itself and
 never persists credentials beyond a single resolution call.
 
 This keeps the kernel environment-agnostic (no filesystem/env access) while
@@ -42,7 +42,7 @@ async function resolveCredentials(
   `new Ollama({ headers })`'s `headers`). The caller is responsible for
   passing its own already-known runtime value in.
 - **`authHooks`**: Tier-2 registered `auth` hooks in plugin-registration
-  order. The caller (typically the `BHAI` kernel via `bh.getAuthHooks()`)
+  order. The caller (typically the `BHZAI` kernel via `bh.getAuthHooks()`)
   supplies this list.
 
 ### `Credentials`
@@ -91,7 +91,7 @@ a host supplies.
 
 ## Kernel integration
 
-The `BHAI` class exposes `bh.getAuthHooks()` which returns all registered
+The `BHZAI` class exposes `bh.getAuthHooks()` which returns all registered
 `auth` capability hooks in plugin-registration order. Drivers and the MCP
 client call:
 

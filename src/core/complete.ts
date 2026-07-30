@@ -1,9 +1,9 @@
-/** @file One-shot LLM utility — `BHAI.complete()` (TASK_0032, ARCHITECTURE.md § 6, § 11.7) */
+/** @file One-shot LLM utility — `BHZAI.complete()` (TASK_0032, ARCHITECTURE.md § 6, § 11.7) */
 
-import type { BHAIDriver, ChatRequest, DriverEvent, GenerationParams } from "../types/driver.js"
-import type { BHAIMessage } from "../types/message.js"
+import type { BHZAIDriver, ChatRequest, DriverEvent, GenerationParams } from "../types/driver.js"
+import type { BHZAIMessage } from "../types/message.js"
 import type { Usage } from "../types/model.js"
-import type { BHAI } from "./bhai.js"
+import type { BHZAI } from "./bhzai.js"
 import { parseModelRef, resolveConversationModel } from "./models.js"
 import { DEFAULT_RETRY_POLICY, type RequestDispatch, callDriverWithRetry } from "./retry.js"
 
@@ -17,8 +17,8 @@ export interface CompleteRequest {
 	model?: string
 	/** System prompt prepended to messages. */
 	systemPrompt?: string
-	/** User message content — bare string or array of `BHAIMessage`. */
-	messages: string | BHAIMessage[]
+	/** User message content — bare string or array of `BHZAIMessage`. */
+	messages: string | BHZAIMessage[]
 	/** Generation parameter overrides. */
 	params?: GenerationParams
 	/** Abort signal for early cancellation. */
@@ -56,7 +56,7 @@ export interface CompleteResult {
  * 2. **Model resolution**: apply the same four-tier resolution order (§ 10.5) used
  *    by conversations, reusing the shared {@link resolveConversationModel} function
  *    verbatim — never reimplement.
- * 3. **Message normalization**: string → single user message; `BHAIMessage[]` → pass through.
+ * 3. **Message normalization**: string → single user message; `BHZAIMessage[]` → pass through.
  * 4. **ChatRequest construction**: build a request with the resolved model, normalized
  *    messages, system prompt, params, and a signal (defaulting to a fresh
  *    `AbortController.signal` if omitted).
@@ -69,9 +69,9 @@ export interface CompleteResult {
  * 7. **Return**: `{ text, usage }` with a fallback to `{ inputTokens: 0, outputTokens: 0 }`
  *    if no usage event arrived.
  *
- * @param bh The BHAI instance (passed explicitly for testability; wired onto the class as a method).
+ * @param bh The BHZAI instance (passed explicitly for testability; wired onto the class as a method).
  * @param req The request options.
- * @param defaultModel Optional host-level default model (from `new BHAI({ defaultModel })`, passed by the class method wrapper).
+ * @param defaultModel Optional host-level default model (from `new BHZAI({ defaultModel })`, passed by the class method wrapper).
  * @returns Promise resolving to `{ text, usage }`.
  * @throws `AbortError` if the request was aborted before starting.
  * @throws `NoModelError` if model resolution failed (§ 10.5 tier 4).
@@ -80,7 +80,7 @@ export interface CompleteResult {
  * @internal
  */
 export async function complete(
-	bh: BHAI,
+	bh: BHZAI,
 	req: CompleteRequest,
 	defaultModel?: string,
 ): Promise<CompleteResult> {
@@ -175,13 +175,13 @@ export async function complete(
  * (mutation should only happen on conversation messages, which have a
  * lifecycle state machine).
  *
- * @param messages String or `BHAIMessage` array.
- * @returns Normalized `BHAIMessage` array ready for the `ChatRequest`.
+ * @param messages String or `BHZAIMessage` array.
+ * @returns Normalized `BHZAIMessage` array ready for the `ChatRequest`.
  */
-function normalizeCoreMessages(messages: string | BHAIMessage[]): BHAIMessage[] {
+function normalizeCoreMessages(messages: string | BHZAIMessage[]): BHZAIMessage[] {
 	if (typeof messages === "string") {
 		// Synthesize a single user message for the string input.
-		const syntheticMessage: BHAIMessage = {
+		const syntheticMessage: BHZAIMessage = {
 			id: crypto.randomUUID(),
 			role: "user",
 			content: messages,
@@ -198,6 +198,6 @@ function normalizeCoreMessages(messages: string | BHAIMessage[]): BHAIMessage[] 
 		}
 		return [syntheticMessage]
 	}
-	// Array passthrough — assumed to be BHAIMessage[].
+	// Array passthrough — assumed to be BHZAIMessage[].
 	return messages
 }

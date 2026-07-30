@@ -8,7 +8,7 @@
 
 import { describe, expect, it } from "vitest"
 
-import type { BHAIToolDefinition, DriverCapabilities } from "../types/index.js"
+import type { BHZAIToolDefinition, DriverCapabilities } from "../types/index.js"
 import {
 	type ResolveAvailableToolsOptions,
 	applyToolFilter,
@@ -20,7 +20,7 @@ import {
 // Test fixtures.
 // ---------------------------------------------------------------------------
 
-function tool(name: string, tags?: string[]): BHAIToolDefinition {
+function tool(name: string, tags?: string[]): BHZAIToolDefinition {
 	return {
 		name,
 		description: `desc-${name}`,
@@ -30,7 +30,7 @@ function tool(name: string, tags?: string[]): BHAIToolDefinition {
 	}
 }
 
-const TOOLS: BHAIToolDefinition[] = [
+const TOOLS: BHZAIToolDefinition[] = [
 	tool("local1", ["a", "b"]),
 	tool("local2", ["b", "c"]),
 	tool("local3"), // no tags

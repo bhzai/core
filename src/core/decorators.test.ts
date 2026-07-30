@@ -4,10 +4,10 @@ import { readFileSync } from "node:fs"
 import { fileURLToPath } from "node:url"
 import { describe, expect, it } from "vitest"
 
-import { BHAI } from "./bhai.js"
+import { BHZAI } from "./bhzai.js"
 import {
-	BHAI_PLUGIN_META,
 	type BHPlugin,
+	BHZAI_PLUGIN_META,
 	On,
 	Plugin,
 	Tool,
@@ -37,7 +37,7 @@ describe("@On('initialize') fires during init()", () => {
 		}
 
 		const instance = new TestPlugin()
-		const bh = new BHAI()
+		const bh = new BHZAI()
 		bh.use(instance)
 
 		expect(instance.called).toBe(false)
@@ -61,7 +61,7 @@ describe("@Tool registers against the ToolRegistrar seam", () => {
 		}
 
 		// Inject a recording stub registrar so the assertions are independent
-		// of whatever concrete registrar BHAI currently exposes — only the
+		// of whatever concrete registrar BHZAI currently exposes — only the
 		// registrar's identity/injection point would need to change once
 		// TASK_0008's real registry replaces the stub, not the assertions'
 		// shape.
@@ -77,7 +77,7 @@ describe("@Tool registers against the ToolRegistrar seam", () => {
 		}
 
 		const instance = new ToolPlugin()
-		const bh = new BHAI()
+		const bh = new BHZAI()
 		// Replace the seam with the recording stub for this test.
 		;(bh as unknown as { toolRegistrar: ToolRegistrar }).toolRegistrar = stubRegistrar
 		bh.use(instance)
@@ -111,7 +111,7 @@ describe("Multiple @On methods on one class all subscribe", () => {
 		}
 
 		const instance = new MultiOnPlugin()
-		const bh = new BHAI()
+		const bh = new BHZAI()
 		bh.use(instance)
 
 		await bh.init()
@@ -131,7 +131,7 @@ describe("Decorated instances normalize into the canonical plugin shape", () => 
 			async onInit(): Promise<void> {}
 		}
 
-		const bh = new BHAI()
+		const bh = new BHZAI()
 		bh.use(new DupPlugin())
 		expect(bh.__testHasPlugin("dup-plugin")).toBe(true)
 		expect(bh.__testPluginCount()).toBe(1)
@@ -152,7 +152,7 @@ describe("Decorated instances normalize into the canonical plugin shape", () => 
 		}
 
 		const instance = new MetaPlugin()
-		const meta = (instance as unknown as { [BHAI_PLUGIN_META]: unknown })[BHAI_PLUGIN_META] as {
+		const meta = (instance as unknown as { [BHZAI_PLUGIN_META]: unknown })[BHZAI_PLUGIN_META] as {
 			name: string
 			onHandlers: unknown[]
 			tools: unknown[]

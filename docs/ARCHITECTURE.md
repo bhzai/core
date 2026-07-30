@@ -1,16 +1,16 @@
-# BHAI Architecture (implementation view)
+# BHZAI Architecture (implementation view)
 
-This document describes the **implemented** architecture of `@lucasschirm/bhai`
+This document describes the **implemented** architecture of `@bhzai/core`
 as of the current build state. For the full design proposal, see the parent
 repo's `ARCHITECTURE.md`.
 
 ## Package layout
 
 ```
-@lucasschirm/bhai              # root superset barrel (re-exports only)
-@lucasschirm/bhai/core         # kernel only (BHAI, Conversation, types, events)
-@lucasschirm/bhai/plugins/mcp  # MCP streamable-HTTP client plugin
-@lucasschirm/bhai/plugins/*    # future: webllm, ollama, interop/*
+@bhzai/core              # root superset barrel (re-exports only)
+@bhzai/core/core         # kernel only (BHZAI, Conversation, types, events)
+@bhzai/core/plugins/mcp  # MCP streamable-HTTP client plugin
+@bhzai/core/plugins/*    # future: webllm, ollama, interop/*
 ```
 
 Three tiers of entry point (see `.claude/rules/packaging.md`):
@@ -25,7 +25,7 @@ Three tiers of entry point (see `.claude/rules/packaging.md`):
 src/
   index.ts                      # root superset barrel (re-exports only)
   core/
-    bhai.ts                     # BHAI class (§ 6)
+    bhzai.ts                     # BHZAI class (§ 6)
     event-bus.ts                # EventBus (§ 8)
     decorators.ts               # @Plugin, @On, @Tool (§ 7.2)
     drivers.ts                  # DriverRegistry (§ 10.1)
@@ -36,12 +36,12 @@ src/
   types/
     index.ts                    # types barrel
     content.ts                  # JSONSchema, ContentBlock, CallToolResult
-    message.ts                  # BHAIMessage, ConversationStatus
+    message.ts                  # BHZAIMessage, ConversationStatus
     model.ts                    # DriverCapabilities, ModelInfo, Usage
-    driver.ts                   # BHAIDriver, DriverEvent, ChatRequest
+    driver.ts                   # BHZAIDriver, DriverEvent, ChatRequest
     events.ts                   # EmitResult, Unsubscribe
-    tool.ts                     # BHAIToolDefinition, ToolInvocation
-    command.ts                  # BHAICommandDefinition, BHAICommandContext
+    tool.ts                     # BHZAIToolDefinition, ToolInvocation
+    command.ts                  # BHZAICommandDefinition, BHZAICommandContext
     mcp.ts                      # McpServerConfig
   tools/
     registry.ts                 # ToolRegistry (§ 9.2)
@@ -60,11 +60,11 @@ src/
 
 ### Kernel (`src/core/`)
 
-- **BHAI class** (`bhai.ts`): `use()`, `on()`/`emit()`, `init()`/`dispose()`,
+- **BHZAI class** (`bhzai.ts`): `use()`, `on()`/`emit()`, `init()`/`dispose()`,
   `declareConfig`/`setConfig`/`getConfig`, `addTool`/`removeTool`/`listTools`,
   `addDriver`/`listModels`, `addCommand`/`listCommands`,
   `enablePlugin`/`disablePlugin`/`isPluginEnabled`/`listPlugins`/`runAs`.
-- **Plugin activation** (`bhai.ts`): an ownership ledger attributes every
+- **Plugin activation** (`bhzai.ts`): an ownership ledger attributes every
   registration to the plugin that made it, and each registry is handed a
   predicate that filters its read paths. Disabling a plugin hides its tools,
   commands, drivers, models, MCP-discovered tools and event handlers, kernel-wide.

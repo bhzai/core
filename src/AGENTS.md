@@ -1,10 +1,10 @@
 # `src/` — package source root
 
 ## Purpose & scope
-Top-level source directory for `@lucasschirm/bhai`. Contains the kernel (`core/`), shared types (`types/`), the tool registry (`tools/`), and plugin subpaths (`plugins/`). Nothing here is environment-specific — every file under `src/` (except test-only Node imports gated by biome overrides) uses web-standard APIs only (ARCHITECTURE.md § 5).
+Top-level source directory for `@bhzai/core`. Contains the kernel (`core/`), shared types (`types/`), the tool registry (`tools/`), and plugin subpaths (`plugins/`). Nothing here is environment-specific — every file under `src/` (except test-only Node imports gated by biome overrides) uses web-standard APIs only (ARCHITECTURE.md § 5).
 
 ## Key files
-- `index.ts` — root superset barrel. Re-exports `types/`, `core/`, and every `plugins/*` subpath. Consumers wanting a minimal surface import from `@lucasschirm/bhai/core` or a specific `@lucasschirm/bhai/plugins/*` entry instead.
+- `index.ts` — root superset barrel. Re-exports `types/`, `core/`, and every `plugins/*` subpath. Consumers wanting a minimal surface import from `@bhzai/core/core` or a specific `@bhzai/core/plugins/*` entry instead.
 - `index.test.ts` — smoke test asserting the root barrel re-exports the expected surface.
 
 ## Conventions

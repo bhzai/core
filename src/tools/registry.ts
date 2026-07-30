@@ -1,5 +1,5 @@
 // In-process tool registry — the single source of truth for every callable
-// tool BHAI knows about (ARCHITECTURE.md § 9.2). Modeled as "one in-process
+// tool BHZAI knows about (ARCHITECTURE.md § 9.2). Modeled as "one in-process
 // MCP server": every registration path (imperative `addTool`, decorator,
 // capability-object `tools:`, remote MCP attachment) converges on this one
 // store, so `bh.listTools()` is semantically `tools/list` and invocation is
@@ -16,15 +16,15 @@
 // outside of plain TypeScript — no `fetch`, no `crypto`, no Node built-ins. It
 // is runtime-agnostic.
 //
-// PATH NOTE: TASK_0008 specifies `bhai/src/tools/registry.ts`. Unlike the
+// PATH NOTE: TASK_0008 specifies `bhzai/src/tools/registry.ts`. Unlike the
 // kernel (which the existing layout places under `src/core/`), the tools
 // registry gets its own `src/tools/` directory per the task's "Where" section.
-// It is imported by `src/core/bhai.ts` (kernel wiring) but is not itself part
+// It is imported by `src/core/bhzai.ts` (kernel wiring) but is not itself part
 // of the kernel directory.
 
 import type { EventBus } from "../core/event-bus.js"
 import type {
-	BHAIToolDefinition,
+	BHZAIToolDefinition,
 	CallToolResult,
 	JSONSchema,
 	ToolExecute,
@@ -47,7 +47,7 @@ const TOOL_NAME_MAX_LENGTH = 128
 /**
  * Validate a tool name against § 9.1's rules (1–128 chars, `[a-zA-Z0-9_.-]`).
  * Throws synchronously with a descriptive message on violation. Throws a plain
- * `Error` (not a dedicated `BHAIToolValidationError`) because TASK_0002 has not
+ * `Error` (not a dedicated `BHZAIToolValidationError`) because TASK_0002 has not
  * landed a base error class — see TASK_0008's "Name validation" section, which
  * explicitly forbids inventing a new exported error class here.
  *
@@ -131,7 +131,7 @@ export function normalizeToolResult(result: CallToolResult | string | void): Cal
 }
 
 /**
- * The in-process tool registry (§ 9.2). Stores {@link BHAIToolDefinition}
+ * The in-process tool registry (§ 9.2). Stores {@link BHZAIToolDefinition}
  * records keyed by `name` in a `Map`. Owns name validation, shadowing
  * semantics, and the `tool.registered`/`tool.removed` framework events (§ 8.1).
  *
@@ -142,7 +142,7 @@ export function normalizeToolResult(result: CallToolResult | string | void): Cal
  */
 export class ToolRegistry {
 	/** Tools keyed by `name`; last registration wins (§ 9.1 shadowing). */
-	private readonly tools: Map<string, BHAIToolDefinition> = new Map()
+	private readonly tools: Map<string, BHZAIToolDefinition> = new Map()
 
 	/**
 	 * @param bus The framework event bus, used to fire `tool.registered` /
@@ -167,7 +167,7 @@ export class ToolRegistry {
 	 */
 	private isActive: ((toolName: string) => boolean) | undefined
 
-	/** Install the visibility predicate. Called once by the `BHAI` constructor. */
+	/** Install the visibility predicate. Called once by the `BHZAI` constructor. */
 	setActivePredicate(predicate: (toolName: string) => boolean): void {
 		this.isActive = predicate
 	}
@@ -176,7 +176,7 @@ export class ToolRegistry {
 	 * Add (or replace) a tool — object form (§ 6, § 9.1). Validates `def.name`,
 	 * stores the definition, and fires `tool.registered` with `{ tool: def }`.
 	 */
-	addTool(def: BHAIToolDefinition): void
+	addTool(def: BHZAIToolDefinition): void
 	/**
 	 * Add (or replace) a tool — sugar form (§ 9.1 notes, line 632-634).
 	 * `parameters` is an alias for `inputSchema`. The stored record is
@@ -184,7 +184,7 @@ export class ToolRegistry {
 	 *
 	 * EXPLICIT ASSUMPTION (spec tension): the sugar form is `addTool(name,
 	 * schema, fn)` — three positional args, no fourth slot for `description`.
-	 * But `description` is REQUIRED on the full `BHAIToolDefinition` shape (§ 9.1
+	 * But `description` is REQUIRED on the full `BHZAIToolDefinition` shape (§ 9.1
 	 * line 599: `description: string;` with no `?`). The sugar form therefore
 	 * defaults `description` to the empty string `''`. This is a judgment call
 	 * the developer had to make because the spec's sugar form and the full
@@ -194,11 +194,11 @@ export class ToolRegistry {
 	 */
 	addTool(name: string, parameters: JSONSchema, execute: ToolExecute): void
 	addTool(
-		defOrName: BHAIToolDefinition | string,
+		defOrName: BHZAIToolDefinition | string,
 		parameters?: JSONSchema,
 		execute?: ToolExecute,
 	): void {
-		let def: BHAIToolDefinition
+		let def: BHZAIToolDefinition
 		if (typeof defOrName === "string") {
 			// Sugar form — see the overload doc for the `description: ''` assumption.
 			def = {
@@ -230,7 +230,7 @@ export class ToolRegistry {
 	 * was removed from its perspective, only updated — whereas `tool.removed`
 	 * implies the name is no longer callable at all, which isn't true here.
 	 */
-	private registerInternal(def: BHAIToolDefinition): void {
+	private registerInternal(def: BHZAIToolDefinition): void {
 		validateToolName(def.name)
 		// Insert/replace. `Map.set` on an existing key updates the value in place
 		// (preserving insertion order); on a new key it appends. Either way the
@@ -291,7 +291,7 @@ export class ToolRegistry {
 	 * conversation-level overrides). Do NOT reimplement the § 9.5 3-step order
 	 * here.
 	 */
-	listTools(filter?: ToolFilter): BHAIToolDefinition[] {
+	listTools(filter?: ToolFilter): BHZAIToolDefinition[] {
 		// Plugin activation gate runs BEFORE the `filter` subset below: a tool
 		// whose contributing plugin is deactivated is not merely filtered out of
 		// this call's result, it is not part of the visible catalogue at all.
@@ -324,7 +324,7 @@ export class ToolRegistry {
 	 * (TASK_0016); not part of § 6's named kernel API but a minor superset
 	 * addition consistent with how `listTools()` exposes stored records.
 	 */
-	get(name: string): BHAIToolDefinition | undefined {
+	get(name: string): BHZAIToolDefinition | undefined {
 		if (this.isActive !== undefined && !this.isActive(name)) return undefined
 		return this.tools.get(name)
 	}
@@ -334,7 +334,7 @@ export class ToolRegistry {
 	 * installed, otherwise only those whose name the predicate accepts.
 	 * Preserves registration order.
 	 */
-	private activeEntries(): BHAIToolDefinition[] {
+	private activeEntries(): BHZAIToolDefinition[] {
 		const all = Array.from(this.tools.values())
 		const predicate = this.isActive
 		if (predicate === undefined) return all

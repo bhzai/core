@@ -1,19 +1,19 @@
 # Conversations & the Agent Loop (`src/conversation/`)
 
-Documentation for the `BHAIConversation` surface and the agent loop —
-Phase 4 of the BHAI implementation (TASK_0023–TASK_0031). Architecture
+Documentation for the `BHZAIConversation` surface and the agent loop —
+Phase 4 of the BHZAI implementation (TASK_0023–TASK_0031). Architecture
 reference: ARCHITECTURE.md §§ 8.5, 11.
 
 ## Overview
 
 `bh.createConversation(options?)` / `bh.loadConversation(snapshot, options?)`
-(in `src/core/bhai.ts`) construct a `BHAIConversationImpl` (in
+(in `src/core/bhzai.ts`) construct a `BHZAIConversationImpl` (in
 `src/conversation/conversation.ts`), the primary object hosts interact with.
 Every conversation owns a private `EventBus` (reused verbatim from
 `src/core/event-bus.ts`) whose events are transparently mirrored onto the
 framework bus as `conversation.<event>` — the mirroring mechanic documented
 in ARCHITECTURE.md § 8.1 and implemented once, in
-`BHAIConversationImpl`'s internal `dispatchConversationEvent`/
+`BHZAIConversationImpl`'s internal `dispatchConversationEvent`/
 `_dispatchConversationEvent` method, reused by every later firing point
 (`start`, `message`, `context`, `tool`, `turn`, `request`, `compact`, `idle`,
 `abort`).
@@ -22,13 +22,13 @@ in ARCHITECTURE.md § 8.1 and implemented once, in
 
 | File                     | Task(s)      | Responsibility                                                                                 |
 | ------------------------ | ------------ | ------------------------------------------------------------------------------------------------ |
-| `conversation.ts`        | 0023–0031    | `BHAIConversationImpl`, the mirrored event-bus mechanic, all `@internal` accessors other conversation modules use, `CreateConversationOptions`. |
+| `conversation.ts`        | 0023–0031    | `BHZAIConversationImpl`, the mirrored event-bus mechanic, all `@internal` accessors other conversation modules use, `CreateConversationOptions`. |
 | `system-prompt.ts`       | 0024         | Four-layer system-prompt assembly (host default → per-conversation override → `start` patches → `context` patches), `ensureStarted()`, `prepend` message handling. |
 | `agent-loop.ts`          | 0025, 0026, 0027, 0030 | `sendMessage()`/`addMessage()`, the `context` event, tool-call execution (`beforeCall→call→processing*→complete\|error`, concurrency/serial batching, validate-and-repair), the bounded, multi-turn loop and its four termination conditions, `deliverAs` steering (`immediate`/`steer`/`followUp`), `waitForIdle()`, the `idle` event. |
 | `snapshot.ts`            | 0028         | `toJSON()`/`toSnapshot()`, `fromSnapshot()` (the full, versioned `loadConversation()` contract), truncated-prefix support for host-side forking. |
 | `compaction.ts`          | 0031         | `conversation.compact()`, auto-compaction, `conversation.emit('compact', ...)` interception, the `compact` event's `before`/`compacting`/`complete` states. |
 
-Plus, in `src/core/`: `bhai.ts` (`createConversation`/`loadConversation`,
+Plus, in `src/core/`: `bhzai.ts` (`createConversation`/`loadConversation`,
 `_dispatch`/`_getDriver`/`_getTool`/`_hostSystemPrompt` internal accessors),
 `storage.ts` (TASK_0029 — `ConversationStore` auto-save wiring and
 `bh.conversations.list()`), `models.ts` (TASK_0022, cross-group — model ref
@@ -62,7 +62,7 @@ parsing/resolution consumed by the loop to find a driver), `retry.ts`
      reports a `contextWindow`).
    - `turn(end)` (veto via `{ continueWith }` — still counts toward
      `maxIterations`).
-   - Termination check: natural stop, universal `_meta['bhai/terminate']`
+   - Termination check: natural stop, universal `_meta['BHZAI/terminate']`
      hint, `maxIterations`, or `abort()`.
 6. `loop(end)` → `status: 'idle'` → deliver one queued `followUp` (starts a
    new run) or fire `idle` if both queues are empty.
@@ -99,7 +99,7 @@ parsing/resolution consumed by the loop to find a driver), `retry.ts`
 
 ## Message construction and the open message-field contract
 
-Every `BHAIMessage` is built by `createMessage()` in `message.ts` — the agent
+Every `BHZAIMessage` is built by `createMessage()` in `message.ts` — the agent
 loop, `prepend` handling, compaction summaries, and snapshot restore all route
 through it, so a message is shaped identically wherever it came from. Pass
 `{ mutable: false }` for messages that are finalized by construction; their
@@ -114,8 +114,8 @@ non-enumerable it never leaks into `JSON.stringify` or a snapshot's wire shape.
 Declare the type by module augmentation:
 
 ```ts
-declare module "@lucasschirm/bhai" {
-  interface BHAIMessageExtensions {
+declare module "@bhzai/core" {
+  interface BHZAIMessageExtensions {
     sentiment?: "positive" | "negative"
   }
 }
@@ -158,7 +158,7 @@ no-ops/clear-error respectively — never a silent empty result.
   `emit('compact', ...)`. This was deliberately NOT done there — `EventBus`
   is scope-agnostic by design (its own header comment says so, and the same
   class backs both the framework bus and every conversation's bus). The
-  interception lives in `BHAIConversationImpl.emit()` instead, which already
+  interception lives in `BHZAIConversationImpl.emit()` instead, which already
   knows about compaction; `bh.emit('compact', ...)` on the framework bus
   throws a clear error instead, since compaction is inherently
   conversation-scoped.

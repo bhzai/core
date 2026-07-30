@@ -1,7 +1,7 @@
 # `src/plugins/interop/` — interop adapter subpaths
 
 ## Purpose & scope
-Adapters that bridge external coding-agent/plugin ecosystems onto BHAI's plugin surface (ARCHITECTURE.md § 12). Each subdirectory is its own subpath export, so a consumer who doesn't need interop pays no bundle cost for it.
+Adapters that bridge external coding-agent/plugin ecosystems onto BHZAI's plugin surface (ARCHITECTURE.md § 12). Each subdirectory is its own subpath export, so a consumer who doesn't need interop pays no bundle cost for it.
 
 ## Layout
 - `pi/` — adapter for a subset of pi coding-agent extensions. Stub (`export {}`) until the owning task lands.

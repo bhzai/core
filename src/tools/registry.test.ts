@@ -8,11 +8,11 @@
 import { describe, expect, it, vi } from "vitest"
 
 import { EventBus } from "../core/event-bus.js"
-import type { BHAIToolDefinition, CallToolResult } from "../types/index.js"
+import type { BHZAIToolDefinition, CallToolResult } from "../types/index.js"
 import { TOOL_NAME_PATTERN, ToolRegistry, normalizeToolResult } from "./registry.js"
 
 /** Build a minimal valid tool definition with overridable fields. */
-function makeTool(overrides: Partial<BHAIToolDefinition> = {}): BHAIToolDefinition {
+function makeTool(overrides: Partial<BHZAIToolDefinition> = {}): BHZAIToolDefinition {
 	return {
 		name: "test-tool",
 		description: "a test tool",

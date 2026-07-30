@@ -7,20 +7,20 @@
  * standalone resolver (`Conversation`) ships from the root barrel only.
  */
 
-import type { BHAI } from "../core/bhai.js"
+import type { BHZAI } from "../core/bhzai.js"
 import type { MessageFieldRegistry } from "../core/message-fields.js"
 import type { ContentBlock } from "../types/content.js"
 import type { EmitResult } from "../types/events.js"
-import type { BHAIMessage } from "../types/message.js"
+import type { BHZAIMessage } from "../types/message.js"
 import type { CreateConversationOptions } from "./conversation.js"
-import type { BHAIConversationImpl } from "./conversation.js"
+import type { BHZAIConversationImpl } from "./conversation.js"
 import { EventBus } from "./event-bus.js"
 import { createMessage } from "./message.js"
 
 /**
  * Message initialization shape — input to `prepend` arrays in start-event patches.
  *
- * Each `MessageInit` is converted to a full `BHAIMessage` (with fresh UUID, timestamp,
+ * Each `MessageInit` is converted to a full `BHZAIMessage` (with fresh UUID, timestamp,
  * derived blocks/content fields) and inserted into the conversation history via `prepend`.
  *
  * The `contextIncluded` field (default `true`) is stored as `meta.contextIncluded` to signal
@@ -85,7 +85,7 @@ export interface KernelStartEventPatch {
 	 * ```
 	 *
 	 * This idiom (read-then-append rather than blindly returning a fresh array)
-	 * is the general BHAI solution for accumulating array-typed patch fields when
+	 * is the general BHZAI solution for accumulating array-typed patch fields when
 	 * multiple handlers each want to contribute. The same pattern applies to any
 	 * future accumulating array field in any event patch.
 	 */
@@ -108,7 +108,7 @@ export interface KernelStartEventPatch {
  * @param conversation The conversation to read the prompt from.
  * @returns The fully-resolved pre-context system prompt.
  */
-export function computePreContextSystemPrompt(conversation: BHAIConversationImpl): string {
+export function computePreContextSystemPrompt(conversation: BHZAIConversationImpl): string {
 	return conversation._getSystemPrompt()
 }
 
@@ -129,16 +129,16 @@ export function computePreContextSystemPrompt(conversation: BHAIConversationImpl
  * so this function returns immediately without firing anything.
  *
  * @param conversation The conversation to start.
- * @param bh The BHAI instance (passed for potential future use; currently unused).
+ * @param bh The BHZAI instance (passed for potential future use; currently unused).
  * @param options The conversation's creation options, passed to start-event handlers.
  * @param firstMessage The triggering user message (if any), passed to start-event handlers.
  *                     Prepended messages are inserted BEFORE this message in history.
  */
 export async function ensureStarted(
-	conversation: BHAIConversationImpl,
-	bh: BHAI,
+	conversation: BHZAIConversationImpl,
+	bh: BHZAI,
 	options: CreateConversationOptions,
-	firstMessage: BHAIMessage | undefined,
+	firstMessage: BHZAIMessage | undefined,
 ): Promise<void> {
 	// Idempotency check: if already started, return immediately.
 	if (conversation._isStarted()) {
@@ -154,9 +154,9 @@ export async function ensureStarted(
 
 	// Dispatch the start event via the shared mirroring mechanism.
 	const result = await conversation._dispatchConversationEvent<{
-		conversation: BHAIConversationImpl
+		conversation: BHZAIConversationImpl
 		options: CreateConversationOptions
-		firstMessage: BHAIMessage | undefined
+		firstMessage: BHZAIMessage | undefined
 	}>("start", {
 		conversation,
 		options,
@@ -188,14 +188,14 @@ export async function ensureStarted(
 }
 
 /**
- * Convert a `MessageInit` to a full `BHAIMessage`.
+ * Convert a `MessageInit` to a full `BHZAIMessage`.
  *
  * Assigns a fresh UUID, timestamp, and derives the `blocks` array from `content`
  * if it is a plain string. Merges `meta` with the `contextIncluded` convention.
  *
  * @internal
  */
-function initToMessage(init: MessageInit, fields?: MessageFieldRegistry): BHAIMessage {
+function initToMessage(init: MessageInit, fields?: MessageFieldRegistry): BHZAIMessage {
 	// Synthetic messages inserted here have simple content mutation (append/setContent).
 	// This is safe for prepended preamble messages since they are not actively streaming.
 	// TASK_0025+ will own the real state-based mutation-legality enforcement.
@@ -266,10 +266,10 @@ type ConversationEvents = {
  * The slice of the kernel a {@link Conversation} needs in order to inherit
  * global plugin activation state.
  *
- * Declared structurally rather than importing `BHAI` so `src/conversation/`
+ * Declared structurally rather than importing `BHZAI` so `src/conversation/`
  * stays independent of `src/core/` — the two subtrees are deliberately
  * decoupled (`src/index.ts` even has to alias one's `EventBus` around the
- * other's). A `BHAI` instance satisfies this interface without declaring it.
+ * other's). A `BHZAI` instance satisfies this interface without declaring it.
  */
 export interface PluginActivationSource {
 	/** Whether `name` is currently active kernel-wide. */
@@ -285,7 +285,7 @@ export interface ConversationOptions {
 	 * a standalone conversation, in which case every handler always runs and the
 	 * per-conversation overrides below still work for any owner name you use.
 	 */
-	bhai?: PluginActivationSource
+	BHZAI?: PluginActivationSource
 }
 
 /** One plugin's activation state as seen by a single conversation. */
@@ -356,7 +356,7 @@ export class Conversation {
 
 	constructor(baseSystemPrompt = "", options: ConversationOptions = {}) {
 		this.baseSystemPrompt = baseSystemPrompt
-		this.source = options.bhai
+		this.source = options.BHZAI
 	}
 
 	/**

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest"
 
-import { BHAI, type ConfigChangedPayload } from "./bhai.js"
+import { BHZAI, type ConfigChangedPayload } from "./bhzai.js"
 
 // TASK_0006 — plugin configuration contract (§ 7.4).
 //
@@ -18,9 +18,9 @@ const topKSchema = {
 	},
 }
 
-describe("BHAI config — defaulting (§ 7.4)", () => {
+describe("BHZAI config — defaulting (§ 7.4)", () => {
 	it("applies schema `default` keywords when the host supplies no value", async () => {
-		const bh = new BHAI()
+		const bh = new BHZAI()
 		bh.use({ name: "my-plugin", configSchema: topKSchema })
 
 		await bh.init()
@@ -29,9 +29,9 @@ describe("BHAI config — defaulting (§ 7.4)", () => {
 	})
 })
 
-describe("BHAI config — validation failure at init() time", () => {
+describe("BHZAI config — validation failure at init() time", () => {
 	it("rejects init() with a path-qualified message naming the offending property", async () => {
-		const bh = new BHAI({
+		const bh = new BHZAI({
 			config: { "my-plugin": { topK: "not-a-number" } },
 		})
 		bh.use({ name: "my-plugin", configSchema: topKSchema })
@@ -43,7 +43,7 @@ describe("BHAI config — validation failure at init() time", () => {
 	})
 })
 
-describe("BHAI config — getConfig returns validated + defaulted values", () => {
+describe("BHZAI config — getConfig returns validated + defaulted values", () => {
 	it("merges a host-supplied value with a schema default for another property", async () => {
 		const schema = {
 			type: "object",
@@ -52,7 +52,7 @@ describe("BHAI config — getConfig returns validated + defaulted values", () =>
 				label: { type: "string", default: "default-label" },
 			},
 		}
-		const bh = new BHAI({
+		const bh = new BHZAI({
 			config: { "my-plugin": { topK: 10 } },
 		})
 		bh.use({ name: "my-plugin", configSchema: schema })
@@ -64,9 +64,9 @@ describe("BHAI config — getConfig returns validated + defaulted values", () =>
 	})
 })
 
-describe("BHAI config — config.changed event (live edits)", () => {
+describe("BHZAI config — config.changed event (live edits)", () => {
 	it("fires config.changed on a post-init setConfig() with the new merged values", async () => {
-		const bh = new BHAI()
+		const bh = new BHZAI()
 		bh.use({ name: "my-plugin", configSchema: topKSchema })
 		const spy = vi.fn()
 		bh.on<ConfigChangedPayload>("config.changed", spy)
@@ -85,7 +85,7 @@ describe("BHAI config — config.changed event (live edits)", () => {
 	})
 
 	it("does NOT fire config.changed on a pre-init setConfig() call", async () => {
-		const bh = new BHAI()
+		const bh = new BHZAI()
 		bh.use({ name: "my-plugin", configSchema: topKSchema })
 		const spy = vi.fn()
 		bh.on<ConfigChangedPayload>("config.changed", spy)
@@ -101,9 +101,9 @@ describe("BHAI config — config.changed event (live edits)", () => {
 	})
 })
 
-describe("BHAI config — getConfig for an undeclared plugin", () => {
+describe("BHZAI config — getConfig for an undeclared plugin", () => {
 	it("returns undefined for a plugin with no configSchema", async () => {
-		const bh = new BHAI()
+		const bh = new BHZAI()
 		bh.use({ name: "no-config-plugin", initialize: () => {} })
 
 		await bh.init()
@@ -112,9 +112,9 @@ describe("BHAI config — getConfig for an undeclared plugin", () => {
 	})
 })
 
-describe("BHAI config — declareConfig() imperative form (form-1 plugins)", () => {
+describe("BHZAI config — declareConfig() imperative form (form-1 plugins)", () => {
 	it("lets a factory-function plugin declare its schema and reads defaulted config", async () => {
-		const bh = new BHAI()
+		const bh = new BHZAI()
 		bh.use((innerBh) => {
 			innerBh.declareConfig("factory-plugin", {
 				type: "object",
@@ -128,16 +128,16 @@ describe("BHAI config — declareConfig() imperative form (form-1 plugins)", () 
 	})
 })
 
-describe("BHAI config — getConfig precondition", () => {
+describe("BHZAI config — getConfig precondition", () => {
 	it("throws if called before init() has completed", () => {
-		const bh = new BHAI()
+		const bh = new BHZAI()
 		bh.use({ name: "my-plugin", configSchema: topKSchema })
 
 		expect(() => bh.getConfig("my-plugin")).toThrow(/before bh\.init\(\) completed/)
 	})
 })
 
-describe("BHAI config — setConfig merge semantics", () => {
+describe("BHZAI config — setConfig merge semantics", () => {
 	it("shallow-merges new values into previously-supplied values at the top level", async () => {
 		const schema = {
 			type: "object",
@@ -146,7 +146,7 @@ describe("BHAI config — setConfig merge semantics", () => {
 				label: { type: "string", default: "x" },
 			},
 		}
-		const bh = new BHAI({
+		const bh = new BHZAI({
 			config: { "my-plugin": { topK: 10 } },
 		})
 		bh.use({ name: "my-plugin", configSchema: schema })

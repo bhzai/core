@@ -7,7 +7,7 @@
  * security boundary. `mcp-server-card.test.ts` still guards it.
  */
 
-import type { McpServerState } from "@lucasschirm/bhai/plugins/mcp"
+import type { McpServerState } from "@bhzai/core/plugins/mcp"
 import { LitElement, html } from "lit"
 import { customElement, property } from "lit/decorators.js"
 import "./mcp-tool-list.js"
@@ -44,13 +44,13 @@ const STATUS_LABEL: Record<string, string> = {
  * Rendered in the light DOM so the host page's global styles (and CSS variables)
  * continue to drive its appearance.
  *
- * @fires bhai-refresh - The user asked to refresh this server's tools. Detail: `{ id: string }`.
- * @fires bhai-retry - The user asked to retry this failed connection. Detail: `{ id: string }`.
- * @fires bhai-remove - The user asked to detach this server. Detail: `{ id: string }`.
- * @fires bhai-show-error - The user asked to inspect this server's error. Detail: `{ id: string }`.
+ * @fires bhzai-refresh - The user asked to refresh this server's tools. Detail: `{ id: string }`.
+ * @fires bhzai-retry - The user asked to retry this failed connection. Detail: `{ id: string }`.
+ * @fires bhzai-remove - The user asked to detach this server. Detail: `{ id: string }`.
+ * @fires bhzai-show-error - The user asked to inspect this server's error. Detail: `{ id: string }`.
  */
-@customElement("bhai-mcp-server-card")
-export class BhaiMcpServerCard extends LitElement {
+@customElement("bhzai-mcp-server-card")
+export class BhzaiMcpServerCard extends LitElement {
 	override createRenderRoot() {
 		return this
 	}
@@ -94,10 +94,10 @@ export class BhaiMcpServerCard extends LitElement {
 				${
 					state.status === "connected" && state.tools.length > 0
 						? html`
-							<bhai-mcp-tool-list
+							<bhzai-mcp-tool-list
 								.serverName=${state.serverName}
 								.tools=${state.tools}
-							></bhai-mcp-tool-list>
+							></bhzai-mcp-tool-list>
 					  `
 						: null
 				}
@@ -138,20 +138,22 @@ export class BhaiMcpServerCard extends LitElement {
 		switch (action) {
 			case "refresh":
 				this.dispatchEvent(
-					new CustomEvent("bhai-refresh", { detail, bubbles: true, composed: true }),
+					new CustomEvent("bhzai-refresh", { detail, bubbles: true, composed: true }),
 				)
 				break
 			case "retry":
-				this.dispatchEvent(new CustomEvent("bhai-retry", { detail, bubbles: true, composed: true }))
+				this.dispatchEvent(
+					new CustomEvent("bhzai-retry", { detail, bubbles: true, composed: true }),
+				)
 				break
 			case "remove":
 				this.dispatchEvent(
-					new CustomEvent("bhai-remove", { detail, bubbles: true, composed: true }),
+					new CustomEvent("bhzai-remove", { detail, bubbles: true, composed: true }),
 				)
 				break
 			case "show-error":
 				this.dispatchEvent(
-					new CustomEvent("bhai-show-error", { detail, bubbles: true, composed: true }),
+					new CustomEvent("bhzai-show-error", { detail, bubbles: true, composed: true }),
 				)
 				break
 		}
@@ -160,6 +162,6 @@ export class BhaiMcpServerCard extends LitElement {
 
 declare global {
 	interface HTMLElementTagNameMap {
-		"bhai-mcp-server-card": BhaiMcpServerCard
+		"bhzai-mcp-server-card": BhzaiMcpServerCard
 	}
 }

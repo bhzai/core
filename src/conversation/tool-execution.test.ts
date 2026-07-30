@@ -2,11 +2,11 @@
 
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import type { Mock } from "vitest"
-import { BHAI } from "../core/bhai.js"
+import { BHZAI } from "../core/bhzai.js"
 import type { CallToolResult, ContentBlock } from "../types/content.js"
-import type { BHAIDriver, ChatRequest, DriverEvent } from "../types/driver.js"
+import type { BHZAIDriver, ChatRequest, DriverEvent } from "../types/driver.js"
 import { sendMessage } from "./agent-loop.js"
-import type { BHAIConversationImpl } from "./conversation.js"
+import type { BHZAIConversationImpl } from "./conversation.js"
 
 /**
  * Helper: sleep for a given number of milliseconds.
@@ -20,7 +20,7 @@ function delay(ms: number): Promise<void> {
  */
 function makeMockDriver(
 	scriptedEvents: DriverEvent[],
-): BHAIDriver & { chat: Mock<(request: ChatRequest) => AsyncIterable<DriverEvent>> } {
+): BHZAIDriver & { chat: Mock<(request: ChatRequest) => AsyncIterable<DriverEvent>> } {
 	return {
 		id: "mock-driver",
 		listModels: async () => [
@@ -51,11 +51,11 @@ function makeMockDriver(
 }
 
 describe("TASK_0026: Tool execution in the agent loop", () => {
-	let bh: BHAI
-	let mockDriver: BHAIDriver & { chat: Mock<(request: ChatRequest) => AsyncIterable<DriverEvent>> }
+	let bh: BHZAI
+	let mockDriver: BHZAIDriver & { chat: Mock<(request: ChatRequest) => AsyncIterable<DriverEvent>> }
 
 	beforeEach(() => {
-		bh = new BHAI()
+		bh = new BHZAI()
 		mockDriver = makeMockDriver([
 			{ type: "delta", text: "Processing tools..." },
 			{ type: "done", stopReason: "stop" },
@@ -70,7 +70,7 @@ describe("TASK_0026: Tool execution in the agent loop", () => {
 	it("original-call-order: 3 concurrent calls resolve out of order (call#2 before call#1), yet appended in original order", async () => {
 		const conversation = (await bh.createConversation({
 			model: "mock-driver/mock-model",
-		})) as BHAIConversationImpl
+		})) as BHZAIConversationImpl
 
 		const executionOrder: string[] = []
 		const callDurations = { call1: 50, call2: 10, call3: 30 }
@@ -148,7 +148,7 @@ describe("TASK_0026: Tool execution in the agent loop", () => {
 				}
 			}),
 			embed: undefined,
-		} as BHAIDriver & { chat: Mock<(request: ChatRequest) => AsyncIterable<DriverEvent>> }
+		} as BHZAIDriver & { chat: Mock<(request: ChatRequest) => AsyncIterable<DriverEvent>> }
 		bh.addDriver(mockDriver)
 
 		await sendMessage(conversation, "Call all three tools")
@@ -172,7 +172,7 @@ describe("TASK_0026: Tool execution in the agent loop", () => {
 	it("serial-tool waits for all concurrent tools to settle before executing", async () => {
 		const conversation = (await bh.createConversation({
 			model: "mock-driver/mock-model",
-		})) as BHAIConversationImpl
+		})) as BHZAIConversationImpl
 
 		const executionOrder: string[] = []
 
@@ -249,7 +249,7 @@ describe("TASK_0026: Tool execution in the agent loop", () => {
 				}
 			}),
 			embed: undefined,
-		} as BHAIDriver & { chat: Mock<(request: ChatRequest) => AsyncIterable<DriverEvent>> }
+		} as BHZAIDriver & { chat: Mock<(request: ChatRequest) => AsyncIterable<DriverEvent>> }
 		bh.addDriver(mockDriver)
 
 		await sendMessage(conversation, "Call tools")
@@ -269,7 +269,7 @@ describe("TASK_0026: Tool execution in the agent loop", () => {
 		const conversation = (await bh.createConversation({
 			model: "mock-driver/mock-model",
 			serialTools: true, // Force serialization
-		})) as BHAIConversationImpl
+		})) as BHZAIConversationImpl
 
 		let inFlightCount = 0
 		let maxInFlight = 0
@@ -325,7 +325,7 @@ describe("TASK_0026: Tool execution in the agent loop", () => {
 				}
 			}),
 			embed: undefined,
-		} as BHAIDriver & { chat: Mock<(request: ChatRequest) => AsyncIterable<DriverEvent>> }
+		} as BHZAIDriver & { chat: Mock<(request: ChatRequest) => AsyncIterable<DriverEvent>> }
 		bh.addDriver(mockDriver)
 
 		await sendMessage(conversation, "Call tools")
@@ -340,7 +340,7 @@ describe("TASK_0026: Tool execution in the agent loop", () => {
 	it("unregistered tool name produces isError result and conversation continues", async () => {
 		const conversation = (await bh.createConversation({
 			model: "mock-driver/mock-model",
-		})) as BHAIConversationImpl
+		})) as BHZAIConversationImpl
 
 		// Register one valid tool.
 		bh.addTool({
@@ -386,7 +386,7 @@ describe("TASK_0026: Tool execution in the agent loop", () => {
 				}
 			}),
 			embed: undefined,
-		} as BHAIDriver & { chat: Mock<(request: ChatRequest) => AsyncIterable<DriverEvent>> }
+		} as BHZAIDriver & { chat: Mock<(request: ChatRequest) => AsyncIterable<DriverEvent>> }
 		bh.addDriver(mockDriver)
 
 		// Should not throw — sendMessage should complete.
@@ -412,7 +412,7 @@ describe("TASK_0026: Tool execution in the agent loop", () => {
 		const conversation = (await bh.createConversation({
 			model: "mock-driver/mock-model",
 			maxToolRepairs: 2,
-		})) as BHAIConversationImpl
+		})) as BHZAIConversationImpl
 
 		// Stateful mock driver
 		let callCount = 0
@@ -450,7 +450,7 @@ describe("TASK_0026: Tool execution in the agent loop", () => {
 				}
 			}),
 			embed: undefined,
-		} as BHAIDriver & { chat: Mock<(request: ChatRequest) => AsyncIterable<DriverEvent>> }
+		} as BHZAIDriver & { chat: Mock<(request: ChatRequest) => AsyncIterable<DriverEvent>> }
 		bh.addDriver(mockDriver)
 
 		await sendMessage(conversation, "Call bad tools")
@@ -477,7 +477,7 @@ describe("TASK_0026: Tool execution in the agent loop", () => {
 	it("beforeCall handler returning { block: true } prevents execute from running", async () => {
 		const conversation = (await bh.createConversation({
 			model: "mock-driver/mock-model",
-		})) as BHAIConversationImpl
+		})) as BHZAIConversationImpl
 
 		const executeSpy = vi.fn(async () => "should-not-run")
 
@@ -529,7 +529,7 @@ describe("TASK_0026: Tool execution in the agent loop", () => {
 				}
 			}),
 			embed: undefined,
-		} as BHAIDriver & { chat: Mock<(request: ChatRequest) => AsyncIterable<DriverEvent>> }
+		} as BHZAIDriver & { chat: Mock<(request: ChatRequest) => AsyncIterable<DriverEvent>> }
 		bh.addDriver(mockDriver)
 
 		await sendMessage(conversation, "Call tool")
@@ -550,7 +550,7 @@ describe("TASK_0026: Tool execution in the agent loop", () => {
 	it("beforeCall handler returning undefined lets execute run normally", async () => {
 		const conversation = (await bh.createConversation({
 			model: "mock-driver/mock-model",
-		})) as BHAIConversationImpl
+		})) as BHZAIConversationImpl
 
 		const executeSpy = vi.fn(async () => "executed-ok")
 
@@ -603,7 +603,7 @@ describe("TASK_0026: Tool execution in the agent loop", () => {
 				}
 			}),
 			embed: undefined,
-		} as BHAIDriver & { chat: Mock<(request: ChatRequest) => AsyncIterable<DriverEvent>> }
+		} as BHZAIDriver & { chat: Mock<(request: ChatRequest) => AsyncIterable<DriverEvent>> }
 		bh.addDriver(mockDriver)
 
 		await sendMessage(conversation, "Call tool")
@@ -624,7 +624,7 @@ describe("TASK_0026: Tool execution in the agent loop", () => {
 	it("complete handler returning rewritten result affects what is appended to history", async () => {
 		const conversation = (await bh.createConversation({
 			model: "mock-driver/mock-model",
-		})) as BHAIConversationImpl
+		})) as BHZAIConversationImpl
 
 		bh.addTool({
 			name: "test_tool",
@@ -680,7 +680,7 @@ describe("TASK_0026: Tool execution in the agent loop", () => {
 				}
 			}),
 			embed: undefined,
-		} as BHAIDriver & { chat: Mock<(request: ChatRequest) => AsyncIterable<DriverEvent>> }
+		} as BHZAIDriver & { chat: Mock<(request: ChatRequest) => AsyncIterable<DriverEvent>> }
 		bh.addDriver(mockDriver)
 
 		await sendMessage(conversation, "Call tool")
@@ -698,7 +698,7 @@ describe("TASK_0026: Tool execution in the agent loop", () => {
 	it("tool input validation failure produces isError result", async () => {
 		const conversation = (await bh.createConversation({
 			model: "mock-driver/mock-model",
-		})) as BHAIConversationImpl
+		})) as BHZAIConversationImpl
 
 		bh.addTool({
 			name: "typed_tool",
@@ -752,7 +752,7 @@ describe("TASK_0026: Tool execution in the agent loop", () => {
 				}
 			}),
 			embed: undefined,
-		} as BHAIDriver & { chat: Mock<(request: ChatRequest) => AsyncIterable<DriverEvent>> }
+		} as BHZAIDriver & { chat: Mock<(request: ChatRequest) => AsyncIterable<DriverEvent>> }
 		bh.addDriver(mockDriver)
 
 		await sendMessage(conversation, "Call with bad input")

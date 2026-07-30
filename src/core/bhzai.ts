@@ -1,4 +1,4 @@
-// BHAI kernel class — the framework entry point (ARCHITECTURE.md § 6).
+// BHZAI kernel class — the framework entry point (ARCHITECTURE.md § 6).
 //
 // Scope of THIS file: the constructor and `use()` (TASK_0003, plugin forms 1
 // & 2; form 3 added by TASK_0007), `on()`/`emit()` (TASK_0004), `init()`/
@@ -17,7 +17,7 @@
 // here does not violate the "web-standard APIs only" rule — it runs
 // identically in every supported runtime.
 //
-// PATH NOTE: TASK_0003 specifies `bhai/src/kernel/bhai.ts`, but the package
+// PATH NOTE: TASK_0003 specifies `bhzai/src/kernel/bhzai.ts`, but the package
 // layout already established by TASK_0002 places the kernel under
 // `src/core/` (see `src/core/index.ts` and the `./core` subpath export in
 // `package.json`). This file follows the existing repo convention to keep
@@ -25,8 +25,8 @@
 
 import Ajv, { type ErrorObject } from "ajv"
 import {
-	type BHAIConversation,
-	BHAIConversationImpl,
+	type BHZAIConversation,
+	BHZAIConversationImpl,
 	type ConversationSnapshot,
 	type CreateConversationOptions,
 } from "../conversation/conversation.js"
@@ -34,9 +34,9 @@ import { ToolRegistry } from "../tools/registry.js"
 import type { JSONSchema } from "../types/content.js"
 import type { EmitResult, Unsubscribe } from "../types/events.js"
 import type {
-	BHAICommandDefinition,
-	BHAIDriver,
-	BHAIToolDefinition,
+	BHZAICommandDefinition,
+	BHZAIDriver,
+	BHZAIToolDefinition,
 	ConversationStore,
 	McpServerConfig,
 	MemoryStore,
@@ -71,7 +71,7 @@ import {
 // `ajv` is chosen as the JSON Schema validator for TASK_0006's config step
 // (§ 7.4) over alternatives (zod-to-JSON-Schema bridges, a hand-rolled
 // minimal validator) because:
-//  - it directly validates JSON Schema, the dialect BHAI already standardizes
+//  - it directly validates JSON Schema, the dialect BHZAI already standardizes
 //    on for tool `inputSchema`/`outputSchema` (§ 9.1, 2020-12 dialect);
 //  - it is widely used and battle-tested in the JS/TS ecosystem;
 //  - it needs no schema-authoring-library lock-in (unlike zod, which would
@@ -83,13 +83,13 @@ import {
 // silently introduced as if it had always been there.
 
 /**
- * Host-supplied constructor options for {@link BHAI}.
+ * Host-supplied constructor options for {@link BHZAI}.
  *
  * All fields are stored verbatim by this task and acted on only by later
  * tasks — see the per-field comments. Nothing here is validated or resolved
  * in TASK_0003.
  */
-export interface BHAIHostOptions {
+export interface BHZAIHostOptions {
 	/**
 	 * Per-plugin configuration values, keyed by plugin name (§ 7.4). Each entry
 	 * is equivalent to calling `bh.setConfig(pluginName, values)` before
@@ -176,10 +176,10 @@ export interface ModelsChangedPayload {
  * A bare factory function — plugin form 1 (§ 7.2, pi style).
  *
  * The function IS the plugin's `setup`: it runs immediately at `use()` time,
- * receives the {@link BHAI} instance, and registers whatever capabilities it
+ * receives the {@link BHZAI} instance, and registers whatever capabilities it
  * needs by calling kernel methods on that instance.
  */
-export type BHAIPluginFactory = (bh: BHAI) => void | Promise<void>
+export type BHZAIPluginFactory = (bh: BHZAI) => void | Promise<void>
 
 /**
  * A capability object — plugin form 2 (§ 7.2, OpenCode style).
@@ -195,18 +195,18 @@ export type BHAIPluginFactory = (bh: BHAI) => void | Promise<void>
  * structure. The allowlist only needs to recognize the *presence* of these
  * keys, which it does regardless of their value type.
  */
-export interface BHAIPluginCapabilities {
+export interface BHZAIPluginCapabilities {
 	name?: string
-	initialize?: (ctx: { bh: BHAI }) => void | Promise<void>
-	dispose?: (ctx: { bh: BHAI }) => void | Promise<void>
+	initialize?: (ctx: { bh: BHZAI }) => void | Promise<void>
+	dispose?: (ctx: { bh: BHZAI }) => void | Promise<void>
 	/** Refined to `ModelInfo[]` once TASK_0009 lands; `unknown[]` for now. */
 	modelSource?: () => Promise<unknown[]>
 	/** Refined to `McpServerConfig[]` once TASK_0015 lands. */
 	getMcps?: () => Promise<unknown[]>
 	/** Tool definitions declared by this plugin. Registered via `bh.addTool()` during `init()`. */
-	tools?: BHAIToolDefinition[]
-	/** Refined to `Record<string, BHAICommandDefinition>` once TASK_0010 lands. */
-	commands?: Record<string, BHAICommandDefinition>
+	tools?: BHZAIToolDefinition[]
+	/** Refined to `Record<string, BHZAICommandDefinition>` once TASK_0010 lands. */
+	commands?: Record<string, BHZAICommandDefinition>
 	/** Declares host-supplied plugin configuration (§ 7.4); validated by TASK_0006. */
 	configSchema?: JSONSchema
 	/** Refined to `CredentialResolver` once TASK_0015 / § 10.4 lands. */
@@ -229,12 +229,12 @@ export interface BHAIPluginCapabilities {
  * structurally it is satisfied by any object — the union therefore does not
  * narrow the type, but it documents that decorated instances are a legal
  * `use()` input. Form-3 instances are detected at runtime by
- * `getPluginMetadata()` reading the {@link BHAI_PLUGIN_META} symbol stamped
+ * `getPluginMetadata()` reading the {@link BHZAI_PLUGIN_META} symbol stamped
  * by `@Plugin`, not by TypeScript's structural typing.
  */
-export type BHAIPluginLike =
-	| BHAIPluginFactory
-	| BHAIPluginCapabilities
+export type BHZAIPluginLike =
+	| BHZAIPluginFactory
+	| BHZAIPluginCapabilities
 	| import("./decorators.js").BHPlugin
 
 /**
@@ -245,13 +245,13 @@ export type BHAIPluginLike =
  * for later tasks (lifecycle, config, tools) to read hook fields off the
  * original capability object without re-deriving them.
  */
-export interface BHAIPlugin {
+export interface BHZAIPlugin {
 	/** Unique name; duplicate `use()` calls with the same name are ignored. */
 	name: string
 	/** Runs immediately at `use()` time (§ 7.3 step 1). */
-	setup(bh: BHAI): void | Promise<void>
+	setup(bh: BHZAI): void | Promise<void>
 	/** Original capability object (form 2 only); preserved for later tasks. */
-	capabilities?: BHAIPluginCapabilities
+	capabilities?: BHZAIPluginCapabilities
 }
 
 /** Keys a form-2 capability object may carry (§ 7.2). Any other key is rejected. */
@@ -286,9 +286,9 @@ function keysOwnedBy(index: Map<string, string>, owner: string): string[] {
 
 /**
  * Everything a single plugin contributed to the kernel's registries, as
- * reported by {@link BHAI.listPlugins}.
+ * reported by {@link BHZAI.listPlugins}.
  *
- * Only *attributed* contributions appear here — see {@link BHAI.runAs} for the
+ * Only *attributed* contributions appear here — see {@link BHZAI.runAs} for the
  * one case where a plugin's registration can land unattributed.
  */
 export interface PluginContributions {
@@ -308,30 +308,30 @@ export interface PluginContributions {
 export interface PluginStatus {
 	/** The plugin's name, as normalized at `use()` time. */
 	name: string
-	/** `false` only after an explicit {@link BHAI.disablePlugin}. Defaults to `true`. */
+	/** `false` only after an explicit {@link BHZAI.disablePlugin}. Defaults to `true`. */
 	enabled: boolean
 	/** What this plugin contributed. All-empty for a plugin that registered nothing. */
 	contributions: PluginContributions
 }
 
 /**
- * BHAI is the kernel class — the framework entry point every host
+ * BHZAI is the kernel class — the framework entry point every host
  * instantiates and every plugin registers itself onto.
  *
- * TASK_0003 implements only the constructor and {@link BHAI.use}. Every
+ * TASK_0003 implements only the constructor and {@link BHZAI.use}. Every
  * other method from § 6 is stubbed below with a `// TODO(TASK_XXXX)` comment
  * naming the task that implements it; calling a stub throws.
  */
-export class BHAI {
+export class BHZAI {
 	/** Host options, stored verbatim. Acted on only by later tasks. */
-	private readonly options: BHAIHostOptions
+	private readonly options: BHZAIHostOptions
 
 	/**
 	 * Registered plugins in `use()` order. Order matters for `init()`/`dispose()`
 	 * (§ 7.3), so this is an array, not a map. Names are also indexed in
 	 * `registeredNames` for O(1) duplicate detection.
 	 */
-	private readonly plugins: BHAIPlugin[] = []
+	private readonly plugins: BHZAIPlugin[] = []
 
 	/** Names already registered, for idempotent-by-name `use()` (§ 7.1). */
 	private readonly registeredNames: Set<string> = new Set()
@@ -339,13 +339,13 @@ export class BHAI {
 	/**
 	 * Monotonic counter used to give unnamed form-1 factories a stable,
 	 * instance-unique suffix in their auto-generated name. Combined with
-	 * `crypto.randomUUID()` so two `BHAI` instances in the same process can
+	 * `crypto.randomUUID()` so two `BHZAI` instances in the same process can
 	 * never collide.
 	 */
 	private unnamedCounter = 0
 
 	/**
-	 * Guards against double-`init()` (see {@link BHAI.init}'s documented
+	 * Guards against double-`init()` (see {@link BHZAI.init}'s documented
 	 * assumption). Set to `true` on first successful entry; a second call
 	 * returns immediately without re-running hooks or re-firing the
 	 * `initialize` framework event.
@@ -353,7 +353,7 @@ export class BHAI {
 	private initialized = false
 
 	/**
-	 * Tracks whether this BHAI instance has been disposed (TASK_0035).
+	 * Tracks whether this BHZAI instance has been disposed (TASK_0035).
 	 * Set to `true` after all teardown steps complete in `dispose()`.
 	 * Used by `assertNotDisposed()` to reject further use after teardown.
 	 */
@@ -364,7 +364,7 @@ export class BHAI {
 	 * via `createConversation()` or `loadConversation()` is added here.
 	 * At `dispose()` time, each is aborted and awaited until idle.
 	 */
-	private readonly liveConversations: Set<BHAIConversation> = new Set()
+	private readonly liveConversations: Set<BHZAIConversation> = new Set()
 
 	/**
 	 * The framework event bus (§ 8). All `on()`/`emit()` calls delegate here.
@@ -413,7 +413,7 @@ export class BHAI {
 
 	/**
 	 * The tool registry (§ 9.2) — the single in-process store for every callable
-	 * tool BHAI knows about. Wired up by TASK_0008; backs `addTool`/
+	 * tool BHZAI knows about. Wired up by TASK_0008; backs `addTool`/
 	 * `removeTool`/`listTools` and the {@link toolRegistrar} seam. Fires
 	 * `tool.registered`/`tool.removed` (§ 8.1) through the framework
 	 * {@link EventBus}.
@@ -581,7 +581,7 @@ export class BHAI {
 		return this.conversationsAccessor
 	}
 
-	constructor(options?: BHAIHostOptions) {
+	constructor(options?: BHZAIHostOptions) {
 		this.options = options ?? {}
 		// Hand every registry a view onto activation state. Each registry filters
 		// its own read paths; none of them learns what a plugin is.
@@ -613,7 +613,7 @@ export class BHAI {
 	 * (capability object), or form 3 (a `@Plugin`-decorated class instance,
 	 * TASK_0007).
 	 *
-	 * Normalizes any form into the canonical {@link BHAIPlugin} shape, runs
+	 * Normalizes any form into the canonical {@link BHZAIPlugin} shape, runs
 	 * `setup()` immediately (§ 7.3 step 1), and returns `this` for chaining.
 	 * Idempotent per *explicit* plugin name: a second `use()` with the same
 	 * `name` is a silent no-op (its `setup`/capabilities are never
@@ -623,7 +623,7 @@ export class BHAI {
 	 * **Security**: Plugins run with the host's full privileges and are not sandboxed.
 	 * Hosts must gate what they `use()` — the framework provides no sandbox.
 	 */
-	use(plugin: BHAIPluginLike): this {
+	use(plugin: BHZAIPluginLike): this {
 		this.assertNotDisposed()
 		const normalized = this.normalize(plugin)
 		if (this.registeredNames.has(normalized.name)) {
@@ -814,7 +814,7 @@ export class BHAI {
 	 * {@link Unsubscribe} that removes it. Handlers run in registration order
 	 * (§ 8.2 rule 1). Any event name — including reserved kernel names like
 	 * `initialize`/`dispose`/`error` — may be subscribed to; only the public
-	 * {@link BHAI.emit} restricts which names a plugin may fire.
+	 * {@link BHZAI.emit} restricts which names a plugin may fire.
 	 *
 	 * Implemented by TASK_0004 as a thin delegation to the internally-owned
 	 * {@link EventBus} instance.
@@ -882,7 +882,7 @@ export class BHAI {
 				// would be the one registration path producing ungatable tools.
 				this.runAs(plugin.name, () => {
 					for (const toolDef of toolDefs) {
-						this.addTool(toolDef as BHAIToolDefinition)
+						this.addTool(toolDef as BHZAIToolDefinition)
 					}
 				})
 			}
@@ -980,10 +980,10 @@ export class BHAI {
 	 * Create a new conversation (ARCHITECTURE.md § 11.1).
 	 *
 	 * Behavior per § 8.5 step 3:
-	 * 1. Construct a new `BHAIConversationImpl` (fresh `id`, empty `messages`,
+	 * 1. Construct a new `BHZAIConversationImpl` (fresh `id`, empty `messages`,
 	 *    `status: 'idle'`, `meta: {}`, `usage: { inputTokens: 0, outputTokens: 0 }`).
 	 * 2. Determine whether a model is already known: if `options?.model` is set,
-	 *    OR this `BHAI` instance was constructed with a `defaultModel`, the
+	 *    OR this `BHZAI` instance was constructed with a `defaultModel`, the
 	 *    conversation has an explicit/default model and `model.resolve` must NOT
 	 *    fire. Otherwise, fire `model.resolve` with payload
 	 *    `{ catalogue, conversation }` (obtain `catalogue` via `listModels()`,
@@ -993,10 +993,10 @@ export class BHAI {
 	 *    payload `{ conversation }`.
 	 * 4. Return the conversation.
 	 */
-	async createConversation(options?: CreateConversationOptions): Promise<BHAIConversation> {
+	async createConversation(options?: CreateConversationOptions): Promise<BHZAIConversation> {
 		this.assertNotDisposed()
 		// Step 1: Construct the conversation with fresh state
-		const conversation = new BHAIConversationImpl(this, options)
+		const conversation = new BHZAIConversationImpl(this, options)
 
 		// Step 2: Determine model and fire model.resolve if needed
 		const explicitModel = options?.model ?? this.options.defaultModel
@@ -1036,7 +1036,7 @@ export class BHAI {
 	 * shape validation, or model-re-resolution-on-missing-driver here.
 	 *
 	 * Behavior per § 8.5:
-	 * 1. Construct a `BHAIConversationImpl` reusing the snapshot's `id` (not a
+	 * 1. Construct a `BHZAIConversationImpl` reusing the snapshot's `id` (not a
 	 *    freshly generated one), `messages` (shallow-copied), `meta` (from
 	 *    snapshot, defaulting to `{}`), `usage` (from snapshot, defaulting to
 	 *    zeros), `status: 'idle'`.
@@ -1052,7 +1052,7 @@ export class BHAI {
 	async loadConversation(
 		snapshot: unknown,
 		options?: CreateConversationOptions,
-	): Promise<BHAIConversation> {
+	): Promise<BHZAIConversation> {
 		this.assertNotDisposed()
 		// Delegate to fromSnapshot() for full versioned reconstruction contract.
 		// This replaces the loose TASK_0023 shape check with the full TASK_0028
@@ -1071,7 +1071,7 @@ export class BHAI {
 	 *
 	 * Implemented by TASK_0008 as a thin delegation to the {@link ToolRegistry}.
 	 */
-	addTool(def: BHAIToolDefinition): void
+	addTool(def: BHZAIToolDefinition): void
 	/**
 	 * Register a tool — sugar form (§ 9.1 notes). `parameters` is an alias for
 	 * `inputSchema`; the stored record is
@@ -1081,7 +1081,7 @@ export class BHAI {
 	 */
 	addTool(name: string, parameters: JSONSchema, execute: ToolExecute): void
 	addTool(
-		defOrName: BHAIToolDefinition | string,
+		defOrName: BHZAIToolDefinition | string,
 		parameters?: JSONSchema,
 		execute?: ToolExecute,
 	): void {
@@ -1115,7 +1115,7 @@ export class BHAI {
 	 * signature compatibility. See {@link ToolRegistry.listTools} for the
 	 * scope boundary. Implemented by TASK_0008.
 	 */
-	listTools(filter?: ToolFilter): BHAIToolDefinition[] {
+	listTools(filter?: ToolFilter): BHZAIToolDefinition[] {
 		return this.toolRegistry.listTools(filter)
 	}
 
@@ -1129,7 +1129,7 @@ export class BHAI {
 	 * `model.added`/`model.changed`/`model.removed` and `models.changed` for
 	 * any differences.
 	 */
-	addDriver(driver: BHAIDriver): void {
+	addDriver(driver: BHZAIDriver): void {
 		this.assertNotDisposed()
 		this.driverRegistry.addDriver(driver)
 		this.attribute(this.driverOwners, driver.id)
@@ -1294,7 +1294,7 @@ export class BHAI {
 	 * The mechanism is generic and reusable for any current or future capability key without
 	 * adding new kernel API. Today's documented consumer is `retriever` (§ 11.8's RAG plugin),
 	 * but the implementation accepts any string key, including keys not yet in the
-	 * `BHAIPluginCapabilities` type interface — runtime extensibility is the entire point
+	 * `BHZAIPluginCapabilities` type interface — runtime extensibility is the entire point
 	 * (line 1460-1462 of § 11.8: "the same mechanism serves future contribution points
 	 * without new kernel API").
 	 *
@@ -1302,7 +1302,7 @@ export class BHAI {
 	 *   capability objects and this method is agnostic to their shape, the type is unchecked —
 	 *   it is purely a call-site convenience (e.g., `bh.getContributions<Retriever>('retriever')`
 	 *   documents intent to the reader, but does not validate the runtime value's shape).
-	 * @param key The capability-object key to query. Even keys not in `BHAIPluginCapabilities`'s
+	 * @param key The capability-object key to query. Even keys not in `BHZAIPluginCapabilities`'s
 	 *   named field list work identically at runtime (e.g., a future capability key a plugin
 	 *   ecosystem adds without modifying this kernel will still be retrievable).
 	 * @returns An array of all contributions under that key, in registration order. Empty
@@ -1314,12 +1314,12 @@ export class BHAI {
 		const results: T[] = []
 		for (const plugin of this.plugins) {
 			// Type escape hatch needed because `key` is a runtime string, but
-			// `BHAIPluginCapabilities` is a static interface with named optional fields.
+			// `BHZAIPluginCapabilities` is a static interface with named optional fields.
 			// The whole purpose of this method is to accept arbitrary (including future)
 			// keys that may not yet be in the interface, so the cast is intentional and
 			// narrow: it only escapes the type check for the one lookup operation, and
 			// the result is narrowed back to `T` by the caller's generic parameter.
-			const value = plugin.capabilities?.[key as keyof BHAIPluginCapabilities]
+			const value = plugin.capabilities?.[key as keyof BHZAIPluginCapabilities]
 			if (value !== undefined) {
 				results.push(value as T)
 			}
@@ -1336,7 +1336,7 @@ export class BHAI {
 	 * memory extraction — see ARCHITECTURE.md § 11.7).
 	 *
 	 * Implemented by TASK_0032 as a thin delegation to the exported {@link complete}
-	 * function in `src/core/complete.ts`, passing `this` (the BHAI instance) and the
+	 * function in `src/core/complete.ts`, passing `this` (the BHZAI instance) and the
 	 * host-level defaultModel as context.
 	 */
 	async complete(
@@ -1355,7 +1355,7 @@ export class BHAI {
 	 * events; intended as a portable, driver-agnostic indexing substrate for RAG plugins.
 	 *
 	 * Implemented by TASK_0033 as a thin delegation to the exported {@link embed}
-	 * function in `src/core/embed.ts`, passing `this` (the BHAI instance) and the
+	 * function in `src/core/embed.ts`, passing `this` (the BHZAI instance) and the
 	 * host-level defaultModel as context.
 	 */
 	async embed(req: import("./embed.js").EmbedRequest): Promise<import("./embed.js").EmbedResult> {
@@ -1372,12 +1372,12 @@ export class BHAI {
 	 * `command.registered`/`command.removed` event pair. Implemented by
 	 * TASK_0010 as a thin delegation to the {@link CommandRegistry}.
 	 *
-	 * The stored {@link BHAICommandDefinition} shape is identical whether it
+	 * The stored {@link BHZAICommandDefinition} shape is identical whether it
 	 * arrives via this imperative path or via the capability-object `commands:`
 	 * key (§ 7.2 line 272) resolved during `use()`/`init()` — wiring that
 	 * capability-object path is TASK_0003/0005's job, not TASK_0010's.
 	 */
-	addCommand(name: string, def: BHAICommandDefinition): void {
+	addCommand(name: string, def: BHZAICommandDefinition): void {
 		this.assertNotDisposed()
 		this.commandRegistry.addCommand(name, def)
 		this.attribute(this.commandOwners, name)
@@ -1390,14 +1390,14 @@ export class BHAI {
 	 * enumerate available commands (e.g. to build a `/`-prefix autocomplete
 	 * menu). Implemented by TASK_0010.
 	 */
-	listCommands(): Array<{ name: string; def: BHAICommandDefinition }> {
+	listCommands(): Array<{ name: string; def: BHZAICommandDefinition }> {
 		return this.commandRegistry.listCommands()
 	}
 
 	/**
 	 * Declare a message field — the open message contract.
 	 *
-	 * Installs a named accessor on every {@link BHAIMessage} this instance
+	 * Installs a named accessor on every {@link BHZAIMessage} this instance
 	 * builds. The accessor reads and writes a single key inside the message's
 	 * `meta` bag, so a plugin gets `message.myField` ergonomics while the value
 	 * is stored (and persisted) through the existing `meta` channel that already
@@ -1409,8 +1409,8 @@ export class BHAI {
 	 * Pair this with a type-level declaration so the field typechecks:
 	 *
 	 * ```ts
-	 * declare module "@lucasschirm/bhai" {
-	 *   interface BHAIMessageExtensions {
+	 * declare module "@bhzai/core" {
+	 *   interface BHZAIMessageExtensions {
 	 *     sentiment?: "positive" | "negative"
 	 *   }
 	 * }
@@ -1517,7 +1517,7 @@ export class BHAI {
 	/**
 	 * Guard that rejects further use after `dispose()` has completed (TASK_0035).
 	 *
-	 * Throws `Error('BHAI instance has been disposed')` if `this.disposed` is true.
+	 * Throws `Error('BHZAI instance has been disposed')` if `this.disposed` is true.
 	 * Called at the top of methods where a post-dispose call would be wrong to allow silently.
 	 *
 	 * @throws Error if the instance has been disposed.
@@ -1525,12 +1525,12 @@ export class BHAI {
 	 */
 	private assertNotDisposed(): void {
 		if (this.disposed) {
-			throw new Error("BHAI instance has been disposed")
+			throw new Error("BHZAI instance has been disposed")
 		}
 	}
 
 	/**
-	 * Tear down the BHAI instance — abort conversations, fire `dispose` event, run plugin
+	 * Tear down the BHZAI instance — abort conversations, fire `dispose` event, run plugin
 	 * dispose hooks, close MCP sessions, and guard against further use.
 	 *
 	 * ORDERING RECONCILIATION (TASK_0035, per ARCHITECTURE.md § 8.5 and § 6):
@@ -1554,7 +1554,7 @@ export class BHAI {
 		// sets status to 'aborted', waitForIdle() will never emit 'idle', so we also race
 		// against a microtask flush to avoid indefinite hangs.
 		for (const conversation of this.liveConversations) {
-			conversation.abort("BHAI instance disposed")
+			conversation.abort("BHZAI instance disposed")
 			// Use Promise.race with queueMicrotask to avoid hanging if status is already terminal
 			await Promise.race([
 				conversation.waitForIdle(),
@@ -1598,7 +1598,7 @@ export class BHAI {
 			const errorMessages = closeErrors
 				.map(({ error }) => (error instanceof Error ? error.message : String(error)))
 				.join("; ")
-			throw new Error(`BHAI.dispose(): MCP session close failed: ${errorMessages}`)
+			throw new Error(`BHZAI.dispose(): MCP session close failed: ${errorMessages}`)
 		}
 	}
 
@@ -1772,14 +1772,14 @@ export class BHAI {
 	}
 
 	/** @internal Read-only view of the stored host option for a key. */
-	__testOption<K extends keyof BHAIHostOptions>(key: K): BHAIHostOptions[K] {
+	__testOption<K extends keyof BHZAIHostOptions>(key: K): BHZAIHostOptions[K] {
 		return this.options[key]
 	}
 
 	/**
 	 * Internal: dispatch an event on the framework bus via the unguarded `dispatch()` path.
 	 *
-	 * Used by `BHAIConversationImpl` to fire reserved framework events
+	 * Used by `BHZAIConversationImpl` to fire reserved framework events
 	 * (e.g. `conversation.message`, `conversation.context`) that skips the
 	 * public `emit()`'s reserved-name check. This is the same internal bypass
 	 * the kernel uses for its own reserved-name events.
@@ -1802,28 +1802,28 @@ export class BHAI {
 	 *
 	 * @internal
 	 */
-	_getDriver(driverId: string): BHAIDriver | undefined {
+	_getDriver(driverId: string): BHZAIDriver | undefined {
 		return this.driverRegistry.get(driverId)
 	}
 
 	/**
 	 * Internal: get a tool definition by name.
 	 *
-	 * Returns the registered `BHAIToolDefinition` or `undefined` if not found.
+	 * Returns the registered `BHZAIToolDefinition` or `undefined` if not found.
 	 * Used by TASK_0026's agent-loop tool-execution pipeline to look up tools
 	 * for validation and execution.
 	 *
 	 * @internal
 	 */
-	_getTool(name: string): BHAIToolDefinition | undefined {
+	_getTool(name: string): BHZAIToolDefinition | undefined {
 		return this.toolRegistry.get(name)
 	}
 
 	/**
 	 * Internal: get the host's default system prompt.
 	 *
-	 * Returns the system prompt provided in the `BHAIHostOptions` at construction,
-	 * or undefined if none was provided. Used by `BHAIConversationImpl`'s constructor
+	 * Returns the system prompt provided in the `BHZAIHostOptions` at construction,
+	 * or undefined if none was provided. Used by `BHZAIConversationImpl`'s constructor
 	 * to compute layer 1-2 of the system-prompt assembly.
 	 *
 	 * @internal
@@ -1838,7 +1838,7 @@ export class BHAI {
 
 	/**
 	 * Detect which supported form `plugin` is and normalize it to a
-	 * {@link BHAIPlugin}. Throws synchronously for anything else, including
+	 * {@link BHZAIPlugin}. Throws synchronously for anything else, including
 	 * capability objects with unrecognized keys.
 	 *
 	 * Form 3 (decorated instance, TASK_0007) is checked FIRST among the
@@ -1849,9 +1849,9 @@ export class BHAI {
 	 * not carry `initialize`/`tools`/etc. as own enumerable keys in the
 	 * capability-object sense).
 	 */
-	private normalize(plugin: BHAIPluginLike): BHAIPlugin {
+	private normalize(plugin: BHZAIPluginLike): BHZAIPlugin {
 		if (typeof plugin === "function") {
-			return this.normalizeFactory(plugin as BHAIPluginFactory)
+			return this.normalizeFactory(plugin as BHZAIPluginFactory)
 		}
 		if (typeof plugin === "object" && plugin !== null) {
 			// Form 3 check before form 2 — see method doc.
@@ -1859,7 +1859,7 @@ export class BHAI {
 			if (meta) {
 				return this.normalizeDecorated(plugin, meta)
 			}
-			return this.normalizeCapabilities(plugin as BHAIPluginCapabilities)
+			return this.normalizeCapabilities(plugin as BHZAIPluginCapabilities)
 		}
 		throw new Error(
 			"bh.use(): plugin must be a function, a capability object, or a @Plugin-decorated instance",
@@ -1888,9 +1888,9 @@ export class BHAI {
 			onHandlers: Array<{ methodName: string; event: string }>
 			tools: Array<{ methodName: string; name: string; schema: JSONSchema }>
 		},
-	): BHAIPlugin {
+	): BHZAIPlugin {
 		const record = instance as Record<string, unknown>
-		const setup = (bh: BHAI): void => {
+		const setup = (bh: BHZAI): void => {
 			for (const { methodName, event } of meta.onHandlers) {
 				const fn = record[methodName]
 				if (typeof fn === "function") {
@@ -1912,11 +1912,11 @@ export class BHAI {
 	}
 
 	/** Form 1: bare factory function. Auto-generates a unique name. */
-	private normalizeFactory(fn: BHAIPluginFactory): BHAIPlugin {
+	private normalizeFactory(fn: BHZAIPluginFactory): BHZAIPlugin {
 		const name = `plugin-${this.unnamedCounter}-${crypto.randomUUID()}`
 		this.unnamedCounter += 1
 		// `setup` IS the factory — running setup means invoking the user's
-		// function with the BHAI instance (done in `use()` above).
+		// function with the BHZAI instance (done in `use()` above).
 		return { name, setup: fn }
 	}
 
@@ -1926,7 +1926,7 @@ export class BHAI {
 	 * hooks (`initialize`/`dispose`/etc.) are NOT invoked here — they run at
 	 * `bh.init()`/`bh.dispose()` time, which is TASK_0005's job.
 	 */
-	private normalizeCapabilities(cap: BHAIPluginCapabilities): BHAIPlugin {
+	private normalizeCapabilities(cap: BHZAIPluginCapabilities): BHZAIPlugin {
 		for (const key of Object.keys(cap)) {
 			if (!ALLOWED_CAPABILITY_KEYS.has(key)) {
 				throw new Error(`bh.use(): unrecognized plugin capability key "${key}"`)
@@ -1939,7 +1939,7 @@ export class BHAI {
 			this.unnamedCounter += 1
 		}
 		// No user-supplied setup for form 2; hooks are consumed by TASK_0005+.
-		const setup = (_bh: BHAI): void => {}
+		const setup = (_bh: BHZAI): void => {}
 		return { name, setup, capabilities: cap }
 	}
 }

@@ -1,5 +1,5 @@
 // Framework event bus — the single dispatch mechanism underpinning every
-// observable behavior in BHAI (§ 8). One instance lives on each `BHAI` kernel
+// observable behavior in BHZAI (§ 8). One instance lives on each `BHZAI` kernel
 // (the framework bus); TASK_0023 will instantiate one per `Conversation` too,
 // reusing this exact class unchanged.
 //
@@ -14,7 +14,7 @@
 // outside of plain TypeScript — no `fetch`, no `crypto`, no timers. It is
 // runtime-agnostic and safe to instantiate in any environment.
 //
-// PATH NOTE: TASK_0004 specifies `bhai/src/kernel/event-bus.ts`, but the
+// PATH NOTE: TASK_0004 specifies `bhzai/src/kernel/event-bus.ts`, but the
 // package layout already established by TASK_0002/TASK_0003 places the kernel
 // under `src/core/` (see `src/core/index.ts` and the `./core` subpath export in
 // `package.json`). This file follows the existing repo convention; the
@@ -107,8 +107,8 @@ const RESERVED_PREFIXES: readonly string[] = [
 ]
 
 /**
- * `EventBus` implements BHAI's uniform event semantics (§ 8) for a single
- * scope — one instance per `BHAI` kernel (the framework bus) and, later, one
+ * `EventBus` implements BHZAI's uniform event semantics (§ 8) for a single
+ * scope — one instance per `BHZAI` kernel (the framework bus) and, later, one
  * per `Conversation` (TASK_0023).
  *
  * The class is intentionally standalone and framework-agnostic: it knows
@@ -195,7 +195,7 @@ export class EventBus {
 	/**
 	 * Install the predicate that decides whether an owned handler runs.
 	 *
-	 * Called once by the `BHAI` constructor to hand the bus a view onto plugin
+	 * Called once by the `BHZAI` constructor to hand the bus a view onto plugin
 	 * activation state. The bus deliberately does not import anything about
 	 * plugins — it only knows "some handlers carry an owner string, and some
 	 * predicate says whether that string is currently active" — which keeps this
@@ -272,7 +272,7 @@ export class EventBus {
 		if (event === "compact") {
 			// § 8.4 documented exception: `compact` is a legal manual trigger the
 			// kernel intercepts to start the compaction pipeline (`source: 'emit'`).
-			// The real interception (TASK_0031) lives in BHAIConversationImpl.emit(),
+			// The real interception (TASK_0031) lives in BHZAIConversationImpl.emit(),
 			// not here, because EventBus must remain scope-agnostic — it is reused as both
 			// the framework bus (which has no compaction context) and the per-conversation bus.
 			// Hardcoding conversation/compaction logic into EventBus would break that contract.

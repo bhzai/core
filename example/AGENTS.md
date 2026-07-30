@@ -2,14 +2,14 @@
 
 ## Purpose & scope
 
-A Lit 3 + TypeScript browser example demonstrating BHAI's core capabilities:
+A Lit 3 + TypeScript browser example demonstrating bhzai's core capabilities:
 streaming responses, in-browser model execution via WebLLM, live telemetry
 (decode/prefill tokens per second, time-to-first-token, context usage),
 framework-side parsing of reasoning blocks (`` regions, via
 `parseThink: true`), and runtime attachment of HTTP MCP servers with live
 connection status, searchable tool discovery, and error inspection.
 
-Consumes the WORKSPACE-LINKED, BUILT `dist/` output of `@lucasschirm/bhai` (via
+Consumes the WORKSPACE-LINKED, BUILT `dist/` output of `@bhzai/core` (via
 `workspace:*` dependency + `pnpm run build` running first), never source imports
 (`../../src/*.ts`). This ensures the example exercises the real published
 subpath exports, the real `.d.ts` output, and tree-shaking behavior.
@@ -22,16 +22,16 @@ single model-selection typeahead (`@lucasschirm/litjs-typeahead`).
 
 ## Key files
 
-- **`package.json`** — `bhai-example` workspace member. Private. Depends on root
-  `@lucasschirm/bhai` via `workspace:*`, `@mlc-ai/web-llm ^0.2.79`,
+- **`package.json`** — `bhzai-example` workspace member. Private. Depends on root
+  `@bhzai/core` via `workspace:*`, `@mlc-ai/web-llm ^0.2.79`,
   `lit ^3.2.0`, and `@lucasschirm/litjs-typeahead ^0.0.1` as production
   dependencies; `@webgpu/types`, `happy-dom`, `typescript`, and `vite` as dev
   dependencies.
 - **`tsconfig.json`** — Typechecks the example as its own project (`pnpm --filter
-  bhai-example typecheck`, also covered by the root `pnpm typecheck`). Separate
+  bhzai-example typecheck`, also covered by the root `pnpm typecheck`). Separate
   from the root config because it needs `experimentalDecorators: true` and
   `useDefineForClassFields: false` for Lit decorators and the DOM lib. Resolving
-  `@lucasschirm/bhai` through the workspace link requires `pnpm run build` to have
+  `@bhzai/core` through the workspace link requires `pnpm run build` to have
   produced `dist/` first; keeping it separate stops that build dependency from
   leaking into the root typecheck.
 - **`vite.config.ts`** — Minimal Vite config with `@mlc-ai/web-llm` pre-bundling
@@ -42,10 +42,10 @@ single model-selection typeahead (`@lucasschirm/litjs-typeahead`).
 - **`styles.css`** — Layout and component styling; every value is read from
   `variables.css` via `var(--*)`.
 - **`index.html`** — Semantic HTML5 structure plus the custom element tags:
-  `<bhai-status-indicator>`, `<bhai-model-select id="model-select">`,
-  `<bhai-conversation>`, `<bhai-cold-start>`, `<bhai-telemetry>`,
-  `<bhai-mcp-add-form>`, `<bhai-mcp-error-dialog>`,
-  `<bhai-mcp-server-list>`, and `<bhai-composer>`. Loads `variables.css` and
+  `<bhzai-status-indicator>`, `<bhzai-model-select id="model-select">`,
+  `<bhzai-conversation>`, `<bhzai-cold-start>`, `<bhzai-telemetry>`,
+  `<bhzai-mcp-add-form>`, `<bhzai-mcp-error-dialog>`,
+  `<bhzai-mcp-server-list>`, and `<bhzai-composer>`. Loads `variables.css` and
   `/src/main.ts`.
   - The telemetry rail is split into `#cold-start-host`, `#telemetry-stats`,
     and `<section id="mcp-panel">`. **This split is load-bearing**: the
@@ -74,7 +74,7 @@ the elements to the two orchestrators.
   entry.
 - **`mcp-controller.ts`** — Subscribes the server list to `McpManager`, wires
   the add-server form, persists the server list, and owns the card-level event
-  listeners (`bhai-refresh`, `bhai-retry`, `bhai-remove`, `bhai-show-error`).
+  listeners (`bhzai-refresh`, `bhzai-retry`, `bhzai-remove`, `bhzai-show-error`).
 - **`fatal-error.ts`** — The one path that spans two components (telemetry +
   composer), so it belongs to neither.
 
@@ -87,17 +87,17 @@ CSS variables continue to drive their appearance.
 
 | Module | Custom element | Owns |
 | --- | --- | --- |
-| `status-indicator.ts` | `<bhai-status-indicator>` | statusbar dot + label |
-| `model-select.ts` | `<bhai-model-select>` | reactive model picker, consumes `bh.listModels()` and `models.changed` |
-| `composer.ts` | `<bhai-composer>` | Send/Stop state, text, keyboard |
-| `conversation-view.ts` | `<bhai-conversation>` | user bubbles, assistant turns, inline errors |
-| `cold-start-panel.ts` | `<bhai-cold-start>` | download gauge |
-| `telemetry-panel.ts` | `<bhai-telemetry>` | per-turn readouts |
-| `mcp-server-list.ts` | `<bhai-mcp-server-list>` | server cards, reactive filter + sort |
-| `mcp-server-card.ts` | `<bhai-mcp-server-card>` | one server card |
-| `mcp-tool-list.ts` | `<bhai-mcp-tool-list>` | one server's collapsible, filterable tool list |
-| `mcp-add-form.ts` | `<bhai-mcp-add-form>` | add-server form |
-| `mcp-error-dialog.ts` | `<bhai-mcp-error-dialog>` | error details dialog |
+| `status-indicator.ts` | `<bhzai-status-indicator>` | statusbar dot + label |
+| `model-select.ts` | `<bhzai-model-select>` | reactive model picker, consumes `bh.listModels()` and `models.changed` |
+| `composer.ts` | `<bhzai-composer>` | Send/Stop state, text, keyboard |
+| `conversation-view.ts` | `<bhzai-conversation>` | user bubbles, assistant turns, inline errors |
+| `cold-start-panel.ts` | `<bhzai-cold-start>` | download gauge |
+| `telemetry-panel.ts` | `<bhzai-telemetry>` | per-turn readouts |
+| `mcp-server-list.ts` | `<bhzai-mcp-server-list>` | server cards, reactive filter + sort |
+| `mcp-server-card.ts` | `<bhzai-mcp-server-card>` | one server card |
+| `mcp-tool-list.ts` | `<bhzai-mcp-tool-list>` | one server's collapsible, filterable tool list |
+| `mcp-add-form.ts` | `<bhzai-mcp-add-form>` | add-server form |
+| `mcp-error-dialog.ts` | `<bhzai-mcp-error-dialog>` | error details dialog |
 
 `conversation-view.ts`'s `beginAssistantTurn()` returns an object whose methods
 close over that message's own nodes, rather than a string id the caller has to
@@ -122,10 +122,10 @@ look back up on every delta.
 
 ## Model selection
 
-The bare `<select>` was replaced by a reactive `<bhai-model-select>` wrapper that
+The bare `<select>` was replaced by a reactive `<bhzai-model-select>` wrapper that
 owns a `<lit-typeahead>` from `@lucasschirm/litjs-typeahead`. `main.ts` seeds
-`bhai-model-select.models` from `bh.listModels()`, subscribes to `models.changed`
-to refresh the list, and listens for the custom `bhai-change` event
+`bhzai-model-select.models` from `bh.listModels()`, subscribes to `models.changed`
+to refresh the list, and listens for the custom `bhzai-change` event
 (detail: `{ model: ModelInfo, ref: string }`) to switch conversations. The
 default still prefers a Qwen3 model when available.
 
@@ -151,11 +151,11 @@ the structure and behavior.
 ```bash
 # From repo root:
 pnpm install
-pnpm run preview       # builds @lucasschirm/bhai, then starts Vite
+pnpm run preview       # builds @bhzai/core, then starts Vite
 
 # Or, iterative dev (rebuild the lib as you go):
 pnpm run build
-pnpm --filter bhai-example dev
+pnpm --filter bhzai-example dev
 ```
 
 Requirements:
@@ -240,10 +240,10 @@ Requirements:
 ## Rules
 
 - **Workspace-linked package only**: never import from `../../src/core/*.ts` or
-  `../../src/plugins/*/*.ts`. Always import from `@lucasschirm/bhai` subpaths.
+  `../../src/plugins/*/*.ts`. Always import from `@bhzai/core` subpaths.
 - **Biome linting applies** (`pnpm exec biome check example/`).
 - **No persistent state in `app/*`**: all conversation/model state lives in
-  `bhai`/`conversation` instances; the UI is a pure reflection of that state
+  `BHZAI`/`Conversation` instances; the UI is a pure reflection of that state
   (or in-flight changes).
 - **A new DOM region means a new component**, not a new export on an existing
   one. The old `ui.js` grew to 21 exports across six unrelated regions; that is

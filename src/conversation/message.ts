@@ -1,4 +1,4 @@
-// The canonical BHAIMessage factory.
+// The canonical BHZAIMessage factory.
 //
 // Every message in the system is built here so that plugin-declared message
 // fields (`bh.defineMessageField()`) are installed uniformly. Before this
@@ -14,11 +14,11 @@
 
 import { type MessageFieldRegistry, applyMessageFields } from "../core/message-fields.js"
 import type { ContentBlock } from "../types/content.js"
-import type { BHAIMessage } from "../types/message.js"
+import type { BHZAIMessage } from "../types/message.js"
 
 /** Fields accepted by {@link createMessage}. */
 export interface CreateMessageInit {
-	role: BHAIMessage["role"]
+	role: BHZAIMessage["role"]
 	/** Plain string or structured blocks. The other view is derived. */
 	content: string | ContentBlock[]
 	/**
@@ -53,7 +53,7 @@ export interface CreateMessageOptions {
 }
 
 const DEFAULT_FROZEN_REASON =
-	"BHAIMessage.{method}(): cannot mutate a reloaded/finalized message — mutation is legal only while state === 'before'"
+	"BHZAIMessage.{method}(): cannot mutate a reloaded/finalized message — mutation is legal only while state === 'before'"
 
 /** Derive the `{ content, blocks }` pair from either input form. */
 function deriveContent(content: string | ContentBlock[]): {
@@ -73,7 +73,7 @@ function deriveContent(content: string | ContentBlock[]): {
 }
 
 /**
- * Build a {@link BHAIMessage} and install every registered message field on it.
+ * Build a {@link BHZAIMessage} and install every registered message field on it.
  *
  * `append` targets the message's **last** block when that block is text, and
  * otherwise pushes a new text block. (One of the two former live factories
@@ -89,7 +89,7 @@ export function createMessage(
 	init: CreateMessageInit,
 	fields?: MessageFieldRegistry,
 	options?: CreateMessageOptions,
-): BHAIMessage {
+): BHZAIMessage {
 	const { content, blocks } =
 		init.blocks !== undefined
 			? { content: init.content as string, blocks: init.blocks }
@@ -97,7 +97,7 @@ export function createMessage(
 	const mutable = options?.mutable ?? true
 	const frozenReason = options?.frozenReason ?? DEFAULT_FROZEN_REASON
 
-	const message: BHAIMessage = {
+	const message: BHZAIMessage = {
 		id: init.id ?? crypto.randomUUID(),
 		role: init.role,
 		time: init.time ?? Date.now(),
@@ -105,7 +105,7 @@ export function createMessage(
 		blocks,
 		meta: { ...init.meta },
 		append: mutable
-			? function (this: BHAIMessage, text: string) {
+			? function (this: BHZAIMessage, text: string) {
 					this.content += text
 					const lastBlock = this.blocks[this.blocks.length - 1]
 					if (lastBlock && lastBlock.type === "text") {
@@ -118,7 +118,7 @@ export function createMessage(
 					throw new Error(frozenReason.replace("{method}", "append"))
 				},
 		setContent: mutable
-			? function (this: BHAIMessage, newContent: string | ContentBlock[]) {
+			? function (this: BHZAIMessage, newContent: string | ContentBlock[]) {
 					const derived = deriveContent(newContent)
 					this.content = derived.content
 					this.blocks = derived.blocks
@@ -143,7 +143,7 @@ export function createMessage(
  * The copy shares `meta` by reference with the original, so field values
  * written before the patch remain readable through the new accessors.
  */
-export function withMessageFields<T extends BHAIMessage>(
+export function withMessageFields<T extends BHZAIMessage>(
 	message: T,
 	patch: Partial<T>,
 	fields?: MessageFieldRegistry,

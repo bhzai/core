@@ -11,8 +11,8 @@ import { thermalColor } from "../lib/thermal.js"
  * hidden once the model is ready. Rendered in the light DOM so the host page's
  * global styles (and CSS variables) continue to drive its appearance.
  */
-@customElement("bhai-cold-start")
-export class BhaiColdStart extends LitElement {
+@customElement("bhzai-cold-start")
+export class BhzaiColdStart extends LitElement {
 	override createRenderRoot() {
 		return this
 	}
@@ -68,6 +68,6 @@ export class BhaiColdStart extends LitElement {
 
 declare global {
 	interface HTMLElementTagNameMap {
-		"bhai-cold-start": BhaiColdStart
+		"bhzai-cold-start": BhzaiColdStart
 	}
 }

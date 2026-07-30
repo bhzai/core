@@ -1,8 +1,8 @@
 // Root superset barrel: re-exports the core kernel and every plugin.
-// Consumers who want a minimal surface should import from '@lucasschirm/bhai/core'
-// or a specific '@lucasschirm/bhai/plugins/*' entry instead.
+// Consumers who want a minimal surface should import from '@bhzai/core/core'
+// or a specific '@bhzai/core/plugins/*' entry instead.
 // Tree-shaking (`sideEffects: false`) drops any re-exports a consumer does not use,
-// so importing only `{ Bhai }` from root does not pull plugin code into the bundle.
+// so importing only `{ BHZAI }` from root does not pull plugin code into the bundle.
 //
 // Adding a new plugin means appending one `export * from './plugins/<name>/index.js';`
 // line here, plus the matching `package.json` exports entry and `tsup.config.ts` entry.

@@ -62,7 +62,7 @@ Merges driver-reported models and `modelSource` plugin contributions:
 | Tier | Source | Behavior |
 |---|---|---|
 | 1 | `explicitModel` | `createConversation({ model })` — always wins ordering, still validated |
-| 2 | `defaultModel` | `new BHAI({ defaultModel })` — consulted if tier 1 absent |
+| 2 | `defaultModel` | `new BHZAI({ defaultModel })` — consulted if tier 1 absent |
 | 3 | `model.resolve` event | Blockable framework event; handler returns `{ model }` |
 | 4 | First `'ready'` entry | Catalogue iteration order; does NOT fall back to `'downloadable'` |
 
@@ -79,7 +79,7 @@ If no tier produces a ref, throws `NoModelError`.
    § 11.5's `'steer'` timing — "after the current turn's tool calls
    settle, before the next LLM call"). Caller can `abort()` first for
    immediate mid-stream switch.
-3. **History porting**: no special code — each driver maps `BHAIMessage[]`
+3. **History porting**: no special code — each driver maps `BHZAIMessage[]`
    to its own wire format at `chat()` call time.
 4. **Capability re-application**: new model's `capabilities()` govern the
    next `chat()` call; this function only ensures `activeModelRef` is

@@ -1,13 +1,13 @@
-// @file Tests for BHAI.getContributions() — generic multi-plugin accessor.
+// @file Tests for BHZAI.getContributions() — generic multi-plugin accessor.
 // TASK_0034: verifies that the method retrieves contributions in registration order,
 // handles unregistered keys gracefully, and preserves falsy-but-defined values.
 
 import { describe, expect, it } from "vitest"
-import { BHAI } from "./bhai.js"
+import { BHZAI } from "./bhzai.js"
 
-describe("BHAI.getContributions()", () => {
+describe("BHZAI.getContributions()", () => {
 	it("retrieves two plugins contributing under the same key, in order", () => {
-		const bh = new BHAI()
+		const bh = new BHZAI()
 		const mockRetrieverA = { name: "a", search: () => [] }
 		const mockRetrieverB = { name: "b", search: () => [] }
 
@@ -23,7 +23,7 @@ describe("BHAI.getContributions()", () => {
 	})
 
 	it("returns empty array for unregistered key", () => {
-		const bh = new BHAI()
+		const bh = new BHZAI()
 		const mockRetrieverA = { name: "a" }
 		const mockRetrieverB = { name: "b" }
 
@@ -39,7 +39,7 @@ describe("BHAI.getContributions()", () => {
 	})
 
 	it("preserves registration order with interleaved non-contributing plugin", () => {
-		const bh = new BHAI()
+		const bh = new BHZAI()
 		const mockRetrieverA = { name: "a" }
 		const mockRetrieverB = { name: "b" }
 
@@ -55,7 +55,7 @@ describe("BHAI.getContributions()", () => {
 	})
 
 	it("silently skips factory-form (form-1) plugins", () => {
-		const bh = new BHAI()
+		const bh = new BHZAI()
 		const mockRetrieverA = { name: "a" }
 		const mockRetrieverB = { name: "b" }
 
@@ -72,7 +72,7 @@ describe("BHAI.getContributions()", () => {
 	})
 
 	it("works identically for arbitrary non-retriever keys (genericity)", () => {
-		const bh = new BHAI()
+		const bh = new BHZAI()
 		const mockSkillResolverA = { name: "skillA", resolve: () => undefined }
 		const mockSkillResolverB = { name: "skillB", resolve: () => undefined }
 
@@ -88,7 +88,7 @@ describe("BHAI.getContributions()", () => {
 	})
 
 	it("includes falsy-but-defined values (e.g. empty object)", () => {
-		const bh = new BHAI()
+		const bh = new BHZAI()
 		const emptyRetriever = {} // falsy but !== undefined
 
 		bh.use({ retriever: emptyRetriever })

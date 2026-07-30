@@ -2,10 +2,10 @@
 
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import type { Mock } from "vitest"
-import { BHAI } from "../core/bhai.js"
+import { BHZAI } from "../core/bhzai.js"
 import type { ChatRequest, DriverEvent } from "../types/driver.js"
 import { sendMessage } from "./agent-loop.js"
-import type { BHAIConversationImpl } from "./conversation.js"
+import type { BHZAIConversationImpl } from "./conversation.js"
 import {
 	type ConversationSnapshot,
 	type PlainMessage,
@@ -48,10 +48,10 @@ function makeMockDriver(scriptedEvents: DriverEvent[]) {
 }
 
 describe("TASK_0028: Conversation serialization contract", () => {
-	let bh: BHAI
+	let bh: BHZAI
 
 	beforeEach(() => {
-		bh = new BHAI()
+		bh = new BHZAI()
 	})
 
 	// =========================================================================
@@ -69,7 +69,7 @@ describe("TASK_0028: Conversation serialization contract", () => {
 		// Create conversation and send a user message
 		const conv1 = (await bh.createConversation({
 			model: "mock-driver-id/mock-model",
-		})) as BHAIConversationImpl
+		})) as BHZAIConversationImpl
 
 		const userMsg = await sendMessage(conv1, "Tell me something")
 		expect(conv1.messages).toHaveLength(2) // user + assistant
@@ -83,7 +83,7 @@ describe("TASK_0028: Conversation serialization contract", () => {
 		expect(snapshot.model).toBe("mock-driver-id/mock-model")
 
 		// Load from snapshot
-		const conv2 = (await bh.loadConversation(snapshot)) as BHAIConversationImpl
+		const conv2 = (await bh.loadConversation(snapshot)) as BHZAIConversationImpl
 
 		// Assert deep equality of relevant fields
 		expect(conv2.id).toBe(conv1.id)
@@ -119,7 +119,7 @@ describe("TASK_0028: Conversation serialization contract", () => {
 		// Create conversation with multiple messages
 		const conv1 = (await bh.createConversation({
 			model: "mock-driver-id/mock-model",
-		})) as BHAIConversationImpl
+		})) as BHZAIConversationImpl
 
 		await sendMessage(conv1, "Message 1")
 		// Simulate additional messages by adding them directly (for test purposes)
@@ -132,7 +132,7 @@ describe("TASK_0028: Conversation serialization contract", () => {
 		}
 
 		// Load the truncated snapshot
-		const conv2 = (await bh.loadConversation(truncatedSnapshot)) as BHAIConversationImpl
+		const conv2 = (await bh.loadConversation(truncatedSnapshot)) as BHZAIConversationImpl
 
 		// Assert it loaded with exactly the truncated length
 		expect(conv2.messages).toHaveLength(1)
@@ -192,7 +192,7 @@ describe("TASK_0028: Conversation serialization contract", () => {
 		bh.addDriver(mockDriver)
 
 		// Load the snapshot
-		const conv = (await bh.loadConversation(badSnapshot)) as BHAIConversationImpl
+		const conv = (await bh.loadConversation(badSnapshot)) as BHZAIConversationImpl
 
 		// Assert model.resolve was fired
 		expect(resolveHandler).toHaveBeenCalledTimes(1)
@@ -223,7 +223,7 @@ describe("TASK_0028: Conversation serialization contract", () => {
 		bh.on("model.resolve", resolveHandler)
 
 		// Load the snapshot
-		const conv = (await bh.loadConversation(badSnapshot)) as BHAIConversationImpl
+		const conv = (await bh.loadConversation(badSnapshot)) as BHZAIConversationImpl
 
 		// Assert model.resolve was fired
 		expect(resolveHandler).toHaveBeenCalledTimes(1)
@@ -245,7 +245,7 @@ describe("TASK_0028: Conversation serialization contract", () => {
 
 		const conv = (await bh.createConversation({
 			model: "mock-driver-id/mock-model",
-		})) as BHAIConversationImpl
+		})) as BHZAIConversationImpl
 
 		await sendMessage(conv, "Test message")
 
@@ -276,13 +276,13 @@ describe("TASK_0028: Conversation serialization contract", () => {
 
 		const conv1 = (await bh.createConversation({
 			model: "mock-driver-id/mock-model",
-		})) as BHAIConversationImpl
+		})) as BHZAIConversationImpl
 
 		await sendMessage(conv1, "Initial message")
 		const snapshot = conv1.toJSON()
 
 		// Load from snapshot
-		const conv2 = (await bh.loadConversation(snapshot)) as BHAIConversationImpl
+		const conv2 = (await bh.loadConversation(snapshot)) as BHZAIConversationImpl
 
 		// Register a spy on the 'start' event
 		const startSpy = vi.fn()
@@ -308,13 +308,13 @@ describe("TASK_0028: Conversation serialization contract", () => {
 
 		const conv1 = (await bh.createConversation({
 			model: "mock-driver-id/mock-model",
-		})) as BHAIConversationImpl
+		})) as BHZAIConversationImpl
 
 		await sendMessage(conv1, "Test")
 		const snapshot = conv1.toJSON()
 
 		// Load from snapshot
-		const conv2 = (await bh.loadConversation(snapshot)) as BHAIConversationImpl
+		const conv2 = (await bh.loadConversation(snapshot)) as BHZAIConversationImpl
 
 		// Get a message from the loaded conversation
 		const reloadedMsg = conv2.messages[0]
@@ -339,7 +339,7 @@ describe("TASK_0028: Conversation serialization contract", () => {
 			meta: { title: "Empty" },
 		}
 
-		const conv = (await bh.loadConversation(emptySnapshot)) as BHAIConversationImpl
+		const conv = (await bh.loadConversation(emptySnapshot)) as BHZAIConversationImpl
 
 		expect(conv.id).toBe("empty-conv")
 		expect(conv.messages).toHaveLength(0)
@@ -359,7 +359,7 @@ describe("TASK_0028: Conversation serialization contract", () => {
 
 		const conv1 = (await bh.createConversation({
 			model: "mock-driver-id/mock-model",
-		})) as BHAIConversationImpl
+		})) as BHZAIConversationImpl
 
 		// Manually set metadata
 		await conv1.setMeta({ title: "Test Conversation", customFlag: true })
@@ -375,7 +375,7 @@ describe("TASK_0028: Conversation serialization contract", () => {
 		expect(snapshot.usage.outputTokens).toBeGreaterThanOrEqual(0)
 
 		// Load and verify
-		const conv2 = (await bh.loadConversation(snapshot)) as BHAIConversationImpl
+		const conv2 = (await bh.loadConversation(snapshot)) as BHZAIConversationImpl
 
 		expect(conv2.meta).toEqual({ title: "Test Conversation", customFlag: true })
 		expect(conv2.usage).toEqual(snapshot.usage)
@@ -394,7 +394,7 @@ describe("TASK_0028: Conversation serialization contract", () => {
 			meta: {},
 		}
 
-		const conv = (await bh.loadConversation(snapshot)) as BHAIConversationImpl
+		const conv = (await bh.loadConversation(snapshot)) as BHZAIConversationImpl
 
 		expect(conv.meta).toEqual({})
 		expect(conv.usage).toEqual({ inputTokens: 5, outputTokens: 10 })
@@ -413,7 +413,7 @@ describe("TASK_0028: Conversation serialization contract", () => {
 
 		const conv = (await bh.createConversation({
 			model: "mock-driver-id/mock-model",
-		})) as BHAIConversationImpl
+		})) as BHZAIConversationImpl
 
 		await sendMessage(conv, "Test")
 

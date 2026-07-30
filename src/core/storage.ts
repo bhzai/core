@@ -1,8 +1,8 @@
 /** @file Kernel-side storage wiring (TASK_0029) — auto-save on message(sent) and bh.conversations accessor */
 
 import type { ConversationStore, ConversationSummary } from "../types/storage.js"
-import type { BHAI } from "./bhai.js"
-import type { BHAIPlugin } from "./bhai.js"
+import type { BHZAI } from "./bhzai.js"
+import type { BHZAIPlugin } from "./bhzai.js"
 
 /**
  * Find the active (last-registered-wins) ConversationStore among the given plugins.
@@ -18,7 +18,7 @@ import type { BHAIPlugin } from "./bhai.js"
  * @internal
  */
 export function resolveActiveConversationStore(
-	plugins: readonly BHAIPlugin[],
+	plugins: readonly BHZAIPlugin[],
 ): ConversationStore | undefined {
 	let activeStore: ConversationStore | undefined
 	for (const plugin of plugins) {
@@ -30,7 +30,7 @@ export function resolveActiveConversationStore(
 }
 
 /**
- * Wire up auto-save subscription on the BHAI framework bus.
+ * Wire up auto-save subscription on the BHZAI framework bus.
  *
  * When a `ConversationStore` is registered (not undefined), this function
  * subscribes to the framework-level `bh.on('conversation.message', handler)`
@@ -51,11 +51,11 @@ export function resolveActiveConversationStore(
  * fires and forgets. If save fails, the error is not propagated to the kernel
  * or the conversation; logs or error tracking are the host's concern.
  *
- * @param bh The BHAI kernel instance.
+ * @param bh The BHZAI kernel instance.
  * @param store The active `ConversationStore` capability (if any).
  * @internal
  */
-export function wireAutoSave(bh: BHAI, store: ConversationStore | undefined): void {
+export function wireAutoSave(bh: BHZAI, store: ConversationStore | undefined): void {
 	if (!store) {
 		// No store registered — auto-save is a no-op. Do not create any subscription.
 		return
@@ -78,7 +78,7 @@ export function wireAutoSave(bh: BHAI, store: ConversationStore | undefined): vo
 /**
  * The `bh.conversations` accessor object — provides query access to stored conversations.
  *
- * This object is set on the BHAI instance during `init()` and provides a single method:
+ * This object is set on the BHZAI instance during `init()` and provides a single method:
  * - `list(query?)`: delegates to the registered `ConversationStore.list()` (if present),
  *   or throws a descriptive error if no store is registered.
  *
@@ -106,7 +106,7 @@ export interface ConversationsAccessor {
 /**
  * Create the `bh.conversations` accessor object.
  *
- * This factory is called once from `BHAI.init()` after storage resolution is complete.
+ * This factory is called once from `BHZAI.init()` after storage resolution is complete.
  * It captures the active `ConversationStore` (if any) and returns an accessor that
  * delegates `list()` calls to it, or throws if the store is missing.
  *

@@ -3,14 +3,14 @@
 //
 // CROSS-TASK COORDINATION NOTE: TASK_0002's scope originally covered every
 // shared type under src/types/, but the command-specific shapes
-// (`BHAICommandDefinition`, `BHAICommandContext`) were not landed in that
+// (`BHZAICommandDefinition`, `BHZAICommandContext`) were not landed in that
 // task's barrel before TASK_0010 started. Per TASK_0010's dependency
-// instructions ("add it to `bhai/src/types/` if not already present; if
+// instructions ("add it to `bhzai/src/types/` if not already present; if
 // TASK_0002 hasn't declared it, this task adds it and flags the addition,
-// same pattern as TASK_0009's note about `BHAIDriver`"), TASK_0010 adds them
+// same pattern as TASK_0009's note about `BHZAIDriver`"), TASK_0010 adds them
 // here — in the canonical types home, not as duplicated stubs — and flags the
 // gap so TASK_0002's owner can reconcile. The shapes match ARCHITECTURE.md § 6
-// verbatim where the doc is explicit; the inferred `BHAICommandContext` is
+// verbatim where the doc is explicit; the inferred `BHZAICommandContext` is
 // documented below as an explicit design decision (the doc gives zero detail
 // on command `ctx`).
 //
@@ -24,9 +24,9 @@
 // (unlike Tools § 9 or Drivers § 10). Everything beyond `def`'s literal
 // `{ description, handler(args, ctx), complete?(prefix) }` shape in this file
 // is TASK_0010's own inferred design, marked inline as such — see the
-// per-field TSDoc and the `BHAICommandContext` block comment.
+// per-field TSDoc and the `BHZAICommandContext` block comment.
 
-import type { BHAIConversation } from "./tool.js"
+import type { BHZAIConversation } from "./tool.js"
 
 /**
  * Per-invocation context handed to a command `handler` (§ 6).
@@ -58,9 +58,9 @@ import type { BHAIConversation } from "./tool.js"
  * data) beyond these two without flagging the addition as a further inferred
  * extension — keep the invented surface minimal.
  */
-export interface BHAICommandContext {
+export interface BHZAICommandContext {
 	/** The active conversation the command was invoked against, if any. */
-	conversation?: BHAIConversation
+	conversation?: BHZAIConversation
 	/** Allows a long-running command handler to be cancelled. */
 	signal?: AbortSignal
 }
@@ -93,14 +93,14 @@ export interface BHAICommandContext {
  * TASK_0010's; this type simply ensures both arrival paths store the same
  * shape so future wiring is trivial.
  */
-export interface BHAICommandDefinition {
+export interface BHZAICommandDefinition {
 	/** Human-readable summary shown in `/help`-style listings. */
 	description: string
 	/**
 	 * Invoked when a host dispatches `/name <args...>`. `args` is a
 	 * whitespace-tokenized argument list (the host owns the `/name` parsing).
 	 */
-	handler(args: string[], ctx: BHAICommandContext): unknown | Promise<unknown>
+	handler(args: string[], ctx: BHZAICommandContext): unknown | Promise<unknown>
 	/**
 	 * Optional autocomplete hook (pi's `getArgumentCompletions`). Return type
 	 * is `unknown` since no host UI exists yet to pin a concrete shape.

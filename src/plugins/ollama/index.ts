@@ -1,9 +1,9 @@
 // Ollama driver plugin — talks to a local/remote Ollama server over plain
-// `fetch` (ARCHITECTURE.md § 10.3). Implements `BHAIDriver` (from
+// `fetch` (ARCHITECTURE.md § 10.3). Implements `BHZAIDriver` (from
 // `src/types/driver.ts`) with no environment-specific bindings, so it runs
 // in any runtime that has `fetch` (browser, Node, Electron).
 //
-// Scope of THIS file (TASK_0020): the `Ollama` class implementing `BHAIDriver`
+// Scope of THIS file (TASK_0020): the `Ollama` class implementing `BHZAIDriver`
 // in full — `chat()` (via `POST /api/chat`), `listModels()` (via
 // `GET /api/tags`), `capabilities()` (via `GET /api/show`, cached), and
 // `embed()` (via `POST /api/embed`). No new dependency is added — this driver
@@ -15,7 +15,7 @@
 // iterable), `crypto.randomUUID` (for fallback tool-call ids), and async
 // iterables. No Node built-ins, no DOM.
 //
-// PATH NOTE: TASK_0020 specifies `bhai/src/drivers/ollama/index.ts`, but the
+// PATH NOTE: TASK_0020 specifies `bhzai/src/drivers/ollama/index.ts`, but the
 // package layout already established by TASK_0001/TASK_0002 places plugins
 // under `src/plugins/<name>/` (see `package.json` `exports` and
 // `tsup.config.ts`). This file follows the existing repo convention; the
@@ -31,7 +31,7 @@
 // expected, correct default, not a missing feature.
 
 import type {
-	BHAIDriver,
+	BHZAIDriver,
 	ChatRequest,
 	DriverCapabilities,
 	DriverEvent,
@@ -157,7 +157,7 @@ export interface Ollama {
 }
 
 /**
- * `Ollama` — a {@link BHAIDriver} that talks to a local or remote Ollama
+ * `Ollama` — a {@link BHZAIDriver} that talks to a local or remote Ollama
  * server over plain `fetch`. Works in any fetch-capable runtime (browser,
  * Node, Electron).
  *
@@ -169,7 +169,7 @@ export interface Ollama {
  * connect/disconnect/connection-fail without coupling to driver internals.
  */
 // biome-ignore lint/suspicious/noUnsafeDeclarationMerging: intentional typed-event overloads via merged interface; adds only method overloads, no uninitialized fields
-export class Ollama extends EventTarget implements BHAIDriver {
+export class Ollama extends EventTarget implements BHZAIDriver {
 	readonly id = "ollama" as const
 	private declare readonly baseUrl: string
 	private declare readonly headers: Record<string, string>
@@ -181,7 +181,7 @@ export class Ollama extends EventTarget implements BHAIDriver {
 	 * exists yet.
 	 *
 	 * SYNC/ASYNC MISMATCH RESOLUTION (explicit assumption, since the spec
-	 * doesn't reconcile it): `BHAIDriver.capabilities(model)` is
+	 * doesn't reconcile it): `BHZAIDriver.capabilities(model)` is
 	 * synchronous per TASK_0009/TASK_0002, but this driver's data source
 	 * (`GET /api/show`) is inherently asynchronous. This cache-then-read
 	 * pattern resolves that tension: the first `listModels()` or `chat()`
@@ -320,7 +320,7 @@ export class Ollama extends EventTarget implements BHAIDriver {
 		await this.refreshCapabilitiesCache(request.model)
 		const caps = this.capabilities(request.model)
 
-		// Step 1: map BHAIMessage[] into Ollama's { role, content } shape.
+		// Step 1: map BHZAIMessage[] into Ollama's { role, content } shape.
 		// MVP simplification: multi-block ContentBlock[] content collapses
 		// to the message's `content` string field, same posture as
 		// TASK_0019's WebLLM mapping.
@@ -347,7 +347,7 @@ export class Ollama extends EventTarget implements BHAIDriver {
 
 		// Step 3: map generation params. `reasoning` is mapped to Ollama's
 		// boolean `think` parameter when the model supports it (many-to-one
-		// simplification: BHAI's 6-level scale → Ollama's boolean toggle).
+		// simplification: BHZAI's 6-level scale → Ollama's boolean toggle).
 		const options: Record<string, unknown> = {}
 		if (request.params?.temperature !== undefined) options.temperature = request.params.temperature
 		if (request.params?.maxTokens !== undefined) options.num_predict = request.params.maxTokens
@@ -508,7 +508,7 @@ export class Ollama extends EventTarget implements BHAIDriver {
 	}
 
 	/**
-	 * Map Ollama's `done_reason` to BHAI's `stopReason`.
+	 * Map Ollama's `done_reason` to BHZAI's `stopReason`.
 	 * - `'stop'` → `'stop'`
 	 * - `'length'` → `'length'`
 	 * - `'load'` or absent-but-had-tool-calls → `'tool-calls'`

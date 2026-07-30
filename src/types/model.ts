@@ -2,7 +2,7 @@
 // Types only — no runtime logic. See TASK_0002 for the scope contract.
 
 /**
- * Driver capability flags reported by `BHAIDriver.capabilities(model)` (§ 10.1)
+ * Driver capability flags reported by `BHZAIDriver.capabilities(model)` (§ 10.1)
  * and embedded in each `ModelInfo` (§ 10.5).
  *
  * Explicit assumption: § 10.1/§ 10.5 give only the field list

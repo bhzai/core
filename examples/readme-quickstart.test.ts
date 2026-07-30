@@ -1,4 +1,4 @@
-/** @file Test for the quickstart example — runs real BHAI/OllamaDriver logic with a mocked HTTP layer */
+/** @file Test for the quickstart example — runs real BHZAI/OllamaDriver logic with a mocked HTTP layer */
 
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { runQuickstart } from "./readme-quickstart.js"
@@ -11,7 +11,7 @@ describe("readme-quickstart example", () => {
 
 	it("runs without throwing and produces a non-empty response", async () => {
 		// This should complete without error and demonstrate the full flow:
-		// - BHAI instance creation
+		// - BHZAI instance creation
 		// - Driver registration and initialization
 		// - Conversation creation
 		// - Message sending through the agent loop

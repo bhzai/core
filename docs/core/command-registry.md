@@ -1,46 +1,46 @@
 # Command Registry (`src/core/commands.ts`)
 
-Documentation for the BHAI command registry. Architecture reference:
+Documentation for the BHZAI command registry. Architecture reference:
 ARCHITECTURE.md § 6.
 
 ## Overview
 
-The `CommandRegistry` stores `BHAICommandDefinition` records keyed by `name`.
-It is the in-process source of truth for every slash-command BHAI knows
+The `CommandRegistry` stores `BHZAICommandDefinition` records keyed by `name`.
+It is the in-process source of truth for every slash-command BHZAI knows
 about, analogous to how `ToolRegistry` is the single source of truth for
 tools.
 
 ## Public API
 
 ```typescript
-import { BHAI } from "@lucasschirm/bhai";
+import { BHZAI } from "@bhzai/core";
 
-const bh = new BHAI();
+const bh = new BHZAI();
 
 bh.addCommand({
   name: "help",
   description: "List available commands",
   handler: (args, ctx) => {
     // args: string[] — whitespace-tokenized arguments
-    // ctx: BHAICommandContext — { conversation?, signal? }
+    // ctx: BHZAICommandContext — { conversation?, signal? }
   },
   complete: (prefix) => ["help", "hello"], // optional completer
 });
 
-const commands = bh.listCommands(); // BHAICommandDefinition[]
+const commands = bh.listCommands(); // BHZAICommandDefinition[]
 ```
 
-### `BHAICommandDefinition`
+### `BHZAICommandDefinition`
 
 - `name: string` — the command name (without leading `/`).
 - `description: string` — human-readable description.
-- `handler(args: string[], ctx: BHAICommandContext): void | Promise<void>` —
+- `handler(args: string[], ctx: BHZAICommandContext): void | Promise<void>` —
   the command implementation. `args` is whitespace-tokenized.
 - `complete?(prefix: string): string[]` — optional tab-completion function.
 
-### `BHAICommandContext`
+### `BHZAICommandContext`
 
-- `conversation?: BHAIConversation` — the active conversation, if any.
+- `conversation?: BHZAIConversation` — the active conversation, if any.
 - `signal?: AbortSignal` — for cancellation.
 
 ## Conventions

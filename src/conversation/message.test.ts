@@ -1,17 +1,17 @@
-/** @file Tests for the canonical BHAIMessage factory and message-field propagation. */
+/** @file Tests for the canonical BHZAIMessage factory and message-field propagation. */
 
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import type { Mock } from "vitest"
-import { BHAI } from "../core/bhai.js"
+import { BHZAI } from "../core/bhzai.js"
 import { MessageFieldRegistry } from "../core/message-fields.js"
-import type { BHAIDriver, ChatRequest, DriverEvent } from "../types/driver.js"
+import type { BHZAIDriver, ChatRequest, DriverEvent } from "../types/driver.js"
 import { sendMessage } from "./agent-loop.js"
-import type { BHAIConversationImpl } from "./conversation.js"
+import type { BHZAIConversationImpl } from "./conversation.js"
 import { createMessage, withMessageFields } from "./message.js"
 
 function makeMockDriver(
 	scriptedEvents: DriverEvent[],
-): BHAIDriver & { chat: Mock<(request: ChatRequest) => AsyncIterable<DriverEvent>> } {
+): BHZAIDriver & { chat: Mock<(request: ChatRequest) => AsyncIterable<DriverEvent>> } {
 	return {
 		id: "mock-driver-id",
 		listModels: async () => [
@@ -157,10 +157,10 @@ describe("withMessageFields", () => {
 })
 
 describe("message fields reach every construction site", () => {
-	let bh: BHAI
+	let bh: BHZAI
 
 	beforeEach(() => {
-		bh = new BHAI()
+		bh = new BHZAI()
 		bh.addDriver(
 			makeMockDriver([
 				{ type: "delta", text: "hello" },
@@ -173,7 +173,7 @@ describe("message fields reach every construction site", () => {
 	it("agent-loop user and assistant messages carry fields", async () => {
 		const conversation = (await bh.createConversation({
 			model: "mock-driver-id/mock-model",
-		})) as BHAIConversationImpl
+		})) as BHZAIConversationImpl
 
 		const assistant = await sendMessage(conversation, "hi")
 		const [user] = conversation.messages
@@ -190,7 +190,7 @@ describe("message fields reach every construction site", () => {
 	it("the message(before) patch copy retains fields", async () => {
 		const conversation = (await bh.createConversation({
 			model: "mock-driver-id/mock-model",
-		})) as BHAIConversationImpl
+		})) as BHZAIConversationImpl
 
 		// A handler patches the message; the loop spreads it to apply the patch.
 		conversation.on("message", (payload) => {
@@ -216,7 +216,7 @@ describe("message fields reach every construction site", () => {
 	it("a blocked message retains fields", async () => {
 		const conversation = (await bh.createConversation({
 			model: "mock-driver-id/mock-model",
-		})) as BHAIConversationImpl
+		})) as BHZAIConversationImpl
 
 		conversation.on("message", (payload) => {
 			const p = payload as { state: string }
@@ -234,7 +234,7 @@ describe("message fields reach every construction site", () => {
 	it("messages restored from a snapshot carry fields over persisted meta", async () => {
 		const conversation = (await bh.createConversation({
 			model: "mock-driver-id/mock-model",
-		})) as BHAIConversationImpl
+		})) as BHZAIConversationImpl
 
 		await sendMessage(conversation, "hi")
 		const live = conversation.messages[0] as (typeof conversation.messages)[number] & {
@@ -242,7 +242,7 @@ describe("message fields reach every construction site", () => {
 		}
 		live.tag = "persisted"
 
-		const reloaded = (await bh.loadConversation(conversation.toJSON())) as BHAIConversationImpl
+		const reloaded = (await bh.loadConversation(conversation.toJSON())) as BHZAIConversationImpl
 		const restored = reloaded.messages[0] as (typeof reloaded.messages)[number] & { tag?: string }
 
 		expect(restored.tag).toBe("persisted")
@@ -257,7 +257,7 @@ describe("message fields reach every construction site", () => {
 
 		const conversation = (await bh.createConversation({
 			model: "mock-driver-id/mock-model",
-		})) as BHAIConversationImpl
+		})) as BHZAIConversationImpl
 		await sendMessage(conversation, "hi")
 
 		const preamble = conversation.messages.find((m) => m.content === "preamble") as

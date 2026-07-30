@@ -6,7 +6,7 @@
 // or any OAuth/token-refresh logic (explicitly out of scope per § 10.4).
 //
 // The `authHooks` parameter is supplied directly to `resolveCredentials` as
-// a plain array — this is the locally-injected list variant (the BHAI kernel
+// a plain array — this is the locally-injected list variant (the BHZAI kernel
 // would pass `getRegisteredPlugins().filter(p => p.auth).map(p => p.auth)` in
 // production, but this test file does not depend on the kernel's plugin
 // registry accessor).

@@ -20,11 +20,11 @@ export interface ComposerHandlers {
  * Rendered in the light DOM so the host page's global styles (and CSS variables)
  * continue to drive its appearance.
  *
- * @fires bhai-send - Dispatched when the user submits a non-empty message. Detail: `{ text: string }`.
- * @fires bhai-stop - Dispatched when the user presses Stop while generating.
+ * @fires bhzai-send - Dispatched when the user submits a non-empty message. Detail: `{ text: string }`.
+ * @fires bhzai-stop - Dispatched when the user presses Stop while generating.
  */
-@customElement("bhai-composer")
-export class BhaiComposer extends LitElement {
+@customElement("bhzai-composer")
+export class BhzaiComposer extends LitElement {
 	override createRenderRoot() {
 		return this
 	}
@@ -93,14 +93,14 @@ export class BhaiComposer extends LitElement {
 	private _onClick(): void {
 		if (this.state === "generating") {
 			this._handlers?.onStop()
-			this.dispatchEvent(new CustomEvent("bhai-stop", { bubbles: true, composed: true }))
+			this.dispatchEvent(new CustomEvent("bhzai-stop", { bubbles: true, composed: true }))
 			return
 		}
 		const text = this._pendingText()
 		if (text) {
 			this._handlers?.onSend(text)
 			this.dispatchEvent(
-				new CustomEvent("bhai-send", { detail: { text }, bubbles: true, composed: true }),
+				new CustomEvent("bhzai-send", { detail: { text }, bubbles: true, composed: true }),
 			)
 		}
 	}
@@ -113,7 +113,7 @@ export class BhaiComposer extends LitElement {
 		if (text) {
 			this._handlers?.onSend(text)
 			this.dispatchEvent(
-				new CustomEvent("bhai-send", { detail: { text }, bubbles: true, composed: true }),
+				new CustomEvent("bhzai-send", { detail: { text }, bubbles: true, composed: true }),
 			)
 		}
 	}
@@ -121,6 +121,6 @@ export class BhaiComposer extends LitElement {
 
 declare global {
 	interface HTMLElementTagNameMap {
-		"bhai-composer": BhaiComposer
+		"bhzai-composer": BhzaiComposer
 	}
 }

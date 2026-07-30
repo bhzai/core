@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest"
 
-import { BHAI } from "./bhai.js"
+import { BHZAI } from "./bhzai.js"
 
 // TASK_0005 — plugin lifecycle (init/dispose ordering, § 7.3).
 //
@@ -11,10 +11,10 @@ import { BHAI } from "./bhai.js"
 // hooks. Full teardown semantics are TASK_0035's job and are not exercised
 // here.
 
-describe("BHAI.init — hook ordering (§ 7.3 step 2)", () => {
+describe("BHZAI.init — hook ordering (§ 7.3 step 2)", () => {
 	it("runs initialize hooks in use()-registration order", async () => {
 		const order: string[] = []
-		const bh = new BHAI()
+		const bh = new BHZAI()
 		bh.use({
 			name: "a",
 			initialize: () => {
@@ -35,7 +35,7 @@ describe("BHAI.init — hook ordering (§ 7.3 step 2)", () => {
 
 	it("awaits each initialize hook fully before starting the next", async () => {
 		const order: string[] = []
-		const bh = new BHAI()
+		const bh = new BHZAI()
 		// Inverted delays so a non-awaiting implementation would reorder.
 		bh.use({
 			name: "a",
@@ -58,10 +58,10 @@ describe("BHAI.init — hook ordering (§ 7.3 step 2)", () => {
 	})
 })
 
-describe("BHAI.init — initialize event fires once, strictly after all hooks", () => {
+describe("BHZAI.init — initialize event fires once, strictly after all hooks", () => {
 	it("records ['A', 'B', 'event'] — the event listener runs last", async () => {
 		const order: string[] = []
-		const bh = new BHAI()
+		const bh = new BHZAI()
 		bh.use({
 			name: "a",
 			initialize: () => {
@@ -84,10 +84,10 @@ describe("BHAI.init — initialize event fires once, strictly after all hooks", 
 	})
 })
 
-describe("BHAI.dispose — hook reverse ordering (§ 7.3 step 4)", () => {
+describe("BHZAI.dispose — hook reverse ordering (§ 7.3 step 4)", () => {
 	it("runs dispose hooks in reverse registration order", async () => {
 		const order: string[] = []
-		const bh = new BHAI()
+		const bh = new BHZAI()
 		bh.use({
 			name: "a",
 			dispose: () => {
@@ -109,7 +109,7 @@ describe("BHAI.dispose — hook reverse ordering (§ 7.3 step 4)", () => {
 
 	it("fires the dispose framework event before dispose hooks run (§ 8.5)", async () => {
 		const order: string[] = []
-		const bh = new BHAI()
+		const bh = new BHZAI()
 		bh.use({
 			name: "a",
 			dispose: () => {
@@ -135,9 +135,9 @@ describe("BHAI.dispose — hook reverse ordering (§ 7.3 step 4)", () => {
 	})
 })
 
-describe("BHAI.init — double-init no-op (documented assumption)", () => {
+describe("BHZAI.init — double-init no-op (documented assumption)", () => {
 	it("a second init() does not re-run hooks or re-fire the initialize event", async () => {
-		const bh = new BHAI()
+		const bh = new BHZAI()
 		const initHook = vi.fn()
 		bh.use({ name: "a", initialize: initHook })
 		const eventListener = vi.fn()
@@ -151,11 +151,11 @@ describe("BHAI.init — double-init no-op (documented assumption)", () => {
 	})
 })
 
-describe("BHAI.init/dispose — plugins without hooks are safely skipped", () => {
+describe("BHZAI.init/dispose — plugins without hooks are safely skipped", () => {
 	it("a capability object with no initialize/dispose keys does not break ordering", async () => {
 		const initOrder: string[] = []
 		const disposeOrder: string[] = []
-		const bh = new BHAI()
+		const bh = new BHZAI()
 		bh.use({
 			name: "with-hooks",
 			initialize: () => {
@@ -187,7 +187,7 @@ describe("BHAI.init/dispose — plugins without hooks are safely skipped", () =>
 
 	it("a form-1 factory plugin (no capabilities) is safely skipped by init/dispose", async () => {
 		const initOrder: string[] = []
-		const bh = new BHAI()
+		const bh = new BHZAI()
 		bh.use(() => {
 			/* form-1 factory: no initialize hook */
 		})
@@ -203,9 +203,9 @@ describe("BHAI.init/dispose — plugins without hooks are safely skipped", () =>
 	})
 })
 
-describe("BHAI.init — capability-object tools registration (issue #6)", () => {
+describe("BHZAI.init — capability-object tools registration (issue #6)", () => {
 	it("registers tools declared in plugin.capabilities.tools via bh.addTool() at init() start", async () => {
-		const bh = new BHAI()
+		const bh = new BHZAI()
 		bh.use({
 			name: "tools-plugin",
 			tools: [
@@ -234,7 +234,7 @@ describe("BHAI.init — capability-object tools registration (issue #6)", () => 
 
 	it("capability-object tools are visible to initialize hooks that run after tool registration", async () => {
 		const visibleTools: string[] = []
-		const bh = new BHAI()
+		const bh = new BHZAI()
 		bh.use({
 			name: "tools-plugin",
 			tools: [

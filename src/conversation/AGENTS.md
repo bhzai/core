@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This directory holds the `BHAIConversation` interface and its implementation (`BHAIConversationImpl`), the core object that hosts and plugins interact with to manage a conversation lifecycle, handle events, and track state.
+This directory holds the `BHZAIConversation` interface and its implementation (`BHZAIConversationImpl`), the core object that hosts and plugins interact with to manage a conversation lifecycle, handle events, and track state.
 
 Per ARCHITECTURE.md § 11.1, a conversation encapsulates:
 - **Identity** (`id`: UUID v4)
@@ -15,8 +15,8 @@ Per ARCHITECTURE.md § 11.1, a conversation encapsulates:
 ## Key Files
 
 - **`conversation.ts`** — Main implementation file:
-  - `BHAIConversation` interface (public API)
-  - `BHAIConversationImpl` class (core implementation)
+  - `BHZAIConversation` interface (public API)
+  - `BHZAIConversationImpl` class (core implementation)
   - `CreateConversationOptions` interface (extensible)
   - `ConversationSnapshot` interface (persistence shape)
   - `ConversationEvents` interface (event types)
@@ -31,7 +31,7 @@ Per ARCHITECTURE.md § 11.1, a conversation encapsulates:
   - `ensureStarted(conversation, bh, options, firstMessage)` — Idempotent start-event firing
   - `MessageInit` interface — Input shape for prepended messages
   - Implements four-layer prompt assembly per § 11.6:
-    - Layer 1: Host default (`BHAI.options.systemPrompt`)
+    - Layer 1: Host default (`BHZAI.options.systemPrompt`)
     - Layer 2: Per-conversation override (`CreateConversationOptions.systemPrompt`)
     - Layer 3: `start`-event patches (`systemPrompt`, `appendSystemPrompt`, `prepend`)
     - Layer 4: Deferred to TASK_0025 (`context`-event patches)
@@ -158,7 +158,7 @@ Methods stubbed in this task with `// TODO(TASK_XXXX)` are owned by later tasks:
 
 ### Private Implementation Details
 
-Not part of the public interface; used by `BHAI.createConversation()` / `BHAI.loadConversation()` and TASK_0024's `system-prompt.ts`:
+Not part of the public interface; used by `BHZAI.createConversation()` / `BHZAI.loadConversation()` and TASK_0024's `system-prompt.ts`:
 
 **From TASK_0023 (conversation lifecycle):**
 - `_setResolvedModel(modelRef)` — Set the active model after resolution
@@ -175,19 +175,19 @@ Not part of the public interface; used by `BHAI.createConversation()` / `BHAI.lo
 - `_dispatchConversationEvent(event, payload, options?)` — Internal dispatch wrapper (uses shared mirroring)
 - `_getCreateOptions()` — Retrieve the conversation's creation options
 
-These methods use the underscore prefix and `@internal` JSDoc tag to signal they are package-private, not part of the public `BHAIConversation` interface.
+These methods use the underscore prefix and `@internal` JSDoc tag to signal they are package-private, not part of the public `BHZAIConversation` interface.
 
 ## Integration Points
 
-### With BHAI (src/core/bhai.ts)
+### With BHZAI (src/core/bhzai.ts)
 
-- `BHAI.createConversation(options?)` constructs a `BHAIConversationImpl` and drives its lifecycle:
+- `BHZAI.createConversation(options?)` constructs a `BHZAIConversationImpl` and drives its lifecycle:
   - Fires `model.resolve` if no explicit/default model
   - Sets resolved model on the conversation
   - Fires `conversation.created` event
   - Returns the conversation
 
-- `BHAI.loadConversation(snapshot, options?)` restores a conversation from snapshot:
+- `BHZAI.loadConversation(snapshot, options?)` restores a conversation from snapshot:
   - Validates minimal snapshot shape
   - Restores `id`, `messages`, `meta`, `usage` from snapshot
   - Marks as loaded (prevents TASK_0024's `ensureStarted()` from firing `start`)
@@ -235,12 +235,12 @@ The test suite in `conversation.test.ts` verifies all acceptance criteria:
   - Original-call-order result reordering (most critical correctness property)
   - Validate-and-repair with maxToolRepairs guardrail and self-correcting vs. terminal phrasings
   - Calls `resolveAvailableTools()` with driver capabilities (FIX A)
-  - Adds `_getTool(name)` accessor to BHAI kernel for tool lookup
+  - Adds `_getTool(name)` accessor to BHZAI kernel for tool lookup
   - Implements loop continuation after tool-calls batch settles
   - Test suite verifies all acceptance criteria with adversarial timing tests
 
 - **TASK_0030** (Steering & Concurrent Input):
-  - Adds two FIFO message queues to `BHAIConversationImpl`: `_steerQueue` and `_followUpQueue`
+  - Adds two FIFO message queues to `BHZAIConversationImpl`: `_steerQueue` and `_followUpQueue`
   - Implements queue accessor methods (`_pushSteerQueue`, `_drainSteerQueue`, `_pushFollowUpQueue`, `_dequeueOneFollowUp`, `_getSteerQueueLength`, `_getFollowUpQueueLength`)
   - Exports `ConversationBusyError` class from `agent-loop.ts` for rejected immediate-delivery calls
   - Implements entry-point busy-check in `sendMessage()`: if `conversation.status !== 'idle'` and `deliverAs === 'immediate'` (default), throws `ConversationBusyError`
@@ -277,11 +277,11 @@ The test suite in `conversation.test.ts` verifies all acceptance criteria:
 
 ### Per-conversation plugin activation
 
-- `system-prompt.ts`'s standalone `Conversation` resolver also carries per-conversation plugin activation: `onStart(handler, owner?)` attributes a `start` handler to a plugin, and `enablePlugin`/`disablePlugin`/`resetPlugin` form a tri-state override (`resetPlugin` returns to inheriting the kernel) layered over `BHAI`'s global state.
-- **This module does not import `src/core/`.** `Conversation` reaches global activation through the structural `PluginActivationSource` interface (`isPluginEnabled` + `listPlugins`), which `BHAI` satisfies without declaring it. Keep it that way — a hard import would couple the two subtrees that `src/index.ts` already has to alias around.
+- `system-prompt.ts`'s standalone `Conversation` resolver also carries per-conversation plugin activation: `onStart(handler, owner?)` attributes a `start` handler to a plugin, and `enablePlugin`/`disablePlugin`/`resetPlugin` form a tri-state override (`resetPlugin` returns to inheriting the kernel) layered over `BHZAI`'s global state.
+- **This module does not import `src/core/`.** `Conversation` reaches global activation through the structural `PluginActivationSource` interface (`isPluginEnabled` + `listPlugins`), which `BHZAI` satisfies without declaring it. Keep it that way — a hard import would couple the two subtrees that `src/index.ts` already has to alias around.
 - **Activation is snapshotted, not live.** The resolver caches its result for the conversation's lifetime, so a toggle made after the conversation has started changes nothing until `restart()` is called. That is deliberate: a running conversation's system prompt must not mutate underneath it. `restart()` re-runs every handler, so `start` handlers must tolerate running more than once.
 - A handler registered without an `owner` is host-owned and always runs, whatever is disabled.
-- **Scope boundary vs. `BHAIConversationImpl`.** The per-conversation override API lives on the standalone `Conversation` resolver, not on `BHAIConversationImpl`. A *global* `bh.disablePlugin()` does still reach real conversations: `dispatchConversationEvent()` mirrors onto the framework bus, and handlers registered through `bh.on()` carry an owner tag that the framework `EventBus` gates. What is not wired is a per-conversation override on `BHAIConversationImpl` — giving it one means threading an overrides map through `ensureStarted(conversation, bh, …)` and the mirror, which is a deliberate follow-up, not an oversight.
+- **Scope boundary vs. `BHZAIConversationImpl`.** The per-conversation override API lives on the standalone `Conversation` resolver, not on `BHZAIConversationImpl`. A *global* `bh.disablePlugin()` does still reach real conversations: `dispatchConversationEvent()` mirrors onto the framework bus, and handlers registered through `bh.on()` carry an owner tag that the framework `EventBus` gates. What is not wired is a per-conversation override on `BHZAIConversationImpl` — giving it one means threading an overrides map through `ensureStarted(conversation, bh, …)` and the mirror, which is a deliberate follow-up, not an oversight.
 
 ### Formatting and Style
 
@@ -303,12 +303,12 @@ All public types are exported from both:
 1. `conversation.ts` (the defining module)
 2. `src/core/index.ts` (the core barrel, for `./core` subpath import)
 
-Later tasks should import `BHAIConversation` from the appropriate barrel, never from this file directly, to maintain the packaging rules.
+Later tasks should import `BHZAIConversation` from the appropriate barrel, never from this file directly, to maintain the packaging rules.
 
 ## What Consumes This Directory
 
-- **`src/core/bhai.ts`** — Imports `BHAIConversationImpl` and drives creation/loading
-- **`src/types/tool.ts`** — Re-exports `BHAIConversation` for tool executors' `ToolInvocation` interface
+- **`src/core/bhzai.ts`** — Imports `BHZAIConversationImpl` and drives creation/loading
+- **`src/types/tool.ts`** — Re-exports `BHZAIConversation` for tool executors' `ToolInvocation` interface
 - **Tests** — Directly exercise the conversation API
 - **Later tasks** (TASK_0024+) — Extend and refine conversation behavior
 
@@ -326,16 +326,16 @@ Later tasks should import `BHAIConversation` from the appropriate barrel, never 
 ## Changes Log
 
 ### TASK_0023 (Initial Implementation)
-- Created conversation module with `BHAIConversation` interface and `BHAIConversationImpl` class
+- Created conversation module with `BHZAIConversation` interface and `BHZAIConversationImpl` class
 - Implemented event mirroring mechanism (§ 8.1)
-- Implemented `BHAI.createConversation()` and `BHAI.loadConversation()`
+- Implemented `BHZAI.createConversation()` and `BHZAI.loadConversation()`
 - Added `meta`/`setMeta` with shallow-merge semantics
 - Added test suite with 8 required cases plus edge cases
 - Exported types from `src/core/index.ts`
 
 ### TASK_0024 (System-Prompt Layering & Start Event)
 - Fixed 4 test assertions in `conversation.test.ts` (improper async error handling)
-- Added `_systemPrompt` field to `BHAIConversationImpl` (layers 1-3)
+- Added `_systemPrompt` field to `BHZAIConversationImpl` (layers 1-3)
 - Added `_createOptions` field to store conversation creation options
 - Extended constructor with `hostSystemPrompt` parameter for layer 1 (host default)
 - Implemented internal accessor methods (`_isStarted`, `_markStarted`, `_getSystemPrompt`, etc.)
@@ -351,7 +351,7 @@ Later tasks should import `BHAIConversation` from the appropriate barrel, never 
 - **FIX A**: Moved driver resolution BEFORE context-payload construction; called `resolveAvailableTools()` with driver capabilities for tool-calls gating (§ 9.5 step 3)
 - **FIX B**: Restructured `sendMessage()` from single-pass into unbounded `while (true)` loop; added iteration counter for turn numbering; looping continues after tool-calls batch settles
 - Added `serialTools?: boolean` and `maxToolRepairs?: number` to `CreateConversationOptions`
-- Added `_getTool(name): BHAIToolDefinition | undefined` accessor to BHAI kernel (src/core/bhai.ts)
+- Added `_getTool(name): BHZAIToolDefinition | undefined` accessor to BHZAI kernel (src/core/bhzai.ts)
 - Implemented `executeToolBatch()` helper function (internal to agent-loop.ts) with:
   - Per-call validation (JSON Schema via ajv)
   - beforeCall event with blockability (closes TASK_0013's seam)
@@ -386,7 +386,7 @@ Later tasks should import `BHAIConversation` from the appropriate barrel, never 
 - **turn(start) event**: Fire at beginning of each iteration with payload `{ turn: iteration, conversation }`
 - **turn(end) event**: Fire at end of each iteration (regardless of `naturalStop`/`allTerminate`) with payload `{ turn: iteration, messages: [assistantMessage], toolResults, conversation }`
 - **Turn(end) veto via continueWith**: Handlers can return `{ continueWith: string }` to inject a synthetic user message and continue (still counts toward `maxIterations`)
-- **Universal terminate hint (condition b)**: After tool-batch settles, check `toolResults.every(r => r._meta?.['bhai/terminate'] === true)` (strict "every" — one false result blocks termination)
+- **Universal terminate hint (condition b)**: After tool-batch settles, check `toolResults.every(r => r._meta?.['BHZAI/terminate'] === true)` (strict "every" — one false result blocks termination)
 - **Abort propagation**: `conversation.abort(reason)` fires `abort` event (via internal dispatch in abort() method itself) and `conversation._getAbortSignal().aborted` check at loop top causes immediate exit
 - **Tool execution abort handling**: Race `toolDef.execute()` against abort signal via `Promise.race([executePromise, abortPromise])` to force error state on mid-flight abort (defensive safeguard)
 - **Per-turn timeout (turnTimeoutMs)**: If configured, race driver-event consumption against a timer; on expiry, stop consuming events (scoped to single turn, does NOT flip `conversation.status` to 'aborted')
@@ -436,17 +436,17 @@ Later tasks should import `BHAIConversation` from the appropriate barrel, never 
   - `fromSnapshot(snapshot, bh, options)` — full reconstruction contract:
     - Version check: throws on `v !== 1` (explicit v1-only policy, documented as revisit-when-v2-lands)
     - Shape validation: non-empty string `id`, array `messages`, loose per-element checks
-    - Reconstruction: builds new `BHAIConversationImpl`, calls `_restoreFromSnapshot()` to populate state
+    - Reconstruction: builds new `BHZAIConversationImpl`, calls `_restoreFromSnapshot()` to populate state
     - Re-attaches `append()`/`setContent()` methods (throw if called on reloaded messages, per § 11.1)
     - Marks as started via `_markStarted()` so `ensureStarted()` never fires `start`
     - Model re-resolution: fires `model.resolve` if `snapshot.model` is falsy or unregistered
     - Fires `conversation.loaded` event (never `conversation.created`)
     - Truncated-prefix support: makes NO assumptions about message completeness
 - **Updated `conversation.ts`**:
-  - Added `_restoreFromSnapshot(params)` method to `BHAIConversationImpl` for safe internal reconstruction
+  - Added `_restoreFromSnapshot(params)` method to `BHZAIConversationImpl` for safe internal reconstruction
   - Updated `toJSON()` to delegate to snapshot serialization logic
   - Re-exported `ConversationSnapshot` type from `snapshot.ts` (single canonical definition)
-- **Updated `bhai.ts`**:
+- **Updated `bhzai.ts`**:
   - Simplified `loadConversation()` to delegate to `fromSnapshot()` (removed all `as unknown as {...}` type casts)
 - **Updated `core/index.ts`**:
   - Exported `PlainMessage`, `toPlainMessage`, `toSnapshot`, `fromSnapshot` for public use
@@ -471,7 +471,7 @@ Later tasks should import `BHAIConversation` from the appropriate barrel, never 
 
 ### TASK_0030 (Steering & Concurrent Input)
 - **ConversationBusyError**: New exported error class in `agent-loop.ts` for rejecting immediate-delivery calls on non-idle conversations
-- **Message queues**: Added two private FIFO queues to `BHAIConversationImpl`:
+- **Message queues**: Added two private FIFO queues to `BHZAIConversationImpl`:
   - `_steerQueue: Array<{ content, resolve, reject }>` — high-priority, delivered mid-loop
   - `_followUpQueue: Array<{ content, resolve, reject }>` — low-priority, delivered at idle boundary
 - **Queue accessors** (all marked `@internal`):
@@ -597,15 +597,15 @@ native `reasoning-delta` branch is untouched and still populates
 `meta.reasoning`. With the flag off the branch is byte-for-byte the prior
 behavior.
 
-The `think` field is registered in the `BHAI` constructor rather than gated on
+The `think` field is registered in the `BHZAI` constructor rather than gated on
 the option, because fields are installed at construction time — long before a
 conversation exists — and because `message.think` must keep reading a persisted
 `meta.think` on a conversation reloaded from a snapshot.
 
 **Type-level extension**
 
-`BHAIMessageExtensions` in `src/types/message.ts` is the augmentation target;
-`BHAIMessage` extends it. Augmenting `"@lucasschirm/bhai"` merges even though
+`BHZAIMessageExtensions` in `src/types/message.ts` is the augmentation target;
+`BHZAIMessage` extends it. Augmenting `"@bhzai/core"` merges even though
 `dist/index.d.ts` re-exports the interface from a bundled chunk — TypeScript
 follows the re-export alias to the original declaration (verified against a real
 consumer compile). In-repo code cannot use that specifier, since it only

@@ -10,7 +10,7 @@
  */
 
 /** localStorage key holding the configured Ollama provider list. */
-const STORAGE_KEY = "bhai.providers.ollama"
+const STORAGE_KEY = "bhzai.providers.ollama"
 
 /**
  * Schema version of the persisted payload. Bump it when the stored shape

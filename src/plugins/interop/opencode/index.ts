@@ -1,10 +1,10 @@
-/** @file TASK_0040: OpenCode plugin interop adapter — maps OpenCode-style plugins onto BHAI primitives */
+/** @file TASK_0040: OpenCode plugin interop adapter — maps OpenCode-style plugins onto BHZAI primitives */
 
-import type { BHAIConversationImpl } from "../../../conversation/conversation.js"
-import type { BHAI } from "../../../core/bhai.js"
+import type { BHZAIConversationImpl } from "../../../conversation/conversation.js"
+import type { BHZAI } from "../../../core/bhzai.js"
 import type { CredentialResolver, CredentialScope, Credentials } from "../../../core/credentials.js"
 import type { JSONSchema } from "../../../types/content.js"
-import type { BHAIToolDefinition } from "../../../types/tool.js"
+import type { BHZAIToolDefinition } from "../../../types/tool.js"
 
 /**
  * Internal interface: tool invocation passed to wrapped tool execute functions.
@@ -19,7 +19,7 @@ interface ToolInvocation {
  * Internal interface: payload shape for conversation.created event.
  */
 interface ConversationCreatedPayload {
-	conversation: BHAIConversationImpl
+	conversation: BHZAIConversationImpl
 }
 
 /**
@@ -138,7 +138,7 @@ export type OpenCodePluginFn = (ctx: OpenCodePluginContext) => Promise<OpenCodeH
 /**
  * The hooks object returned by an OpenCode plugin function.
  * Each key is a well-known hook name; TASK_0040 implements the ones that map cleanly
- * onto BHAI mechanisms (see § 8.3 mapping table). Dotted keys (e.g., `'tool.execute.before'`)
+ * onto BHZAI mechanisms (see § 8.3 mapping table). Dotted keys (e.g., `'tool.execute.before'`)
  * are normalized to nested structure internally by the adapter.
  */
 export interface OpenCodeHooks {
@@ -179,24 +179,24 @@ export interface OpenCodeHooks {
 }
 
 /**
- * Runs an OpenCode-style plugin function against a live BHAI instance, mapping its
- * returned hooks object onto BHAI kernel primitives per ARCHITECTURE.md § 8.3 and § 12.
+ * Runs an OpenCode-style plugin function against a live BHZAI instance, mapping its
+ * returned hooks object onto BHZAI kernel primitives per ARCHITECTURE.md § 8.3 and § 12.
  *
  * The adapter:
  * - Builds a minimal {@link OpenCodePluginContext} (project, directory, fetch-based client stub, omitted `$`)
  * - Calls the plugin function with that context
- * - Maps each present hook onto corresponding BHAI mechanisms:
+ * - Maps each present hook onto corresponding BHZAI mechanisms:
  *   - `tool`: registers via `bh.addTool()` with schema conversion via `.toJSONSchema()`
  *   - `tool_execute_before`/`tool_execute_after`: non-blocking observers on `tool(beforeCall)`/`tool(complete|error)`
  *   - `permission_ask`: a single `tool(beforeCall)` subscriber that blocks on `'deny'`, composing with native approvers
  *   - `chat.message`/`chat.params`: conversation event subscribers
  *   - `stop`: turn-end veto via `turn(end)`
- *   - `event`: generic event hook dispatching for supported BHAI events
+ *   - `event`: generic event hook dispatching for supported BHZAI events
  *   - `config`: declared via `bh.declareConfig()` with default-merging
  *   - `auth`: registered as a tier-2 credential resolver in the chain
  *
  * @param plugin The unmodified OpenCode plugin function.
- * @param bh The BHAI instance to register hooks against.
+ * @param bh The BHZAI instance to register hooks against.
  * @param options Context configuration (project, directory, optional fetchImpl).
  *
  * @throws If the plugin function throws or rejects.
@@ -204,7 +204,7 @@ export interface OpenCodeHooks {
  */
 export async function runOpenCodePlugin(
 	plugin: OpenCodePluginFn,
-	bh: BHAI,
+	bh: BHZAI,
 	options: OpenCodeAdapterOptions,
 ): Promise<void> {
 	// Step 1: Build the minimal OpenCode-shaped context
@@ -219,7 +219,7 @@ export async function runOpenCodePlugin(
 	// Step 2: Call the plugin function and get its hooks
 	const hooks = await plugin(context)
 
-	// Step 3: Wire up each present hook onto BHAI mechanisms
+	// Step 3: Wire up each present hook onto BHZAI mechanisms
 
 	// Tool hook: register each tool with JSON Schema conversion
 	if (hooks.tool) {
@@ -237,11 +237,11 @@ export async function runOpenCodePlugin(
 				description: toolDef.description,
 				inputSchema: jsonSchema,
 				execute: wrappedExecute,
-			} as BHAIToolDefinition)
+			} as BHZAIToolDefinition)
 		}
 	}
 
-	// Register all other hooks via a wrapper plugin on the BHAI instance.
+	// Register all other hooks via a wrapper plugin on the BHZAI instance.
 	// Note: we register the plugin FIRST (so its auth capability is available to the kernel),
 	// then run setupHookHandlers DIRECTLY (not from initialize hook) so it works even if
 	// init() has already been called (per the pattern used in the pi adapter).
@@ -290,7 +290,7 @@ function buildClientStub(fetchImpl?: typeof fetch): OpenCodeClientStub {
 			return async (..._args: unknown[]) => {
 				if (!fetchImpl) {
 					throw new Error(
-						`OpenCode client.${prop}() is not available in the BHAI adapter (no running OpenCode server and no fetchImpl supplied)`,
+						`OpenCode client.${prop}() is not available in the BHZAI adapter (no running OpenCode server and no fetchImpl supplied)`,
 					)
 				}
 				throw new Error(`client.${prop}() not fully implemented in this adapter stub`)
@@ -337,7 +337,7 @@ function buildConfigCapability(
  * but BEFORE (or AFTER) init() has run. Framework-level listeners are registered here
  * so they work regardless of init() timing, following the pi adapter pattern.
  */
-function setupHookHandlers(bh: BHAI, hooks: OpenCodeHooks, options: OpenCodeAdapterOptions): void {
+function setupHookHandlers(bh: BHZAI, hooks: OpenCodeHooks, options: OpenCodeAdapterOptions): void {
 	// Per the OpenCode adapter's contract, hook wiring happens here so they register
 	// in the proper order with the event buses (framework + per-conversation).
 
@@ -372,7 +372,10 @@ function setupHookHandlers(bh: BHAI, hooks: OpenCodeHooks, options: OpenCodeAdap
  * Wires up per-conversation event handlers when a conversation is created.
  * Registers handlers on the conversation's event bus for all OpenCode-mapped hooks.
  */
-function handleConversationCreated(conversation: BHAIConversationImpl, hooks: OpenCodeHooks): void {
+function handleConversationCreated(
+	conversation: BHZAIConversationImpl,
+	hooks: OpenCodeHooks,
+): void {
 	// Generic event hook: idle, message.delta, compact, and conversation.created
 	if (hooks.event) {
 		// Idle event

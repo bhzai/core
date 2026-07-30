@@ -2,14 +2,14 @@
 //
 // These tests cover the `RetryPolicy`/`DEFAULT_RETRY_POLICY` constants, the
 // `isRetriableError` classifier, and the `callDriverWithRetry` wrapper's
-// retry/event behavior. They use a hand-written mock `BHAIDriver` whose
+// retry/event behavior. They use a hand-written mock `BHZAIDriver` whose
 // `chat()` is a `vi.fn()`-backed async generator and a recording fake
 // dispatch function. They do NOT test any concrete driver (TASK_0019/0020),
 // the agent loop (TASK_0025+), or the event bus itself (TASK_0004).
 
 import { describe, expect, it, vi } from "vitest"
 
-import type { BHAIDriver, ChatRequest, DriverEvent, EmitResult } from "../types/index.js"
+import type { BHZAIDriver, ChatRequest, DriverEvent, EmitResult } from "../types/index.js"
 import {
 	DEFAULT_RETRY_POLICY,
 	type RequestDispatch,
@@ -70,7 +70,7 @@ function mockDriver(
 		| { kind: "done-error"; event: DriverEvent }
 		| { kind: "events"; events: DriverEvent[] }
 	>,
-): BHAIDriver & { chat: ReturnType<typeof vi.fn> } {
+): BHZAIDriver & { chat: ReturnType<typeof vi.fn> } {
 	const chat = vi.fn(async function* (_req: ChatRequest): AsyncIterable<DriverEvent> {
 		const step = script[Math.min(chat.mock.calls.length, script.length) - 1]
 		if (!step) {

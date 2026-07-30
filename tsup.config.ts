@@ -1,4 +1,4 @@
-// Build config for @lucasschirm/bhai.
+// Build config for @bhzai/core.
 //
 // tsup is used (rather than hand-rolled tsc + a bundler, or heavier tools like
 // Rollup/unbuild/tsdown) because it is purpose-built for exactly this package

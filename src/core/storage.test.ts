@@ -3,17 +3,17 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import type { Mock } from "vitest"
 import { sendMessage } from "../conversation/agent-loop.js"
-import type { BHAIConversationImpl } from "../conversation/conversation.js"
-import type { BHAIDriver, ChatRequest, DriverEvent } from "../types/driver.js"
+import type { BHZAIConversationImpl } from "../conversation/conversation.js"
+import type { BHZAIDriver, ChatRequest, DriverEvent } from "../types/driver.js"
 import type { ConversationStore, ConversationSummary } from "../types/storage.js"
-import { BHAI } from "./bhai.js"
+import { BHZAI } from "./bhzai.js"
 
 /**
  * Helper: create a mock driver that yields a scripted response.
  */
 function makeMockDriver(
 	scriptEvents: DriverEvent[],
-): BHAIDriver & { chat: Mock<(request: ChatRequest) => AsyncIterable<DriverEvent>> } {
+): BHZAIDriver & { chat: Mock<(request: ChatRequest) => AsyncIterable<DriverEvent>> } {
 	return {
 		id: "mock-driver",
 		listModels: async () => [
@@ -44,10 +44,10 @@ function makeMockDriver(
 }
 
 describe("TASK_0029: Storage interfaces and auto-save wiring", () => {
-	let bh: BHAI
+	let bh: BHZAI
 
 	beforeEach(() => {
-		bh = new BHAI()
+		bh = new BHZAI()
 	})
 
 	// =========================================================================
@@ -70,7 +70,7 @@ describe("TASK_0029: Storage interfaces and auto-save wiring", () => {
 		// Create conversation and send message
 		const conversation = (await bh.createConversation({
 			model: "mock-driver/mock-model",
-		})) as BHAIConversationImpl
+		})) as BHZAIConversationImpl
 
 		const result = await sendMessage(conversation, "Hello")
 
@@ -108,7 +108,7 @@ describe("TASK_0029: Storage interfaces and auto-save wiring", () => {
 
 		const conversation = (await bh.createConversation({
 			model: "mock-driver/mock-model",
-		})) as BHAIConversationImpl
+		})) as BHZAIConversationImpl
 
 		const result = await sendMessage(conversation, "Hello")
 
@@ -203,7 +203,7 @@ describe("TASK_0029: Storage interfaces and auto-save wiring", () => {
 
 		const conversation = (await bh.createConversation({
 			model: "mock-driver/mock-model",
-		})) as BHAIConversationImpl
+		})) as BHZAIConversationImpl
 
 		await sendMessage(conversation, "Hi")
 
@@ -278,7 +278,7 @@ describe("TASK_0029: Storage interfaces and auto-save wiring", () => {
 
 		const conversation = (await bh.createConversation({
 			model: "mock-driver/mock-model",
-		})) as BHAIConversationImpl
+		})) as BHZAIConversationImpl
 
 		// Send first message (produces assistant message → message(sent) → save)
 		await sendMessage(conversation, "First")
@@ -322,7 +322,7 @@ describe("TASK_0029: Storage interfaces and auto-save wiring", () => {
 
 		const conversation = (await bh.createConversation({
 			model: "mock-driver/mock-model",
-		})) as BHAIConversationImpl
+		})) as BHZAIConversationImpl
 
 		// Send message — save() will throw, but the conversation should complete
 		const result = await sendMessage(conversation, "Hello")

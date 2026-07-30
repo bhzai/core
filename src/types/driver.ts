@@ -2,18 +2,18 @@
 // Types only — no runtime logic. See TASK_0002 for the scope contract.
 //
 // CROSS-TASK COORDINATION NOTE: TASK_0002 originally scoped the full
-// `BHAIDriver` interface (with `listModels`, `capabilities`, `chat`, optional
+// `BHZAIDriver` interface (with `listModels`, `capabilities`, `chat`, optional
 // `embed`) as TASK_0009's responsibility and supplied only the shapes that
 // cross the kernel/driver boundary (`GenerationParams`, `DriverEvent`,
-// `ChatRequest`, `ToolWireDefinition`). TASK_0009 adds `BHAIDriver` here — in
+// `ChatRequest`, `ToolWireDefinition`). TASK_0009 adds `BHZAIDriver` here — in
 // the canonical types home, alongside the other driver types — per TASK_0009's
-// "if TASK_0002 has not yet declared `BHAIDriver`, this task must add it there
+// "if TASK_0002 has not yet declared `BHZAIDriver`, this task must add it there
 // ... and explicitly flag in a code comment that it did so on TASK_0002's
 // behalf" instruction. The shape matches ARCHITECTURE.md § 10.1 lines 753-767
 // verbatim, including `embed?` being optional.
 
 import type { JSONSchema } from "./content.js"
-import type { BHAIMessage } from "./message.js"
+import type { BHZAIMessage } from "./message.js"
 import type { DriverCapabilities, ModelInfo, Usage } from "./model.js"
 
 /**
@@ -35,7 +35,7 @@ export interface GenerationParams {
 }
 
 /**
- * The unified streaming event shape emitted by `BHAIDriver.chat()` (§ 10.1).
+ * The unified streaming event shape emitted by `BHZAIDriver.chat()` (§ 10.1).
  * A discriminated union on `type` with the exact string-literal discriminants
  * and field names per the spec.
  *
@@ -61,9 +61,9 @@ export type DriverEvent =
  *
  * Explicit assumption: this is the minimal wire-projection implied by § 10.1's
  * parenthetical ("name/description/inputSchema, projected from the MCP Tool
- * records (§ 9.1)"). The full `BHAIToolDefinition` (with `execute`, `tags`,
+ * records (§ 9.1)"). The full `BHZAIToolDefinition` (with `execute`, `tags`,
  * `serial`, `outputSchema`, `annotations`, etc. per § 9.1) is TASK_0008's
- * responsibility. `ToolWireDefinition` intentionally strips the BHAI-local,
+ * responsibility. `ToolWireDefinition` intentionally strips the bhzai-local,
  * non-serializable fields since it represents what's sent to a driver/model,
  * not the internal registry record.
  */
@@ -74,12 +74,12 @@ export interface ToolWireDefinition {
 }
 
 /**
- * The request handed to `BHAIDriver.chat()` (§ 10.1). `messages` use the
- * normalized internal `BHAIMessage` shape; drivers map to their wire format.
+ * The request handed to `BHZAIDriver.chat()` (§ 10.1). `messages` use the
+ * normalized internal `BHZAIMessage` shape; drivers map to their wire format.
  */
 export interface ChatRequest {
 	model: string
-	messages: BHAIMessage[]
+	messages: BHZAIMessage[]
 	systemPrompt?: string
 	tools?: ToolWireDefinition[]
 	params?: GenerationParams
@@ -97,7 +97,7 @@ export interface ChatRequest {
  * being optional — only drivers whose `capabilities(model).embeddings === true`
  * are expected to implement it.
  */
-export interface BHAIDriver {
+export interface BHZAIDriver {
 	/** Stable driver identifier, e.g. `'webllm'`, `'ollama'`. */
 	id: string
 	/**

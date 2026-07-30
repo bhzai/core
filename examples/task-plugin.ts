@@ -6,9 +6,9 @@
  * it is more concise for a single-file example with straightforward event handlers.
  */
 
-import type { BHAI } from "../src/core/bhai.js"
-import type { BHAIPluginCapabilities } from "../src/core/index.js"
-import type { BHAIConversation, BHAIToolDefinition, ToolInvocation } from "../src/types/index.js"
+import type { BHZAI } from "../src/core/bhzai.js"
+import type { BHZAIPluginCapabilities } from "../src/core/index.js"
+import type { BHZAIConversation, BHZAIToolDefinition, ToolInvocation } from "../src/types/index.js"
 
 /**
  * A task represents a unit of work to be done in the conversation.
@@ -36,17 +36,17 @@ export interface Task {
  * 2. Context injection for maintaining context without polluting message history
  * 3. Loop-gate vetoing for workflow enforcement
  */
-export const taskPlugin: BHAIPluginCapabilities = {
+export const taskPlugin: BHZAIPluginCapabilities = {
 	name: "tasks",
 
 	/**
 	 * Initialize the plugin by registering the `update_tasks` tool and event handlers.
 	 *
-	 * @param bh - The BHAI kernel instance
+	 * @param bh - The BHZAI kernel instance
 	 */
-	async initialize({ bh }: { bh: BHAI }) {
+	async initialize({ bh }: { bh: BHZAI }) {
 		// Register the update_tasks tool for managing the task list.
-		const updateTasksTool: BHAIToolDefinition = {
+		const updateTasksTool: BHZAIToolDefinition = {
 			name: "update_tasks",
 			description:
 				"Replace the task list for this conversation. Call whenever the plan changes; keep exactly one task in_progress.",
@@ -89,7 +89,7 @@ export const taskPlugin: BHAIPluginCapabilities = {
 		 * non-empty, avoiding empty blocks when no tasks are defined.
 		 */
 		bh.on("conversation.context", (payload: unknown) => {
-			const { conversation } = payload as { conversation: BHAIConversation }
+			const { conversation } = payload as { conversation: BHZAIConversation }
 			const tasks = (conversation.meta?.tasks as Task[] | undefined) ?? []
 
 			if (tasks.length === 0) {
@@ -111,7 +111,7 @@ export const taskPlugin: BHAIPluginCapabilities = {
 		 * the model cannot naturally stop until it has marked all tasks complete.
 		 */
 		bh.on("conversation.turn", (payload: unknown) => {
-			const { state, conversation } = payload as { state: string; conversation: BHAIConversation }
+			const { state, conversation } = payload as { state: string; conversation: BHZAIConversation }
 
 			// Only handle the end-of-iteration state; start states pass through.
 			if (state !== "end") {

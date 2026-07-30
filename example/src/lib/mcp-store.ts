@@ -9,7 +9,7 @@
  */
 
 /** localStorage key holding the configured server list. */
-const STORAGE_KEY = "bhai.mcp.servers"
+const STORAGE_KEY = "bhzai.mcp.servers"
 
 /**
  * Schema version of the persisted payload. Bump it when the stored shape
@@ -23,7 +23,7 @@ const STORAGE_VERSION = 1
 export interface StoredServer {
 	/** Streamable-HTTP MCP endpoint. */
 	url: string
-	/** BHAI-local server name; namespaces the tools. */
+	/** bhzai-local server name; namespaces the tools. */
 	name?: string
 	/** Extra request headers. */
 	headers?: Record<string, string>

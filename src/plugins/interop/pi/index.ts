@@ -1,11 +1,11 @@
 /** @file pi coding-agent extension interop adapter (TASK_0039) */
 
-import type { BHAI } from "../../../core/bhai.js"
+import type { BHZAI } from "../../../core/bhzai.js"
 import type { JSONSchema } from "../../../types/content.js"
 import type {
-	BHAICommandDefinition,
-	BHAIConversation,
-	BHAIToolDefinition,
+	BHZAICommandDefinition,
+	BHZAIConversation,
+	BHZAIToolDefinition,
 	CallToolResult,
 	ToolInvocation,
 } from "../../../types/index.js"
@@ -48,7 +48,7 @@ export type PiExtensionFactory = (pi: PiExtensionAPI) => void | Promise<void>
  * Handler signature for pi events.
  *
  * May be sync or async; may return a patch object or a block signal.
- * Patch and block semantics are preserved from BHAI's own event bus.
+ * Patch and block semantics are preserved from BHZAI's own event bus.
  */
 type PiHandler = (
 	payload: unknown,
@@ -78,7 +78,7 @@ interface PiToolDef {
 	execute: (
 		params: unknown,
 		ctx: {
-			conversation?: BHAIConversation
+			conversation?: BHZAIConversation
 			signal?: AbortSignal
 			progress?: (update: string) => void
 		},
@@ -100,7 +100,7 @@ interface PiCommandDef {
  *
  * This is NOT imported from any real pi package; it is defined entirely by
  * this adapter to support the portable subset of pi extensions that map onto
- * BHAI's kernel primitives.
+ * BHZAI's kernel primitives.
  */
 export interface PiExtensionAPI {
 	on(event: string, handler: PiHandler): void
@@ -127,10 +127,10 @@ export interface PiExtensionAPI {
 }
 
 /**
- * Runs a pi-style extension factory against a live BHAI instance.
+ * Runs a pi-style extension factory against a live BHZAI instance.
  *
  * Constructs a shim ExtensionAPI object, runs the factory with it, and
- * translates every call the extension makes onto BHAI kernel primitives.
+ * translates every call the extension makes onto BHZAI kernel primitives.
  * TUI-bound calls are recorded as no-ops.
  *
  * Intended usage (wrapped in a named plugin for proper lifecycle):
@@ -143,7 +143,7 @@ export interface PiExtensionAPI {
  * ```
  *
  * @param factory The pi extension factory function
- * @param bh The BHAI kernel instance to run against
+ * @param bh The BHZAI kernel instance to run against
  * @param pluginName Optional plugin name for event prefixing and config.
  *                   If not provided, derived from the enclosing plugin context
  *                   or defaults to 'pi-extension-<uuid>'.
@@ -152,11 +152,11 @@ export interface PiExtensionAPI {
  */
 export async function runPiExtension(
 	factory: PiExtensionFactory,
-	bh: BHAI,
+	bh: BHZAI,
 	pluginName?: string,
 ): Promise<PiAdapterHandle> {
 	const warnings: PiUnsupportedCallWarning[] = []
-	let mostRecentConversation: BHAIConversation | undefined
+	let mostRecentConversation: BHZAIConversation | undefined
 
 	// Derive plugin name if not provided
 	let derivedPluginName = pluginName
@@ -173,7 +173,7 @@ export async function runPiExtension(
 	const pendingEmits: Promise<unknown>[] = []
 
 	// Track conversation.created events to maintain most-recent conversation
-	bh.on("conversation.created", ({ conversation }: { conversation: BHAIConversation }) => {
+	bh.on("conversation.created", ({ conversation }: { conversation: BHZAIConversation }) => {
 		mostRecentConversation = conversation
 	})
 
@@ -223,7 +223,7 @@ export async function runPiExtension(
 			switch (event) {
 				case "before_agent_start": {
 					// Row 1: subscribe on conversation.created, then on 'start'
-					bh.on("conversation.created", ({ conversation }: { conversation: BHAIConversation }) => {
+					bh.on("conversation.created", ({ conversation }: { conversation: BHZAIConversation }) => {
 						conversation.on("start", async (payload) => {
 							const result = await handler(payload)
 							return result
@@ -233,8 +233,8 @@ export async function runPiExtension(
 				}
 				case "agent_start": {
 					// Row 2: loop with state=start
-					bh.on("conversation.created", ({ conversation }: { conversation: BHAIConversation }) => {
-						// biome-ignore lint/suspicious/noExplicitAny: BHAI event payloads are union types; discriminating on state field requires any
+					bh.on("conversation.created", ({ conversation }: { conversation: BHZAIConversation }) => {
+						// biome-ignore lint/suspicious/noExplicitAny: BHZAI event payloads are union types; discriminating on state field requires any
 						conversation.on("loop", async (payload: any) => {
 							if (payload.state === "start") {
 								// Filter and dispatch; ignore return
@@ -246,8 +246,8 @@ export async function runPiExtension(
 				}
 				case "agent_end": {
 					// Row 2: loop with state=end
-					bh.on("conversation.created", ({ conversation }: { conversation: BHAIConversation }) => {
-						// biome-ignore lint/suspicious/noExplicitAny: BHAI event payloads are union types; discriminating on state field requires any
+					bh.on("conversation.created", ({ conversation }: { conversation: BHZAIConversation }) => {
+						// biome-ignore lint/suspicious/noExplicitAny: BHZAI event payloads are union types; discriminating on state field requires any
 						conversation.on("loop", async (payload: any) => {
 							if (payload.state === "end") {
 								// Filter and dispatch; ignore return
@@ -259,8 +259,8 @@ export async function runPiExtension(
 				}
 				case "input": {
 					// Row 4: message with state=before, role=user
-					bh.on("conversation.created", ({ conversation }: { conversation: BHAIConversation }) => {
-						// biome-ignore lint/suspicious/noExplicitAny: BHAI event payloads are union types; discriminating on state field requires any
+					bh.on("conversation.created", ({ conversation }: { conversation: BHZAIConversation }) => {
+						// biome-ignore lint/suspicious/noExplicitAny: BHZAI event payloads are union types; discriminating on state field requires any
 						conversation.on("message", async (payload: any) => {
 							if (payload.state === "before" && payload.role === "user") {
 								const result = await handler(payload)
@@ -272,8 +272,8 @@ export async function runPiExtension(
 				}
 				case "message_update": {
 					// Row 5: message.delta; translate kind='reasoning' to thinking=true
-					bh.on("conversation.created", ({ conversation }: { conversation: BHAIConversation }) => {
-						// biome-ignore lint/suspicious/noExplicitAny: BHAI event payloads are union types; discriminating on kind field requires any
+					bh.on("conversation.created", ({ conversation }: { conversation: BHZAIConversation }) => {
+						// biome-ignore lint/suspicious/noExplicitAny: BHZAI event payloads are union types; discriminating on kind field requires any
 						conversation.on("message.delta", async (payload: any) => {
 							const piPayload = {
 								...payload,
@@ -286,7 +286,7 @@ export async function runPiExtension(
 				}
 				case "context": {
 					// Row 6: context event, pass through unchanged
-					bh.on("conversation.created", ({ conversation }: { conversation: BHAIConversation }) => {
+					bh.on("conversation.created", ({ conversation }: { conversation: BHZAIConversation }) => {
 						conversation.on("context", async (payload) => {
 							const result = await handler(payload)
 							return result
@@ -296,8 +296,8 @@ export async function runPiExtension(
 				}
 				case "tool_call": {
 					// Row 7: tool with state=beforeCall
-					bh.on("conversation.created", ({ conversation }: { conversation: BHAIConversation }) => {
-						// biome-ignore lint/suspicious/noExplicitAny: BHAI tool event payloads are union types; discriminating on state field requires any
+					bh.on("conversation.created", ({ conversation }: { conversation: BHZAIConversation }) => {
+						// biome-ignore lint/suspicious/noExplicitAny: BHZAI tool event payloads are union types; discriminating on state field requires any
 						conversation.on("tool", async (payload: any) => {
 							if (payload.state === "beforeCall") {
 								const result = await handler(payload)
@@ -309,8 +309,8 @@ export async function runPiExtension(
 				}
 				case "tool_result": {
 					// Row 8: tool with state=complete/error
-					bh.on("conversation.created", ({ conversation }: { conversation: BHAIConversation }) => {
-						// biome-ignore lint/suspicious/noExplicitAny: BHAI tool event payloads are union types; discriminating on state field requires any
+					bh.on("conversation.created", ({ conversation }: { conversation: BHZAIConversation }) => {
+						// biome-ignore lint/suspicious/noExplicitAny: BHZAI tool event payloads are union types; discriminating on state field requires any
 						conversation.on("tool", async (payload: any) => {
 							if (payload.state === "complete" || payload.state === "error") {
 								const result = await handler(payload)
@@ -322,8 +322,8 @@ export async function runPiExtension(
 				}
 				case "before_provider_request": {
 					// Row 9: request with state=before
-					bh.on("conversation.created", ({ conversation }: { conversation: BHAIConversation }) => {
-						// biome-ignore lint/suspicious/noExplicitAny: BHAI request event payloads are union types; discriminating on state field requires any
+					bh.on("conversation.created", ({ conversation }: { conversation: BHZAIConversation }) => {
+						// biome-ignore lint/suspicious/noExplicitAny: BHZAI request event payloads are union types; discriminating on state field requires any
 						conversation.on("request", async (payload: any) => {
 							if (payload.state === "before") {
 								const result = await handler(payload)
@@ -335,8 +335,8 @@ export async function runPiExtension(
 				}
 				case "after_provider_response": {
 					// Row 9: request with state=after, observe-only
-					bh.on("conversation.created", ({ conversation }: { conversation: BHAIConversation }) => {
-						// biome-ignore lint/suspicious/noExplicitAny: BHAI request event payloads are union types; discriminating on state field requires any
+					bh.on("conversation.created", ({ conversation }: { conversation: BHZAIConversation }) => {
+						// biome-ignore lint/suspicious/noExplicitAny: BHZAI request event payloads are union types; discriminating on state field requires any
 						conversation.on("request", async (payload: any) => {
 							if (payload.state === "after") {
 								await handler(payload)
@@ -347,8 +347,8 @@ export async function runPiExtension(
 				}
 				case "turn_start": {
 					// Row 10: turn with state=start
-					bh.on("conversation.created", ({ conversation }: { conversation: BHAIConversation }) => {
-						// biome-ignore lint/suspicious/noExplicitAny: BHAI turn event payloads are union types; discriminating on state field requires any
+					bh.on("conversation.created", ({ conversation }: { conversation: BHZAIConversation }) => {
+						// biome-ignore lint/suspicious/noExplicitAny: BHZAI turn event payloads are union types; discriminating on state field requires any
 						conversation.on("turn", async (payload: any) => {
 							if (payload.state === "start") {
 								await handler(payload)
@@ -359,8 +359,8 @@ export async function runPiExtension(
 				}
 				case "turn_end": {
 					// Row 10: turn with state=end; return may include continueWith
-					bh.on("conversation.created", ({ conversation }: { conversation: BHAIConversation }) => {
-						// biome-ignore lint/suspicious/noExplicitAny: BHAI turn event payloads are union types; discriminating on state field requires any
+					bh.on("conversation.created", ({ conversation }: { conversation: BHZAIConversation }) => {
+						// biome-ignore lint/suspicious/noExplicitAny: BHZAI turn event payloads are union types; discriminating on state field requires any
 						conversation.on("turn", async (payload: any) => {
 							if (payload.state === "end") {
 								const result = await handler(payload)
@@ -372,8 +372,8 @@ export async function runPiExtension(
 				}
 				case "session_before_compact": {
 					// Row 11: compact with state=before
-					bh.on("conversation.created", ({ conversation }: { conversation: BHAIConversation }) => {
-						// biome-ignore lint/suspicious/noExplicitAny: BHAI compact event payloads are union types; discriminating on state field requires any
+					bh.on("conversation.created", ({ conversation }: { conversation: BHZAIConversation }) => {
+						// biome-ignore lint/suspicious/noExplicitAny: BHZAI compact event payloads are union types; discriminating on state field requires any
 						conversation.on("compact", async (payload: any) => {
 							if (payload.state === "before") {
 								const result = await handler(payload)
@@ -385,8 +385,8 @@ export async function runPiExtension(
 				}
 				case "session_compact": {
 					// Row 11: compact with state=compacting or complete (pi doesn't distinguish)
-					bh.on("conversation.created", ({ conversation }: { conversation: BHAIConversation }) => {
-						// biome-ignore lint/suspicious/noExplicitAny: BHAI compact event payloads are union types; discriminating on state field requires any
+					bh.on("conversation.created", ({ conversation }: { conversation: BHZAIConversation }) => {
+						// biome-ignore lint/suspicious/noExplicitAny: BHZAI compact event payloads are union types; discriminating on state field requires any
 						conversation.on("compact", async (payload: any) => {
 							if (payload.state === "compacting" || payload.state === "complete") {
 								await handler(payload)
@@ -433,13 +433,13 @@ export async function runPiExtension(
 		},
 
 		registerTool(def: PiToolDef): void {
-			// Row (registerTool mapping): accept pi tool def, map to BHAI
+			// Row (registerTool mapping): accept pi tool def, map to BHZAI
 			bh.addTool({
 				name: def.name,
 				description: def.description,
-				inputSchema: def.parameters, // pi's parameters -> BHAI's inputSchema
+				inputSchema: def.parameters, // pi's parameters -> BHZAI's inputSchema
 				execute: async (invocation: ToolInvocation) => {
-					// Wrap pi-shaped execute into BHAI's ToolInvocation shape
+					// Wrap pi-shaped execute into BHZAI's ToolInvocation shape
 					return (await def.execute(invocation.params, {
 						conversation: invocation.conversation,
 						signal: invocation.signal,
@@ -451,12 +451,12 @@ export async function runPiExtension(
 		},
 
 		registerCommand(def: PiCommandDef): void {
-			// Row (registerCommand mapping): pi command -> BHAI command
+			// Row (registerCommand mapping): pi command -> BHZAI command
 			bh.addCommand(def.name, {
 				description: def.description,
-				// biome-ignore lint/suspicious/noExplicitAny: pi handler signature compatible with BHAI command handler
+				// biome-ignore lint/suspicious/noExplicitAny: pi handler signature compatible with BHZAI command handler
 				handler: def.handler as any,
-				complete: def.getArgumentCompletions, // pi's getArgumentCompletions -> BHAI's complete
+				complete: def.getArgumentCompletions, // pi's getArgumentCompletions -> BHZAI's complete
 			})
 		},
 
@@ -483,13 +483,13 @@ export async function runPiExtension(
 		},
 
 		getFlag<T>(name: string): T {
-			// Row (getFlag mapping): read from BHAI config, fall back to registered default
+			// Row (getFlag mapping): read from BHZAI config, fall back to registered default
 			const flagDef = flagDefaults.get(name)
 			if (!flagDef) {
 				throw new Error(`Flag "${name}" not registered`)
 			}
 
-			// Try to get from BHAI config; if bh.init() hasn't run yet, config will be undefined
+			// Try to get from BHZAI config; if bh.init() hasn't run yet, config will be undefined
 			try {
 				const config = bh.getConfig(derivedPluginName) as Record<string, unknown> | undefined
 				if (config && name in config) {

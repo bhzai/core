@@ -11,8 +11,8 @@ import type { ContentBlock } from "./content.js"
  * here by module augmentation, so `message.myField` typechecks without a cast:
  *
  * ```ts
- * declare module "@lucasschirm/bhai" {
- *   interface BHAIMessageExtensions {
+ * declare module "@bhzai/core" {
+ *   interface BHZAIMessageExtensions {
  *     sentiment?: "positive" | "negative"
  *   }
  * }
@@ -23,7 +23,7 @@ import type { ContentBlock } from "./content.js"
  * augmented name through the barrel's re-export alias and merges into the
  * original declaration.
  *
- * In-repo code cannot use that specifier, because `@lucasschirm/bhai` only
+ * In-repo code cannot use that specifier, because `@bhzai/core` only
  * resolves once `dist/` has been built — so the repository's own tests augment
  * the declaring module (`"./message.js"`) directly instead.
  *
@@ -31,7 +31,7 @@ import type { ContentBlock } from "./content.js"
  * plugin has registered it, and messages restored from a snapshot written before
  * the plugin existed will have nothing behind the accessor.
  */
-export interface BHAIMessageExtensions {
+export interface BHZAIMessageExtensions {
 	/**
 	 * Reasoning text extracted from `<think>` tags in the model's own output
 	 * stream, populated when a conversation is created with
@@ -49,7 +49,7 @@ export interface BHAIMessageExtensions {
  * operate on (§ 11.1). `content` is a convenience view of the text blocks;
  * `blocks` is the structured payload.
  *
- * Extends {@link BHAIMessageExtensions}, which is open for module augmentation
+ * Extends {@link BHZAIMessageExtensions}, which is open for module augmentation
  * so plugins can add typed per-message fields.
  *
  * `append`/`setContent` are method signatures on the interface — this is a
@@ -59,7 +59,7 @@ export interface BHAIMessageExtensions {
  * state is `'before'`; the mutation-legality rule itself is enforced by
  * TASK_0023's implementation, not by this type.
  */
-export interface BHAIMessage extends BHAIMessageExtensions {
+export interface BHZAIMessage extends BHZAIMessageExtensions {
 	id: string
 	role: "user" | "assistant" | "system" | "tool"
 	content: string
@@ -73,7 +73,7 @@ export interface BHAIMessage extends BHAIMessageExtensions {
 /**
  * Conversation lifecycle status (§ 11.1). Extracted as its own named export
  * because multiple downstream tasks (TASK_0023, TASK_0031 compaction, event-bus
- * consumers) reference it without importing the full `BHAIConversation`
+ * consumers) reference it without importing the full `BHZAIConversation`
  * interface (which TASK_0023 owns).
  */
 export type ConversationStatus =

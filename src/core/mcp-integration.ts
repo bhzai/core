@@ -29,7 +29,7 @@
 // keeps `src/core/**` free of any `src/plugins/**` import, per
 // `.claude/rules/packaging.md` rule 1.
 //
-// PATH NOTE: TASK_0015 specifies `bhai/src/kernel/mcp-integration.ts`, but
+// PATH NOTE: TASK_0015 specifies `bhzai/src/kernel/mcp-integration.ts`, but
 // the repo convention (established by TASK_0002/TASK_0003) places the
 // kernel under `src/core/`. This file follows the existing convention;
 // the behavioral contract is unchanged.
@@ -54,7 +54,7 @@ import type { EventBus } from "./event-bus.js"
 export interface McpClientLike {
 	/** Run the handshake + discovery. */
 	connect(): Promise<void>
-	/** The BHAI-local server name. */
+	/** The bhzai-local server name. */
 	readonly serverName: string
 	/**
 	 * Close the MCP session (TASK_0035). Optional so existing MCP client
@@ -93,7 +93,7 @@ export type McpClientFactory = (
  * it needs the full surface (the runtime object IS the real `McpClient`).
  */
 export interface McpHandle {
-	/** The BHAI-local server name (mirrors `client.serverName`). */
+	/** The bhzai-local server name (mirrors `client.serverName`). */
 	readonly serverName: string
 	/** The live MCP client instance (narrow to the real type in host code). */
 	readonly client: McpClientLike
@@ -101,13 +101,13 @@ export interface McpHandle {
 
 /**
  * The payload of the `mcp.attached` framework event (§ 8.1).
- * `server` is the BHAI-local server name; `tools` is the list of
+ * `server` is the bhzai-local server name; `tools` is the list of
  * namespaced tool names (`mcp__<server>__<tool>`) discovered during the
  * attach. For deferred attaches (TASK_0016), `tools` is the two synthetic
  * tool names (`mcp__<server>__list_tools`, `mcp__<server>__search_tools`).
  */
 export interface McpAttachedPayload {
-	/** The BHAI-local server name. */
+	/** The bhzai-local server name. */
 	server: string
 	/** Namespaced tool names registered by this attach. */
 	tools: string[]
@@ -115,8 +115,8 @@ export interface McpAttachedPayload {
 
 /**
  * The registry of attached MCP handles, keyed by server name. Backs
- * `bh.addMcp()` and the `getMcps` hook resolver. Stored on the `BHAI`
- * instance (not globally) so multiple `BHAI` instances coexist without
+ * `bh.addMcp()` and the `getMcps` hook resolver. Stored on the `BHZAI`
+ * instance (not globally) so multiple `BHZAI` instances coexist without
  * collision (§ 5 "no global state").
  */
 export class McpRegistry {
@@ -215,7 +215,7 @@ export class McpRegistry {
 /**
  * The capability-object hook shapes this task resolves during `bh.init()`
  * (§ 8.5 step 2). Narrowed from the loose `unknown[]` types in
- * `BHAIPluginCapabilities` (TASK_0003) to the real types here, on the
+ * `BHZAIPluginCapabilities` (TASK_0003) to the real types here, on the
  * owning task (per the TASK_0003 narrowing note).
  */
 export interface ResolvedGetMcpsHook {
@@ -287,7 +287,7 @@ export async function resolveGetMcpsHooks(
  * merged list. Per § 8.5 step 2, this runs AFTER all `initialize` hooks
  * have completed and BEFORE the `initialize` framework event fires. The
  * result is merged with the driver registry's `listModels()` output by
- * the kernel (see `BHAI.listModels()`).
+ * the kernel (see `BHZAI.listModels()`).
  *
  * PARTIAL-FAILURE ASSUMPTION (mirrors {@link resolveGetMcpsHooks}): if any
  * one hook throws, the whole resolution rejects.

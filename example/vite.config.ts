@@ -1,11 +1,11 @@
 import { defineConfig } from "vite"
 
 /**
- * Vite config for the bhai WebLLM example.
+ * Vite config for the bhzai WebLLM example.
  *
- * This example consumes the workspace-linked `@lucasschirm/bhai` package's BUILT
+ * This example consumes the workspace-linked `@bhzai/core` package's BUILT
  * `dist/` output (imported by its published subpath names, e.g.
- * `@lucasschirm/bhai`, `@lucasschirm/bhai/plugins/webllm` — never `../../src/*.ts`).
+ * `@bhzai/core`, `@bhzai/core/plugins/webllm` — never `../../src/*.ts`).
  * That's why the root `pnpm run preview` script runs `pnpm run build` first.
  *
  * @mlc-ai/web-llm's internal worker/wasm handling can cause dev-server
@@ -31,7 +31,7 @@ import { defineConfig } from "vite"
 export default defineConfig({
 	// GitHub Pages serves project pages under /<repo>/, not /. Local dev and
 	// `pnpm run preview` keep serving from / by leaving GITHUB_PAGES unset.
-	base: process.env.GITHUB_PAGES ? "/bhai/" : "/",
+	base: process.env.GITHUB_PAGES ? "/bhzai/" : "/",
 	optimizeDeps: {
 		exclude: ["@mlc-ai/web-llm"],
 	},

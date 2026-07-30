@@ -10,10 +10,10 @@ import { customElement } from "lit/decorators.js"
  * DOM so the host page's global styles (and CSS variables) continue to drive
  * its appearance. No state — it just dispatches an event the controller owns.
  *
- * @fires bhai-open-providers - Dispatched when the cog is clicked. No detail.
+ * @fires bhzai-open-providers - Dispatched when the cog is clicked. No detail.
  */
-@customElement("bhai-provider-cog")
-export class BhaiProviderCog extends LitElement {
+@customElement("bhzai-provider-cog")
+export class BhzaiProviderCog extends LitElement {
 	override createRenderRoot() {
 		return this
 	}
@@ -33,12 +33,12 @@ export class BhaiProviderCog extends LitElement {
 	}
 
 	private _onClick(): void {
-		this.dispatchEvent(new CustomEvent("bhai-open-providers", { bubbles: true, composed: true }))
+		this.dispatchEvent(new CustomEvent("bhzai-open-providers", { bubbles: true, composed: true }))
 	}
 }
 
 declare global {
 	interface HTMLElementTagNameMap {
-		"bhai-provider-cog": BhaiProviderCog
+		"bhzai-provider-cog": BhzaiProviderCog
 	}
 }

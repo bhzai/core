@@ -3,7 +3,7 @@
 ## Purpose & scope
 
 The Ollama driver plugin — talks to a local/remote Ollama server over plain
-`fetch` (ARCHITECTURE.md § 10.3). Implements `BHAIDriver` (from
+`fetch` (ARCHITECTURE.md § 10.3). Implements `BHZAIDriver` (from
 `src/types/driver.ts`) with no environment-specific bindings, so it runs in any
 runtime that has `fetch` (browser, Node, Electron). This is the second of the
 two "bundled drivers" (§ 10.3); unlike WebLLM, it needs no peer dependency —
@@ -12,7 +12,7 @@ just `fetch`.
 ## Key files
 
 - `index.ts` — subpath entry. Exports the `Ollama` class (extends
-  `EventTarget`, implements `BHAIDriver`), `OllamaOptions`, `OllamaEventMap`,
+  `EventTarget`, implements `BHZAIDriver`), `OllamaOptions`, `OllamaEventMap`,
   and the internal `OllamaInternalOptions` (test-injection seam for `fetch`).
   Fully implemented by TASK_0020.
 - `index.test.ts` — 19 tests covering NDJSON stream parsing, `listModels()`
@@ -51,7 +51,7 @@ just `fetch`.
   call; they are the "runtime values passed in driver options" that § 10.4
   documents as the highest-priority tier of the credential-resolution chain.
 - **Capabilities cache**: `capabilities(model)` is synchronous per the
-  `BHAIDriver` interface, but `/api/show` is async. Resolved by eagerly
+  `BHZAIDriver` interface, but `/api/show` is async. Resolved by eagerly
   fetching and caching capabilities in a `Map<string, DriverCapabilities>`
   during `listModels()`/`chat()`, with conservative defaults (all booleans
   `false`, `contextWindow` `undefined`) when the cache has no entry yet.
@@ -66,5 +66,5 @@ just `fetch`.
 
 - `src/index.ts` re-exports this entry.
 - `tsup.config.ts` builds it to `dist/plugins/ollama/index.js` + `.d.ts`.
-- Hosts import `@lucasschirm/bhai/plugins/ollama` and pass the plugin to
+- Hosts import `@bhzai/core/plugins/ollama` and pass the plugin to
   `bh.use()`.

@@ -2,11 +2,11 @@
 
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import type { Mock } from "vitest"
-import { BHAI } from "../core/bhai.js"
+import { BHZAI } from "../core/bhzai.js"
 import type { CallToolResult, ContentBlock } from "../types/content.js"
-import type { BHAIDriver, ChatRequest, DriverEvent } from "../types/driver.js"
+import type { BHZAIDriver, ChatRequest, DriverEvent } from "../types/driver.js"
 import { sendMessage } from "./agent-loop.js"
-import type { BHAIConversationImpl } from "./conversation.js"
+import type { BHZAIConversationImpl } from "./conversation.js"
 
 /**
  * Helper: sleep for a given number of milliseconds.
@@ -21,7 +21,7 @@ function delay(ms: number): Promise<void> {
  */
 function makeMockDriver(
 	scriptProvider: (callCount: number) => DriverEvent[],
-): BHAIDriver & { chat: Mock<(request: ChatRequest) => AsyncIterable<DriverEvent>> } {
+): BHZAIDriver & { chat: Mock<(request: ChatRequest) => AsyncIterable<DriverEvent>> } {
 	let callCount = 0
 	return {
 		id: "mock-driver",
@@ -54,11 +54,11 @@ function makeMockDriver(
 }
 
 describe("TASK_0027: Loop termination & guardrails", () => {
-	let bh: BHAI
-	let mockDriver: BHAIDriver & { chat: Mock<(request: ChatRequest) => AsyncIterable<DriverEvent>> }
+	let bh: BHZAI
+	let mockDriver: BHZAIDriver & { chat: Mock<(request: ChatRequest) => AsyncIterable<DriverEvent>> }
 
 	beforeEach(() => {
-		bh = new BHAI()
+		bh = new BHZAI()
 	})
 
 	// =========================================================================
@@ -73,7 +73,7 @@ describe("TASK_0027: Loop termination & guardrails", () => {
 
 		const conversation = (await bh.createConversation({
 			model: "mock-driver/mock-model",
-		})) as BHAIConversationImpl
+		})) as BHZAIConversationImpl
 
 		const result = await sendMessage(conversation, "Hello")
 
@@ -122,7 +122,7 @@ describe("TASK_0027: Loop termination & guardrails", () => {
 				const result: CallToolResult = {
 					content: [{ type: "text", text: "done" }],
 					_meta: {
-						"bhai/terminate": true,
+						"BHZAI/terminate": true,
 					},
 				}
 				return result
@@ -131,7 +131,7 @@ describe("TASK_0027: Loop termination & guardrails", () => {
 
 		const conversation = (await bh.createConversation({
 			model: "mock-driver/mock-model",
-		})) as BHAIConversationImpl
+		})) as BHZAIConversationImpl
 
 		const result = await sendMessage(conversation, "Call tool")
 
@@ -178,7 +178,7 @@ describe("TASK_0027: Loop termination & guardrails", () => {
 				const result: CallToolResult = {
 					content: [{ type: "text", text: "result1" }],
 					_meta: {
-						"bhai/terminate": true, // This tool has the hint
+						"BHZAI/terminate": true, // This tool has the hint
 					},
 				}
 				return result
@@ -200,7 +200,7 @@ describe("TASK_0027: Loop termination & guardrails", () => {
 
 		const conversation = (await bh.createConversation({
 			model: "mock-driver/mock-model",
-		})) as BHAIConversationImpl
+		})) as BHZAIConversationImpl
 
 		const result = await sendMessage(conversation, "Call tools")
 
@@ -239,7 +239,7 @@ describe("TASK_0027: Loop termination & guardrails", () => {
 
 		const conversation = (await bh.createConversation({
 			model: "mock-driver/mock-model",
-		})) as BHAIConversationImpl
+		})) as BHZAIConversationImpl
 
 		const result = await sendMessage(conversation, "Loop forever")
 
@@ -279,7 +279,7 @@ describe("TASK_0027: Loop termination & guardrails", () => {
 		const conversation = (await bh.createConversation({
 			model: "mock-driver/mock-model",
 			maxIterations: 3,
-		})) as BHAIConversationImpl
+		})) as BHZAIConversationImpl
 
 		const result = await sendMessage(conversation, "Loop 3 times")
 
@@ -317,7 +317,7 @@ describe("TASK_0027: Loop termination & guardrails", () => {
 
 		const conversation = (await bh.createConversation({
 			model: "mock-driver/mock-model",
-		})) as BHAIConversationImpl
+		})) as BHZAIConversationImpl
 
 		// Track turn(end) events.
 		const turnEndEvents: unknown[] = []
@@ -366,7 +366,7 @@ describe("TASK_0027: Loop termination & guardrails", () => {
 
 		const conversation = (await bh.createConversation({
 			model: "mock-driver/mock-model",
-		})) as BHAIConversationImpl
+		})) as BHZAIConversationImpl
 
 		// Track tool events to verify error state.
 		const toolEvents: Array<{ state: string; toolCallId: string }> = []
@@ -432,7 +432,7 @@ describe("TASK_0027: Loop termination & guardrails", () => {
 		const conversation = (await bh.createConversation({
 			model: "mock-driver/mock-model",
 			turnTimeoutMs: 50, // Short per-turn timeout (50ms).
-		})) as BHAIConversationImpl
+		})) as BHZAIConversationImpl
 
 		// Wrap sendMessage in a test timeout to prevent hanging the entire test.
 		// The per-turn timeout should cause the iteration to fail/timeout without

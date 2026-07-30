@@ -1,12 +1,12 @@
 # Tool Registry (`src/tools/registry.ts`)
 
-Documentation for the BHAI tool registry. Architecture reference:
+Documentation for the BHZAI tool registry. Architecture reference:
 ARCHITECTURE.md § 9.
 
 ## Overview
 
 The `ToolRegistry` is the single in-process source of truth for every
-callable tool BHAI knows about, whether registered by a plugin, a
+callable tool BHZAI knows about, whether registered by a plugin, a
 decorator, a capability object, or (later) an attached MCP server. § 9.2
 frames it as "one in-process MCP server": every registration path
 converges on this one store so that `bh.listTools()` is semantically
@@ -21,9 +21,9 @@ TASK_0011) and is invisible to this registry's storage logic.
 ## Public API
 
 ```typescript
-import { BHAI, type BHAIToolDefinition, type ToolFilter } from "@lucasschirm/bhai";
+import { BHZAI, type BHZAIToolDefinition, type ToolFilter } from "@bhzai/core";
 
-const bh = new BHAI();
+const bh = new BHZAI();
 
 // Object form
 bh.addTool({
@@ -37,18 +37,18 @@ bh.addTool({
 bh.addTool("greet", { type: "object", properties: {} }, async (inv) => "hi");
 
 bh.removeTool("greet");
-const tools = bh.listTools();        // BHAIToolDefinition[]
+const tools = bh.listTools();        // BHZAIToolDefinition[]
 const filtered = bh.listTools((t) => t.name.startsWith("mcp__"));
 ```
 
 ### `addTool` — two overloads
 
-1. **Object form**: `addTool(def: BHAIToolDefinition): void`. Validates
+1. **Object form**: `addTool(def: BHZAIToolDefinition): void`. Validates
    `def.name`, inserts/replaces the entry, fires `tool.registered` with
    `{ tool: def }`.
 2. **Sugar form**: `addTool(name, parameters, execute): void`. Per
    § 9.1, `parameters` is an alias for `inputSchema`. Constructs a full
-   `BHAIToolDefinition` internally:
+   `BHZAIToolDefinition` internally:
    `{ name, description: '', inputSchema: parameters, execute }`.
    **The sugar form does not accept a `description`** — it defaults to
    the empty string `''`. This is a documented judgment call resolving
@@ -77,7 +77,7 @@ no event fired).
 Removes the entry and fires `tool.removed` with `{ tool }` (not
 blockable, per § 8.1).
 
-### `listTools(filter?: ToolFilter): BHAIToolDefinition[]`
+### `listTools(filter?: ToolFilter): BHZAIToolDefinition[]`
 
 Returns all registered tool definitions, optionally filtered by a
 `ToolFilter` predicate. TASK_0017 will consume the stored definitions

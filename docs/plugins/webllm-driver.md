@@ -5,7 +5,7 @@ ARCHITECTURE.md § 10.2.
 
 ## Overview
 
-The `WebLLM` class implements the `BHAIDriver` interface (from
+The `WebLLM` class implements the `BHZAIDriver` interface (from
 `src/types/driver.ts`) on top of `@mlc-ai/web-llm`'s `MLCEngine`, which the
 host injects at runtime. It runs LLM inference entirely in-browser over
 WebGPU, making it suitable for browser-based hosts (WebLLM chat pages,
@@ -13,12 +13,12 @@ Electron apps with WebGPU access).
 
 The `@mlc-ai/web-llm` package is declared as an **optional peer dependency**
 — the core bundle never forces it. The host supplies the `MLCEngine`
-instance (or constructor); this plugin wraps it as a `BHAIDriver`.
+instance (or constructor); this plugin wraps it as a `BHZAIDriver`.
 
 ## Constructor
 
 ```ts
-import { WebLLM } from "@lucasschirm/bhai/plugins/webllm"
+import { WebLLM } from "@bhzai/core/plugins/webllm"
 
 // Form 1: constructor injection — the driver instantiates and manages
 // the engine's init/download lifecycle itself.
@@ -84,7 +84,7 @@ same model.
 
 ## `chat(request)`
 
-Maps the BHAI `ChatRequest` into MLC's OpenAI-compatible
+Maps the BHZAI `ChatRequest` into MLC's OpenAI-compatible
 `chat.completions.create({ stream: true, ... })` and translates the
 resulting async iterable into the framework's `DriverEvent` shape:
 

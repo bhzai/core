@@ -1,19 +1,19 @@
 /**
- * @file bhai WebLLM example · bootstrap.
+ * @file BHZAI WebLLM example · bootstrap.
  *
  * The only file that knows the `index.html` id contract. It resolves every
  * element, wires the custom elements to the two orchestrators, and gets out of
  * the way. All DOM manipulation lives in `components/`, all kernel and engine
  * work in `app/`.
  *
- * Imports `@lucasschirm/bhai` by its published subpath names — never
+ * Imports `@bhzai/core` by its published subpath names — never
  * `../../src/*.ts` — so the example exercises the real package boundary.
  */
 
-import type { ModelInfo } from "@lucasschirm/bhai"
-import { BHAI } from "@lucasschirm/bhai"
-import { createMcpPlugin } from "@lucasschirm/bhai/plugins/mcp"
-import { type MLCEngineInstance, WebLLM } from "@lucasschirm/bhai/plugins/webllm"
+import type { ModelInfo } from "@bhzai/core"
+import { BHZAI } from "@bhzai/core"
+import { createMcpPlugin } from "@bhzai/core/plugins/mcp"
+import { type MLCEngineInstance, WebLLM } from "@bhzai/core/plugins/webllm"
 
 import { createChatController } from "./app/chat-controller.js"
 import { showFatalError } from "./app/fatal-error.js"
@@ -37,32 +37,32 @@ import { byId } from "./lib/dom.js"
 /** Resolve every custom element from the markup in `index.html`. */
 function buildUi() {
 	return {
-		status: byId<BhaiStatusIndicator>("status"),
-		modelSelect: byId<BhaiModelSelect>("model-select"),
-		providerCog: byId<BhaiProviderCog>("provider-cog"),
-		providersDialog: byId<BhaiProvidersDialog>("providers-dialog"),
-		composer: byId<BhaiComposer>("composer"),
-		conversation: byId<BhaiConversation>("conversation"),
-		telemetry: byId<BhaiTelemetry>("telemetry-stats"),
-		coldStart: byId<BhaiColdStart>("cold-start"),
-		mcpForm: byId<BhaiMcpAddForm>("mcp-add"),
-		mcpDialog: byId<BhaiMcpErrorDialog>("mcp-error-dialog"),
-		mcpServerList: byId<BhaiMcpServerList>("mcp-servers"),
+		status: byId<BhzaiStatusIndicator>("status"),
+		modelSelect: byId<BhzaiModelSelect>("model-select"),
+		providerCog: byId<BhzaiProviderCog>("provider-cog"),
+		providersDialog: byId<BhzaiProvidersDialog>("providers-dialog"),
+		composer: byId<BhzaiComposer>("composer"),
+		conversation: byId<BhzaiConversation>("conversation"),
+		telemetry: byId<BhzaiTelemetry>("telemetry-stats"),
+		coldStart: byId<BhzaiColdStart>("cold-start"),
+		mcpForm: byId<BhzaiMcpAddForm>("mcp-add"),
+		mcpDialog: byId<BhzaiMcpErrorDialog>("mcp-error-dialog"),
+		mcpServerList: byId<BhzaiMcpServerList>("mcp-servers"),
 	}
 }
 
 // The imports above only register classes; type-only imports keep the file honest.
-import type { BhaiColdStart } from "./components/cold-start-panel.js"
-import type { BhaiComposer } from "./components/composer.js"
-import type { BhaiConversation } from "./components/conversation-view.js"
-import type { BhaiMcpAddForm } from "./components/mcp-add-form.js"
-import type { BhaiMcpErrorDialog } from "./components/mcp-error-dialog.js"
-import type { BhaiMcpServerList } from "./components/mcp-server-list.js"
-import type { BhaiModelSelect } from "./components/model-select.js"
-import type { BhaiProviderCog } from "./components/provider-cog.js"
-import type { BhaiProvidersDialog } from "./components/providers-dialog.js"
-import type { BhaiStatusIndicator } from "./components/status-indicator.js"
-import type { BhaiTelemetry } from "./components/telemetry-panel.js"
+import type { BhzaiColdStart } from "./components/cold-start-panel.js"
+import type { BhzaiComposer } from "./components/composer.js"
+import type { BhzaiConversation } from "./components/conversation-view.js"
+import type { BhzaiMcpAddForm } from "./components/mcp-add-form.js"
+import type { BhzaiMcpErrorDialog } from "./components/mcp-error-dialog.js"
+import type { BhzaiMcpServerList } from "./components/mcp-server-list.js"
+import type { BhzaiModelSelect } from "./components/model-select.js"
+import type { BhzaiProviderCog } from "./components/provider-cog.js"
+import type { BhzaiProvidersDialog } from "./components/providers-dialog.js"
+import type { BhzaiStatusIndicator } from "./components/status-indicator.js"
+import type { BhzaiTelemetry } from "./components/telemetry-panel.js"
 
 /** Pick a sensible default from a list of bare model ids. */
 function pickDefaultModel(models: ModelInfo[]): ModelInfo | undefined {
@@ -89,7 +89,7 @@ async function initialize(): Promise<void> {
 	try {
 		const engine = createEngine((progress, text) => ui.coldStart.show(progress, text))
 
-		const bh = new BHAI()
+		const bh = new BHZAI()
 		// Pre-warmed form: the host owns the engine, which is what lets the chat
 		// controller read `runtimeStatsText()` for telemetry.
 		//
@@ -134,7 +134,7 @@ async function initialize(): Promise<void> {
 			onSend: (text) => void chat.send(text),
 			onStop: () => chat.stop(),
 		})
-		ui.modelSelect.addEventListener("bhai-change", (event) => {
+		ui.modelSelect.addEventListener("bhzai-change", (event) => {
 			const ref = (event as CustomEvent<{ ref: string }>).detail?.ref
 			if (ref) void chat.selectModel(ref)
 		})
@@ -162,7 +162,7 @@ async function initialize(): Promise<void> {
 		void providerController.start()
 
 		// The picker shows `defaultModel.id` on load, but a programmatic default
-		// never fires a `bhai-change` event — so bootstrap that conversation here,
+		// never fires a `bhzai-change` event — so bootstrap that conversation here,
 		// and the very first message works without touching the picker.
 		await chat.selectModel(defaultModel.ref)
 	} catch (error) {

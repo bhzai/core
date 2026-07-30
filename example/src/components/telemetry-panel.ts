@@ -33,8 +33,8 @@ export interface TelemetryStats {
  * Rendered in the light DOM so the host page's global styles (and CSS variables)
  * continue to drive its appearance.
  */
-@customElement("bhai-telemetry")
-export class BhaiTelemetry extends LitElement {
+@customElement("bhzai-telemetry")
+export class BhzaiTelemetry extends LitElement {
 	override createRenderRoot() {
 		return this
 	}
@@ -116,6 +116,6 @@ export class BhaiTelemetry extends LitElement {
 
 declare global {
 	interface HTMLElementTagNameMap {
-		"bhai-telemetry": BhaiTelemetry
+		"bhzai-telemetry": BhzaiTelemetry
 	}
 }

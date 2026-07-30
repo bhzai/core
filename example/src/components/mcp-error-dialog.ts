@@ -1,6 +1,6 @@
 /** @file The native `<dialog>` inspector for a failed MCP connection as a Lit element. */
 
-import type { McpServerError } from "@lucasschirm/bhai/plugins/mcp"
+import type { McpServerError } from "@bhzai/core/plugins/mcp"
 import { LitElement, html } from "lit"
 import { customElement, property, query } from "lit/decorators.js"
 import { errorHint } from "../lib/mcp-store.js"
@@ -12,8 +12,8 @@ import { errorHint } from "../lib/mcp-store.js"
  * continue to drive its appearance, and so the native `<dialog>` `showModal()`
  * participates in the top-level document.
  */
-@customElement("bhai-mcp-error-dialog")
-export class BhaiMcpErrorDialog extends LitElement {
+@customElement("bhzai-mcp-error-dialog")
+export class BhzaiMcpErrorDialog extends LitElement {
 	override createRenderRoot() {
 		return this
 	}
@@ -77,6 +77,6 @@ export class BhaiMcpErrorDialog extends LitElement {
 
 declare global {
 	interface HTMLElementTagNameMap {
-		"bhai-mcp-error-dialog": BhaiMcpErrorDialog
+		"bhzai-mcp-error-dialog": BhzaiMcpErrorDialog
 	}
 }

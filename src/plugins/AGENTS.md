@@ -2,7 +2,7 @@
 
 ## Purpose & scope
 
-Holds the plugin subpath entry points shipped from the same package (ARCHITECTURE.md § 5). Each subdirectory is a `package.json` `exports` entry and a `tsup.config.ts` entry, so consumers can import `@lucasschirm/bhai/plugins/<name>` without pulling in plugins they don't use. Tree-shaking (`sideEffects: false`) drops unused re-exports from the root barrel.
+Holds the plugin subpath entry points shipped from the same package (ARCHITECTURE.md § 5). Each subdirectory is a `package.json` `exports` entry and a `tsup.config.ts` entry, so consumers can import `@bhzai/core/plugins/<name>` without pulling in plugins they don't use. Tree-shaking (`sideEffects: false`) drops unused re-exports from the root barrel.
 
 ## Layout
 
@@ -23,4 +23,4 @@ Holds the plugin subpath entry points shipped from the same package (ARCHITECTUR
 
 - `src/index.ts` re-exports each `plugins/<name>/index.ts` so the root barrel is a superset.
 - `tsup.config.ts` builds each subpath entry to `dist/plugins/<name>/index.js` + `.d.ts`.
-- Hosts import plugins via `@lucasschirm/bhai/plugins/<name>` and pass them to `bh.use()`.
+- Hosts import plugins via `@bhzai/core/plugins/<name>` and pass them to `bh.use()`.

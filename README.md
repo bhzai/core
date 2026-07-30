@@ -1,10 +1,10 @@
-# `@lucasschirm/bhai`
+# `@bhzai/core`
 
-[View online demo](https://lucasschirm.github.io/bhai/)
+[View online demo](https://lucasschirm.github.io/bhzai/)
 
 > Browser-Hosted Agentic AI Framework — a standalone, environment-agnostic TypeScript framework that extracts agent-harness internals (provider gateway, tool-calling loop, conversation persistence, streaming, memory, MCP client) into a plugin-first micro-kernel designed for extension and reuse.
 
-BHAI is a micro-kernel plus a plugin interface for model drivers, tools, commands, message middleware, and storage. Its extension surface is deliberately aligned with pi, OpenCode, VS Code LM tools, MCP, and the Vercel AI SDK so existing extensions can be adapted rather than rewritten.
+bhzai is a micro-kernel plus a plugin interface for model drivers, tools, commands, message middleware, and storage. Its extension surface is deliberately aligned with pi, OpenCode, VS Code LM tools, MCP, and the Vercel AI SDK so existing extensions can be adapted rather than rewritten.
 
 ## Status
 
@@ -17,39 +17,39 @@ Phase 6 (interop, security, PEP mapping, final docs) complete. All kernel subsys
 ## Installation
 
 ```bash
-pnpm add @lucasschirm/bhai
+pnpm add @bhzai/core
 ```
 
 For development versions or to use specific subpath exports:
 
 ```typescript
-import { BHAI } from "@lucasschirm/bhai"  // batteries-included
-import Bhai from "@lucasschirm/bhai/core"  // kernel only
-import { Ollama } from "@lucasschirm/bhai/plugins/ollama"  // individual plugins
+import { bhzai } from "@bhzai/core"  // batteries-included
+import bhzai from "@bhzai/core/core"  // kernel only
+import { Ollama } from "@bhzai/core/plugins/ollama"  // individual plugins
 ```
 
-Note: The `@lucasschirm/bhai/plugins/webllm` driver requires `@mlc-ai/web-llm` as a peer dependency (handle model download/caching yourself).
+Note: The `@bhzai/core/plugins/webllm` driver requires `@mlc-ai/web-llm` as a peer dependency (handle model download/caching yourself).
 
 ## Package Layout
 
 | Subpath                              | Description                                                                                     |
 | ------------------------------------ | ----------------------------------------------------------------------------------------------- |
-| `@lucasschirm/bhai`                  | Kernel: BHAI, Conversation, types, decorators, event bus                                        |
-| `@lucasschirm/bhai/core`             | Kernel only (BHAI, BHAIConversation, types, decorators, event bus)                              |
-| `@lucasschirm/bhai/plugins/webllm`   | WebLLM driver plugin (peer dep: @mlc-ai/web-llm)                                                |
-| `@lucasschirm/bhai/plugins/ollama`   | Ollama driver plugin (fetch, no deps beyond web-standard APIs)                                  |
-| `@lucasschirm/bhai/plugins/mcp`      | MCP streamable-HTTP client plugin + server lifecycle manager                                     |
-| `@lucasschirm/bhai/plugins/interop/pi` | Adapter to run (a subset of) pi coding-agent extensions                                        |
-| `@lucasschirm/bhai/plugins/interop/opencode` | Adapter to run (a subset of) OpenCode plugins                                           |
+| `@bhzai/core`                  | Kernel: bhzai, Conversation, types, decorators, event bus                                        |
+| `@bhzai/core/core`             | Kernel only (bhzai, bhzaiConversation, types, decorators, event bus)                              |
+| `@bhzai/core/plugins/webllm`   | WebLLM driver plugin (peer dep: @mlc-ai/web-llm)                                                |
+| `@bhzai/core/plugins/ollama`   | Ollama driver plugin (fetch, no deps beyond web-standard APIs)                                  |
+| `@bhzai/core/plugins/mcp`      | MCP streamable-HTTP client plugin + server lifecycle manager                                     |
+| `@bhzai/core/plugins/interop/pi` | Adapter to run (a subset of) pi coding-agent extensions                                        |
+| `@bhzai/core/plugins/interop/opencode` | Adapter to run (a subset of) OpenCode plugins                                           |
 
 ## Quickstart
 
 ```typescript
-import { BHAI } from "@lucasschirm/bhai"
-import { Ollama } from "@lucasschirm/bhai/plugins/ollama"
+import { bhzai } from "@bhzai/core"
+import { Ollama } from "@bhzai/core/plugins/ollama"
 
-// 1. Create a BHAI instance
-const bh = new BHAI()
+// 1. Create a bhzai instance
+const bh = new bhzai()
 
 // 2. Register the Ollama driver (which talks to a local/remote Ollama server)
 bh.addDriver(new Ollama({ baseUrl: "http://localhost:11434" }))
@@ -103,10 +103,10 @@ See `examples/readme-quickstart.ts` for the complete working example, and `examp
 The kernel never imports optional plugin code, so `bh.addMcp()` builds its client through a factory that `mcpPlugin` registers. Register the plugin before `init()` and every HTTP MCP server's tools land in the same registry as your local ones:
 
 ```typescript
-import { BHAI } from "@lucasschirm/bhai"
-import { mcpPlugin } from "@lucasschirm/bhai/plugins/mcp"
+import { bhzai } from "@bhzai/core"
+import { mcpPlugin } from "@bhzai/core/plugins/mcp"
 
-const bh = new BHAI()
+const bh = new bhzai()
 bh.use(mcpPlugin) // before init() — without it, addMcp() refuses to attach
 await bh.init()
 
@@ -160,7 +160,7 @@ See `docs/plugins/mcp-client.md` for the full API, and `example/` for a working 
 
 ## Core Concepts
 
-- **Kernel (`BHAI` class)** — Owns plugin registration (`use`), the event bus (`on`/`emit`), conversation lifecycle (`createConversation`/`loadConversation`), tool/driver/command registries, side-channels (`complete()` for one-shot LLM calls, `embed()` for embeddings), and full lifecycle teardown (`dispose()`).
+- **Kernel (`BHZAI` class)** — Owns plugin registration (`use`), the event bus (`on`/`emit`), conversation lifecycle (`createConversation`/`loadConversation`), tool/driver/command registries, side-channels (`complete()` for one-shot LLM calls, `embed()` for embeddings), and full lifecycle teardown (`dispose()`).
 
 - **Plugin system** — Every plugin normalizes to `{ name, setup(bh) }`. Three authoring styles: bare factory function, capability object, or `@Plugin`/`@On`/`@Tool` decorated class (TC39 stage-3 decorators).
 
@@ -168,9 +168,9 @@ See `docs/plugins/mcp-client.md` for the full API, and `example/` for a working 
 
 - **Conversations & the agent loop** — `conversation.sendMessage()` drives a bounded tool-calling loop: system-prompt layering, the `context` event, concurrent-by-default tool execution with validate-and-repair, steering, opt-in context-window compaction, and a versioned snapshot contract.
 
-- **Tools** — A BHAI tool definition _is_ an MCP `Tool` object plus a local `execute` binding; results _are_ MCP `CallToolResult`s. Local and remote MCP tools share one registry.
+- **Tools** — A bhzai tool definition _is_ an MCP `Tool` object plus a local `execute` binding; results _are_ MCP `CallToolResult`s. Local and remote MCP tools share one registry.
 
-- **Drivers** — `BHAIDriver` interface (`listModels`, `capabilities`, `chat`, optional `embed`). Two bundled: WebLLM (browser/WebGPU) and Ollama (plain `fetch`).
+- **Drivers** — `bhzaiDriver` interface (`listModels`, `capabilities`, `chat`, optional `embed`). Two bundled: WebLLM (browser/WebGPU) and Ollama (plain `fetch`).
 
 - **MCP client** — Streamable-HTTP transport only (spec rev 2025-11-25). Handles handshake, paginated discovery, live re-sync, progress/cancellation.
 
@@ -197,7 +197,7 @@ The `example/` directory contains a browser chat app that runs WebLLM models loc
 
 ```bash
 pnpm install
-pnpm run preview      # Builds @lucasschirm/bhai, then starts the example server
+pnpm run preview      # Builds @bhzai/core, then starts the example server
 ```
 
 Open `http://localhost:5173` and pick a model. See [`docs/examples/webllm-chat.md`](./docs/examples/webllm-chat.md) for full details.
@@ -208,7 +208,7 @@ Open `http://localhost:5173` and pick a model. See [`docs/examples/webllm-chat.m
 
 - **`docs/security-review.md`** — TASK_0041 security audit: verifies five security commitments from ARCHITECTURE.md § 13.
 
-- **`docs/pep-mapping-validation.md`** — TASK_0042 mapping: demonstrates how every sub-concern from PEP's issue #1338 maps onto BHAI's extension points.
+- **`docs/pep-mapping-validation.md`** — TASK_0042 mapping: demonstrates how every sub-concern from PEP's issue #1338 maps onto bhzai's extension points.
 
 - **`docs/open-questions.md`** — TASK_0044 open questions: enumerates design questions deferred from v0.1 to future releases (interop completeness, deployment, cluster semantics, etc.).
 

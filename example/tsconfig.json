@@ -2,7 +2,7 @@
 	// The example is typechecked as its own project rather than being folded into
 	// the root `include`. Two settings genuinely differ: it needs the DOM lib
 	// (the root project is environment-agnostic by design, ARCHITECTURE.md § 5),
-	// and it resolves `@lucasschirm/bhai` through the workspace link's published
+	// and it resolves `@bhzai/core` through the workspace link's published
 	// `exports` — which means `pnpm run build` must have produced `dist/` before
 	// `tsc -p example` can succeed. Keeping it separate stops that build
 	// dependency from leaking into the root typecheck.
@@ -13,7 +13,7 @@
 		// the WebGPU guard in `app/webllm-engine.ts` does not typecheck without it.
 		"types": ["vite/client", "@webgpu/types"],
 		"noEmit": true,
-		// Lit decorators are used in the example UI. The BHAI core sticks with
+		// Lit decorators are used in the example UI. The bhzai core sticks with
 		// native TC39 decorators, but the browser example follows Lit's recommended
 		// TypeScript experimental-decorator mode.
 		"experimentalDecorators": true,

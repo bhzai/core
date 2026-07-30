@@ -1,22 +1,22 @@
 /** @file Tests for TASK_0032: `complete()` one-shot LLM utility */
 
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import type { BHAIDriver, ChatRequest, DriverEvent } from "../types/driver.js"
-import type { BHAIMessage } from "../types/message.js"
+import type { BHZAIDriver, ChatRequest, DriverEvent } from "../types/driver.js"
+import type { BHZAIMessage } from "../types/message.js"
 import type { ModelInfo } from "../types/model.js"
-import { BHAI } from "./bhai.js"
+import { BHZAI } from "./bhzai.js"
 import { type CompleteRequest, complete } from "./complete.js"
 import { AmbiguousModelError, NoModelError } from "./models.js"
 
 /**
- * Helper: create a minimal mock BHAIDriver that yields hardcoded events.
+ * Helper: create a minimal mock BHZAIDriver that yields hardcoded events.
  * The returned driver's `chat()` is a vi.fn() so call counts and arguments are trackable.
  */
 function makeMockDriver(
 	driverId: string,
 	modelId: string,
 	yieldFn?: (request: ChatRequest) => AsyncIterable<DriverEvent>,
-): BHAIDriver {
+): BHZAIDriver {
 	const defaultYield = async function* (): AsyncIterable<DriverEvent> {
 		yield { type: "delta", text: "hello" }
 		yield { type: "usage", inputTokens: 10, outputTokens: 2 }
@@ -50,10 +50,10 @@ function makeMockDriver(
 }
 
 /**
- * Helper: create a BHAI instance with registered drivers, ready for testing.
+ * Helper: create a BHZAI instance with registered drivers, ready for testing.
  */
-function setupBhai(...drivers: BHAIDriver[]): BHAI {
-	const bh = new BHAI()
+function setupbhzai(...drivers: BHZAIDriver[]): BHZAI {
+	const bh = new BHZAI()
 	for (const driver of drivers) {
 		bh.addDriver(driver)
 	}
@@ -70,7 +70,7 @@ describe("complete() — one-shot LLM utility", () => {
 				yield { type: "usage", inputTokens: 42, outputTokens: 5 }
 				yield { type: "done", stopReason: "stop" }
 			})
-			const bh = setupBhai(driver)
+			const bh = setupbhzai(driver)
 			await bh.init()
 
 			const result = await bh.complete({
@@ -87,7 +87,7 @@ describe("complete() — one-shot LLM utility", () => {
 				yield { type: "delta", text: "just text" }
 				yield { type: "done", stopReason: "stop" }
 			})
-			const bh = setupBhai(driver)
+			const bh = setupbhzai(driver)
 			await bh.init()
 
 			const result = await bh.complete({
@@ -103,7 +103,7 @@ describe("complete() — one-shot LLM utility", () => {
 	describe("Zero conversation event-bus activity", () => {
 		it("never fires message/tool/context/loop/turn events", async () => {
 			const driver = makeMockDriver("driver", "model")
-			const bh = setupBhai(driver)
+			const bh = setupbhzai(driver)
 			await bh.init()
 
 			// Register spies on framework bus for conversation-scoped events.
@@ -147,7 +147,7 @@ describe("complete() — one-shot LLM utility", () => {
 			const driver1 = makeMockDriver("driver1", "gpt4")
 			const driver2 = makeMockDriver("driver2", "gpt4") // same bare id, different driver
 
-			const bh = setupBhai(driver1, driver2)
+			const bh = setupbhzai(driver1, driver2)
 			await bh.init()
 
 			// Trying to use the bare model id should fail with AmbiguousModelError,
@@ -164,7 +164,7 @@ describe("complete() — one-shot LLM utility", () => {
 			const driver1 = makeMockDriver("driver1", "gpt4")
 			const driver2 = makeMockDriver("driver2", "gpt4")
 
-			const bh = setupBhai(driver1, driver2)
+			const bh = setupbhzai(driver1, driver2)
 			await bh.init()
 
 			// Qualified ref should succeed.
@@ -177,7 +177,7 @@ describe("complete() — one-shot LLM utility", () => {
 		})
 
 		it("throws NoModelError when no model can be resolved", async () => {
-			const bh = new BHAI()
+			const bh = new BHZAI()
 			await bh.init()
 
 			// No drivers registered, no default model.
@@ -199,7 +199,7 @@ describe("complete() — one-shot LLM utility", () => {
 				expect(req.messages[0].role).toBe("user")
 				expect(req.messages[0].content).toBe("hi there")
 			})
-			const bh = setupBhai(driver)
+			const bh = setupbhzai(driver)
 			await bh.init()
 
 			await bh.complete({
@@ -208,8 +208,8 @@ describe("complete() — one-shot LLM utility", () => {
 			})
 		})
 
-		it("passes BHAIMessage array through unchanged", async () => {
-			const messages: BHAIMessage[] = [
+		it("passes BHZAIMessage array through unchanged", async () => {
+			const messages: BHZAIMessage[] = [
 				{
 					id: "msg1",
 					role: "user",
@@ -238,7 +238,7 @@ describe("complete() — one-shot LLM utility", () => {
 				yield { type: "delta", text: "ok" }
 				yield { type: "done", stopReason: "stop" }
 			})
-			const bh = setupBhai(driver)
+			const bh = setupbhzai(driver)
 			await bh.init()
 
 			await bh.complete({
@@ -258,7 +258,7 @@ describe("complete() — one-shot LLM utility", () => {
 	describe("Abort signal handling", () => {
 		it("rejects immediately if signal is already aborted (no driver call)", async () => {
 			const driver = makeMockDriver("d", "m")
-			const bh = setupBhai(driver)
+			const bh = setupbhzai(driver)
 			await bh.init()
 
 			const controller = new AbortController()
@@ -277,7 +277,7 @@ describe("complete() — one-shot LLM utility", () => {
 		})
 
 		it("does not resolve model or check driver registry if signal is already aborted", async () => {
-			const bh = new BHAI()
+			const bh = new BHZAI()
 			await bh.init()
 
 			const controller = new AbortController()
@@ -302,7 +302,7 @@ describe("complete() — one-shot LLM utility", () => {
 				yield { type: "delta", text: "ok" }
 				yield { type: "done", stopReason: "stop" }
 			})
-			const bh = setupBhai(driver)
+			const bh = setupbhzai(driver)
 			await bh.init()
 
 			await bh.complete({
@@ -321,7 +321,7 @@ describe("complete() — one-shot LLM utility", () => {
 				yield { type: "delta", text: "ok" }
 				yield { type: "done", stopReason: "stop" }
 			})
-			const bh = setupBhai(driver)
+			const bh = setupbhzai(driver)
 			await bh.init()
 
 			await bh.complete({
@@ -344,7 +344,7 @@ describe("complete() — one-shot LLM utility", () => {
 				yield { type: "usage", inputTokens: 10, outputTokens: 2 }
 				yield { type: "done", stopReason: "stop" }
 			})
-			const bh = setupBhai(driver)
+			const bh = setupbhzai(driver)
 			await bh.init()
 
 			const result = await bh.complete({
@@ -364,7 +364,7 @@ describe("complete() — one-shot LLM utility", () => {
 				yield { type: "delta", text: "partial" }
 				yield { type: "done", stopReason: "error", error: testError }
 			})
-			const bh = setupBhai(driver)
+			const bh = setupbhzai(driver)
 			await bh.init()
 
 			await expect(
@@ -398,7 +398,7 @@ describe("complete() — one-shot LLM utility", () => {
 				yield { type: "usage", inputTokens: 100, outputTokens: 20 }
 				yield { type: "done", stopReason: "stop" }
 			})
-			const bh = setupBhai(driver)
+			const bh = setupbhzai(driver)
 			await bh.init()
 
 			// Simulate folded messages (as the plugin would do).
@@ -432,7 +432,7 @@ describe("complete() — one-shot LLM utility", () => {
 				yield { type: "delta", text: "ok" }
 				yield { type: "done", stopReason: "stop" }
 			})
-			const bh = setupBhai(driver)
+			const bh = setupbhzai(driver)
 			await bh.init()
 
 			await bh.complete({
@@ -451,7 +451,7 @@ describe("complete() — one-shot LLM utility", () => {
 				yield { type: "delta", text: "ok" }
 				yield { type: "done", stopReason: "stop" }
 			})
-			const bh = setupBhai(driver)
+			const bh = setupbhzai(driver)
 			await bh.init()
 
 			await bh.complete({
@@ -464,7 +464,7 @@ describe("complete() — one-shot LLM utility", () => {
 	describe("Default model resolution", () => {
 		it("uses host defaultModel when no explicit model provided", async () => {
 			const driver = makeMockDriver("d", "default-model")
-			const bh = new BHAI({ defaultModel: "d/default-model" })
+			const bh = new BHZAI({ defaultModel: "d/default-model" })
 			bh.addDriver(driver)
 			await bh.init()
 
@@ -485,7 +485,7 @@ describe("complete() — one-shot LLM utility", () => {
 				yield { type: "delta", text: "ok" }
 				yield { type: "done", stopReason: "stop" }
 			})
-			const bh = setupBhai(driver)
+			const bh = setupbhzai(driver)
 			await bh.init()
 
 			const signal = new AbortController().signal
@@ -507,7 +507,7 @@ describe("complete() — one-shot LLM utility", () => {
 				yield { type: "delta", text: "ok" }
 				yield { type: "done", stopReason: "stop" }
 			})
-			const bh = setupBhai(driver)
+			const bh = setupbhzai(driver)
 			await bh.init()
 
 			await bh.complete({
@@ -521,7 +521,7 @@ describe("complete() — one-shot LLM utility", () => {
 	describe("Standalone function vs class method", () => {
 		it("can call complete() directly from bh instance", async () => {
 			const driver = makeMockDriver("d", "m")
-			const bh = setupBhai(driver)
+			const bh = setupbhzai(driver)
 			await bh.init()
 
 			// Call as instance method
@@ -533,9 +533,9 @@ describe("complete() — one-shot LLM utility", () => {
 			expect(result.text).toBe("hello")
 		})
 
-		it("exported complete() function works when passed BHAI instance explicitly", async () => {
+		it("exported complete() function works when passed BHZAI instance explicitly", async () => {
 			const driver = makeMockDriver("d", "m")
-			const bh = setupBhai(driver)
+			const bh = setupbhzai(driver)
 			await bh.init()
 
 			// Call the exported function directly with defaultModel undefined

@@ -1,6 +1,6 @@
 /** @file One connected server's collapsible, filterable tool list as a Lit element. */
 
-import type { McpServerTool } from "@lucasschirm/bhai/plugins/mcp"
+import type { McpServerTool } from "@bhzai/core/plugins/mcp"
 import { LitElement, html } from "lit"
 import { customElement, property, state } from "lit/decorators.js"
 
@@ -13,8 +13,8 @@ const FILTER_THRESHOLD = 8
  * Rendered in the light DOM so the host page's global styles (and CSS variables)
  * continue to drive its appearance.
  */
-@customElement("bhai-mcp-tool-list")
-export class BhaiMcpToolList extends LitElement {
+@customElement("bhzai-mcp-tool-list")
+export class BhzaiMcpToolList extends LitElement {
 	override createRenderRoot() {
 		return this
 	}
@@ -103,6 +103,6 @@ export class BhaiMcpToolList extends LitElement {
 
 declare global {
 	interface HTMLElementTagNameMap {
-		"bhai-mcp-tool-list": BhaiMcpToolList
+		"bhzai-mcp-tool-list": BhzaiMcpToolList
 	}
 }

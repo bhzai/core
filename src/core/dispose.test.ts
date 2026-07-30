@@ -1,16 +1,16 @@
-/** @file Integration tests for BHAI.dispose() — TASK_0035 */
+/** @file Integration tests for BHZAI.dispose() — TASK_0035 */
 
 import { describe, expect, it, vi } from "vitest"
-import { BHAI } from "./bhai.js"
+import { BHZAI } from "./bhzai.js"
 
 // TASK_0035 — dispose() teardown integration: abort in-flight conversations,
 // fire the dispose event, run plugin dispose hooks, close MCP sessions, and
 // guard against post-dispose calls. These tests verify the full sequence
 // works correctly even when all subsystems are active simultaneously.
 
-describe("BHAI.dispose — integration teardown", () => {
+describe("BHZAI.dispose — integration teardown", () => {
 	it("live conversations are aborted on dispose", async () => {
-		const bh = new BHAI()
+		const bh = new BHZAI()
 		await bh.init()
 
 		const conversation = await bh.createConversation()
@@ -24,7 +24,7 @@ describe("BHAI.dispose — integration teardown", () => {
 	})
 
 	it("every registered MCP session is closed", async () => {
-		const bh = new BHAI()
+		const bh = new BHZAI()
 
 		// Mock MCP client factory
 		const mockClose1 = vi.fn(async () => {})
@@ -66,7 +66,7 @@ describe("BHAI.dispose — integration teardown", () => {
 
 	it("plugin dispose hooks run in reverse order even with conversations and MCP sessions", async () => {
 		const order: string[] = []
-		const bh = new BHAI()
+		const bh = new BHZAI()
 
 		// Register two plugins with dispose hooks
 		bh.use({
@@ -111,7 +111,7 @@ describe("BHAI.dispose — integration teardown", () => {
 	})
 
 	it("post-dispose addMcp is rejected", async () => {
-		const bh = new BHAI()
+		const bh = new BHZAI()
 		const mockFactory = vi.fn((config, toolRegistry, options) => ({
 			serverName: config.name || "test-server",
 			connect: async () => {},
@@ -124,7 +124,7 @@ describe("BHAI.dispose — integration teardown", () => {
 	})
 
 	it("post-dispose createConversation is rejected", async () => {
-		const bh = new BHAI()
+		const bh = new BHZAI()
 		await bh.init()
 		await bh.dispose()
 
@@ -132,7 +132,7 @@ describe("BHAI.dispose — integration teardown", () => {
 	})
 
 	it("post-dispose loadConversation is rejected", async () => {
-		const bh = new BHAI()
+		const bh = new BHZAI()
 		await bh.init()
 		await bh.dispose()
 
@@ -141,14 +141,14 @@ describe("BHAI.dispose — integration teardown", () => {
 	})
 
 	it("post-dispose use is rejected", async () => {
-		const bh = new BHAI()
+		const bh = new BHZAI()
 		await bh.dispose()
 
 		expect(() => bh.use(() => {})).toThrow(/disposed/i)
 	})
 
 	it("post-dispose addTool is rejected", async () => {
-		const bh = new BHAI()
+		const bh = new BHZAI()
 		await bh.dispose()
 
 		expect(() => {
@@ -157,7 +157,7 @@ describe("BHAI.dispose — integration teardown", () => {
 	})
 
 	it("post-dispose addDriver is rejected", async () => {
-		const bh = new BHAI()
+		const bh = new BHZAI()
 		await bh.dispose()
 
 		expect(() => {
@@ -171,7 +171,7 @@ describe("BHAI.dispose — integration teardown", () => {
 	})
 
 	it("post-dispose addCommand is rejected", async () => {
-		const bh = new BHAI()
+		const bh = new BHZAI()
 		await bh.dispose()
 
 		expect(() => {
@@ -183,14 +183,14 @@ describe("BHAI.dispose — integration teardown", () => {
 	})
 
 	it("post-dispose complete is rejected", async () => {
-		const bh = new BHAI()
+		const bh = new BHZAI()
 		await bh.dispose()
 
 		await expect(bh.complete({ messages: [] })).rejects.toThrow(/disposed/i)
 	})
 
 	it("post-dispose embed is rejected", async () => {
-		const bh = new BHAI()
+		const bh = new BHZAI()
 		await bh.dispose()
 
 		await expect(bh.embed({ input: "test" })).rejects.toThrow(/disposed/i)
@@ -198,7 +198,7 @@ describe("BHAI.dispose — integration teardown", () => {
 
 	it("dispose event fires before plugin dispose hooks", async () => {
 		const order: string[] = []
-		const bh = new BHAI()
+		const bh = new BHZAI()
 
 		bh.use({
 			name: "plugin",
@@ -218,7 +218,7 @@ describe("BHAI.dispose — integration teardown", () => {
 	})
 
 	it("MCP close failures do not prevent other sessions from closing", async () => {
-		const bh = new BHAI()
+		const bh = new BHZAI()
 
 		const mockClose1 = vi.fn(async () => {
 			throw new Error("session 1 close failed")
@@ -257,7 +257,7 @@ describe("BHAI.dispose — integration teardown", () => {
 	})
 
 	it("MCP close failures are aggregated in error message", async () => {
-		const bh = new BHAI()
+		const bh = new BHZAI()
 
 		const mockClose1 = vi.fn(async () => {
 			throw new Error("error 1")

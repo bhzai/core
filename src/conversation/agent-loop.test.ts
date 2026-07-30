@@ -2,16 +2,16 @@
 
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import type { Mock } from "vitest"
-import { BHAI } from "../core/bhai.js"
+import { BHZAI } from "../core/bhzai.js"
 import type { ContentBlock } from "../types/content.js"
-import type { BHAIDriver, ChatRequest, DriverEvent } from "../types/driver.js"
+import type { BHZAIDriver, ChatRequest, DriverEvent } from "../types/driver.js"
 import {
 	addMessage,
 	applyContextSystemPromptPatch,
 	effectiveContextMessages,
 	sendMessage,
 } from "./agent-loop.js"
-import type { BHAIConversationImpl } from "./conversation.js"
+import type { BHZAIConversationImpl } from "./conversation.js"
 
 /**
  * Mock driver that yields a scripted sequence of DriverEvents.
@@ -20,7 +20,7 @@ import type { BHAIConversationImpl } from "./conversation.js"
  */
 function makeMockDriver(
 	scriptedEvents: DriverEvent[],
-): BHAIDriver & { chat: Mock<(request: ChatRequest) => AsyncIterable<DriverEvent>> } {
+): BHZAIDriver & { chat: Mock<(request: ChatRequest) => AsyncIterable<DriverEvent>> } {
 	return {
 		id: "mock-driver-id",
 		listModels: async () => [
@@ -51,11 +51,11 @@ function makeMockDriver(
 }
 
 describe("TASK_0025: Agent loop core", () => {
-	let bh: BHAI
-	let mockDriver: BHAIDriver & { chat: Mock<(request: ChatRequest) => AsyncIterable<DriverEvent>> }
+	let bh: BHZAI
+	let mockDriver: BHZAIDriver & { chat: Mock<(request: ChatRequest) => AsyncIterable<DriverEvent>> }
 
 	beforeEach(() => {
-		bh = new BHAI()
+		bh = new BHZAI()
 		// Register mock driver
 		mockDriver = makeMockDriver([
 			{ type: "delta", text: "Hello " },
@@ -71,7 +71,7 @@ describe("TASK_0025: Agent loop core", () => {
 	it("message(before) handler returning { block: true } prevents driver call and resolves with blocked message", async () => {
 		const conversation = (await bh.createConversation({
 			model: "mock-driver-id/mock-model",
-		})) as BHAIConversationImpl
+		})) as BHZAIConversationImpl
 
 		// Register a handler that blocks the message
 		conversation.on("message", (payload: unknown) => {
@@ -103,7 +103,7 @@ describe("TASK_0025: Agent loop core", () => {
 	it("message(before) handler modifying user message content affects driver input", async () => {
 		const conversation = (await bh.createConversation({
 			model: "mock-driver-id/mock-model",
-		})) as BHAIConversationImpl
+		})) as BHZAIConversationImpl
 
 		// Register a handler that appends to the message
 		conversation.on("message", (payload: unknown) => {
@@ -132,7 +132,7 @@ describe("TASK_0025: Agent loop core", () => {
 	it("context event handler can patch tools, and deep copy prevents mutation of real state", async () => {
 		const conversation = (await bh.createConversation({
 			model: "mock-driver-id/mock-model",
-		})) as BHAIConversationImpl
+		})) as BHZAIConversationImpl
 
 		// Add a tool to the framework
 		bh.addTool({
@@ -206,7 +206,7 @@ describe("TASK_0025: Agent loop core", () => {
 	it("message.delta events fire in correct order for text and reasoning deltas", async () => {
 		const conversation = (await bh.createConversation({
 			model: "mock-driver-id/mock-model",
-		})) as BHAIConversationImpl
+		})) as BHZAIConversationImpl
 
 		// Override the mock driver to emit mixed deltas
 		bh.addDriver(
@@ -243,7 +243,7 @@ describe("TASK_0025: Agent loop core", () => {
 	it("addMessage with contextIncluded: false is excluded from context event's message list", async () => {
 		const conversation = (await bh.createConversation({
 			model: "mock-driver-id/mock-model",
-		})) as BHAIConversationImpl
+		})) as BHZAIConversationImpl
 
 		// Add a display-only message
 		await addMessage(conversation, "Display message", "system", { contextIncluded: false })
@@ -281,7 +281,7 @@ describe("TASK_0025: Agent loop core", () => {
 	it("loop events fire with correct ordering and payloads", async () => {
 		const conversation = (await bh.createConversation({
 			model: "mock-driver-id/mock-model",
-		})) as BHAIConversationImpl
+		})) as BHZAIConversationImpl
 
 		const events: string[] = []
 
@@ -312,7 +312,7 @@ describe("TASK_0025: Agent loop core", () => {
 	it("happy path: sendMessage resolves with correctly accumulated assistant message", async () => {
 		const conversation = (await bh.createConversation({
 			model: "mock-driver-id/mock-model",
-		})) as BHAIConversationImpl
+		})) as BHZAIConversationImpl
 
 		const result = await sendMessage(conversation, "Say hello")
 
@@ -339,7 +339,7 @@ describe("TASK_0025: Agent loop core", () => {
 	it("addMessage fires message(sent) immediately without loop events", async () => {
 		const conversation = (await bh.createConversation({
 			model: "mock-driver-id/mock-model",
-		})) as BHAIConversationImpl
+		})) as BHZAIConversationImpl
 
 		const events: string[] = []
 
@@ -370,7 +370,7 @@ describe("TASK_0025: Agent loop core", () => {
 	it("effectiveContextMessages returns only messages with contextIncluded !== false", async () => {
 		const conversation = (await bh.createConversation({
 			model: "mock-driver-id/mock-model",
-		})) as BHAIConversationImpl
+		})) as BHZAIConversationImpl
 
 		await addMessage(conversation, "Included by default", "system", {})
 		await addMessage(conversation, "Excluded", "system", { contextIncluded: false })
@@ -390,7 +390,7 @@ describe("TASK_0025: Agent loop core", () => {
 	it("conversation status transitions from idle → streaming → idle", async () => {
 		const conversation = (await bh.createConversation({
 			model: "mock-driver-id/mock-model",
-		})) as BHAIConversationImpl
+		})) as BHZAIConversationImpl
 
 		expect(conversation.status).toBe("idle")
 
@@ -412,7 +412,7 @@ describe("TASK_0025: Agent loop core", () => {
 	it("usage tokens accumulate from driver events", async () => {
 		const conversation = (await bh.createConversation({
 			model: "mock-driver-id/mock-model",
-		})) as BHAIConversationImpl
+		})) as BHZAIConversationImpl
 
 		bh.addDriver(
 			makeMockDriver([
@@ -437,8 +437,8 @@ describe("TASK_0025: Agent loop core", () => {
 	// Test 12: Missing model throws error
 	// =========================================================================
 	it("sendMessage throws if conversation has no resolved model", async () => {
-		const bh2 = new BHAI()
-		const conversation = (await bh2.createConversation()) as BHAIConversationImpl
+		const bh2 = new BHZAI()
+		const conversation = (await bh2.createConversation()) as BHZAIConversationImpl
 
 		// Don't set a model
 		await expect(sendMessage(conversation, "Test")).rejects.toThrow(
@@ -452,7 +452,7 @@ describe("TASK_0025: Agent loop core", () => {
 	it("sendMessage handles ContentBlock[] content correctly", async () => {
 		const conversation = (await bh.createConversation({
 			model: "mock-driver-id/mock-model",
-		})) as BHAIConversationImpl
+		})) as BHZAIConversationImpl
 
 		const blocks: ContentBlock[] = [
 			{ type: "text", text: "Block 1 " },
@@ -474,7 +474,7 @@ describe("TASK_0025: Agent loop core", () => {
 	it("reasoning-delta events accumulate into message.meta.reasoning", async () => {
 		const conversation = (await bh.createConversation({
 			model: "mock-driver-id/mock-model",
-		})) as BHAIConversationImpl
+		})) as BHZAIConversationImpl
 
 		bh.addDriver(
 			makeMockDriver([
@@ -498,7 +498,7 @@ describe("TASK_0025: Agent loop core", () => {
 	it("addMessage merges custom metadata correctly", async () => {
 		const conversation = (await bh.createConversation({
 			model: "mock-driver-id/mock-model",
-		})) as BHAIConversationImpl
+		})) as BHZAIConversationImpl
 
 		const result = await addMessage(conversation, "Test", "user", {
 			meta: { source: "api", custom: 123 },
@@ -555,7 +555,7 @@ describe("TASK_0025: Agent loop core", () => {
 		const conversation = (await bh.createConversation({
 			model: "mock-driver-id/mock-model",
 			// Deliberately NOT setting systemPrompt
-		})) as BHAIConversationImpl
+		})) as BHZAIConversationImpl
 
 		// Register a context handler that appends
 		conversation.on("context", () => {
@@ -579,7 +579,7 @@ describe("TASK_0025: Agent loop core", () => {
 		const conversation = (await bh.createConversation({
 			model: "mock-driver-id/mock-model",
 			systemPrompt: "BASE PROMPT",
-		})) as BHAIConversationImpl
+		})) as BHZAIConversationImpl
 
 		// Register a context handler that appends
 		conversation.on("context", () => {
@@ -602,7 +602,7 @@ describe("TASK_0025: Agent loop core", () => {
 		const conversation = (await bh.createConversation({
 			model: "mock-driver-id/mock-model",
 			systemPrompt: "ORIGINAL",
-		})) as BHAIConversationImpl
+		})) as BHZAIConversationImpl
 
 		// Register a context handler that replaces
 		conversation.on("context", () => {
@@ -625,7 +625,7 @@ describe("TASK_0025: Agent loop core", () => {
 		const conversation = (await bh.createConversation({
 			model: "mock-driver-id/mock-model",
 			systemPrompt: "BASE PROMPT",
-		})) as BHAIConversationImpl
+		})) as BHZAIConversationImpl
 
 		// Do NOT register any context handler
 
@@ -644,12 +644,12 @@ describe("TASK_0025: Agent loop core", () => {
 	it("context event payload includes live conversation reference (identity check)", async () => {
 		const conversation = (await bh.createConversation({
 			model: "mock-driver-id/mock-model",
-		})) as BHAIConversationImpl
+		})) as BHZAIConversationImpl
 
-		let receivedConversation: BHAIConversationImpl | undefined
+		let receivedConversation: BHZAIConversationImpl | undefined
 
 		conversation.on("context", (payload: unknown) => {
-			const p = payload as { conversation: BHAIConversationImpl }
+			const p = payload as { conversation: BHZAIConversationImpl }
 			receivedConversation = p.conversation
 		})
 
@@ -668,7 +668,7 @@ describe("TASK_0025: Agent loop core", () => {
 	it("context handler can read and interact with conversation.meta through payload.conversation", async () => {
 		const conversation = (await bh.createConversation({
 			model: "mock-driver-id/mock-model",
-		})) as BHAIConversationImpl
+		})) as BHZAIConversationImpl
 
 		// Set some metadata on the conversation
 		conversation.setMeta({ tasks: ["task1", "task2"], count: 42 })
@@ -677,7 +677,7 @@ describe("TASK_0025: Agent loop core", () => {
 		let metaCount: unknown
 
 		conversation.on("context", (payload: unknown) => {
-			const p = payload as { conversation: BHAIConversationImpl }
+			const p = payload as { conversation: BHZAIConversationImpl }
 			// Read meta fields through the payload reference
 			metaTasks = (p.conversation.meta.tasks as unknown[]) ?? undefined
 			metaCount = p.conversation.meta.count
@@ -696,12 +696,12 @@ describe("TASK_0025: Agent loop core", () => {
 	it("turn(start) event payload includes live conversation reference (identity check)", async () => {
 		const conversation = (await bh.createConversation({
 			model: "mock-driver-id/mock-model",
-		})) as BHAIConversationImpl
+		})) as BHZAIConversationImpl
 
-		let receivedConversationOnStart: BHAIConversationImpl | undefined
+		let receivedConversationOnStart: BHZAIConversationImpl | undefined
 
 		conversation.on("turn", (payload: unknown) => {
-			const p = payload as { state: string; conversation?: BHAIConversationImpl }
+			const p = payload as { state: string; conversation?: BHZAIConversationImpl }
 			if (p.state === "start") {
 				receivedConversationOnStart = p.conversation
 			}

@@ -4,8 +4,8 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { BHAI } from "../core/bhai.js"
-import { BHAIConversationImpl, type CreateConversationOptions } from "./conversation.js"
+import { BHZAI } from "../core/bhzai.js"
+import { BHZAIConversationImpl, type CreateConversationOptions } from "./conversation.js"
 import {
 	Conversation,
 	type MessageInit,
@@ -15,17 +15,17 @@ import {
 } from "./system-prompt.js"
 
 describe("TASK_0024: System-prompt layering and start event", () => {
-	let bh: BHAI
+	let bh: BHZAI
 
 	beforeEach(() => {
-		bh = new BHAI()
+		bh = new BHZAI()
 	})
 
 	// =========================================================================
 	// Test 1: Calling ensureStarted twice fires start exactly once
 	// =========================================================================
 	it("ensureStarted fires start exactly once when called twice", async () => {
-		const conversation = new BHAIConversationImpl(bh)
+		const conversation = new BHZAIConversationImpl(bh)
 		const startSpy = vi.fn()
 		conversation.on("start", startSpy)
 
@@ -44,8 +44,8 @@ describe("TASK_0024: System-prompt layering and start event", () => {
 	// =========================================================================
 	it("two appendSystemPrompt handlers concatenate with blank-line separator", async () => {
 		// Create a conversation with a base system prompt
-		const bh2 = new BHAI({ systemPrompt: "Base prompt" })
-		const conversation = new BHAIConversationImpl(bh2)
+		const bh2 = new BHZAI({ systemPrompt: "Base prompt" })
+		const conversation = new BHZAIConversationImpl(bh2)
 
 		// Register two handlers that append.
 		// IMPORTANT: Handlers must read the incoming payload's already-accumulated
@@ -76,8 +76,8 @@ describe("TASK_0024: System-prompt layering and start event", () => {
 	// =========================================================================
 	it("systemPrompt handler replaces the prompt outright", async () => {
 		// Create conversation with a non-empty base prompt
-		const bh2 = new BHAI({ systemPrompt: "Original base prompt with many words" })
-		const conversation = new BHAIConversationImpl(bh2)
+		const bh2 = new BHZAI({ systemPrompt: "Original base prompt with many words" })
+		const conversation = new BHZAIConversationImpl(bh2)
 
 		// Register a handler that returns a replace
 		conversation.on("start", () => ({
@@ -99,7 +99,7 @@ describe("TASK_0024: System-prompt layering and start event", () => {
 	// Test 4: Two prepend handlers stack in registration order
 	// =========================================================================
 	it("two prepend handlers stack messages in registration order", async () => {
-		const conversation = new BHAIConversationImpl(bh)
+		const conversation = new BHZAIConversationImpl(bh)
 
 		// Register two handlers that each prepend a message.
 		// Handlers MUST read the incoming payload's prepend array and append to it
@@ -155,7 +155,7 @@ describe("TASK_0024: System-prompt layering and start event", () => {
 		conversation.on("start", startSpy)
 
 		// Try to ensure it's started (should be a no-op)
-		await ensureStarted(conversation as BHAIConversationImpl, bh, {}, undefined)
+		await ensureStarted(conversation as BHZAIConversationImpl, bh, {}, undefined)
 
 		// Start should NOT have fired
 		expect(startSpy).not.toHaveBeenCalled()
@@ -165,7 +165,7 @@ describe("TASK_0024: System-prompt layering and start event", () => {
 	// Test 6: contextIncluded: false is stored in meta
 	// =========================================================================
 	it("MessageInit with contextIncluded: false produces meta.contextIncluded === false", async () => {
-		const conversation = new BHAIConversationImpl(bh)
+		const conversation = new BHZAIConversationImpl(bh)
 
 		// Register a handler that prepends a message with contextIncluded: false
 		conversation.on("start", (payload) => ({
@@ -192,8 +192,8 @@ describe("TASK_0024: System-prompt layering and start event", () => {
 	// =========================================================================
 	it("appendSystemPrompt on empty base does not prepend a leading blank line", async () => {
 		// Create conversation with empty base prompt
-		const bh2 = new BHAI({ systemPrompt: "" })
-		const conversation = new BHAIConversationImpl(bh2)
+		const bh2 = new BHZAI({ systemPrompt: "" })
+		const conversation = new BHZAIConversationImpl(bh2)
 
 		conversation.on("start", () => ({
 			appendSystemPrompt: "First fragment",
@@ -215,8 +215,8 @@ describe("TASK_0024: System-prompt layering and start event", () => {
 		const perConvOverride = "Per-conversation override"
 
 		// Create with host default
-		const bh2 = new BHAI({ systemPrompt: hostDefault })
-		const conversation = new BHAIConversationImpl(bh2, {
+		const bh2 = new BHZAI({ systemPrompt: hostDefault })
+		const conversation = new BHZAIConversationImpl(bh2, {
 			systemPrompt: perConvOverride,
 		})
 
@@ -234,8 +234,8 @@ describe("TASK_0024: System-prompt layering and start event", () => {
 	it("per-conversation systemPrompt works with empty host default", async () => {
 		const perConvOverride = "My conversation prompt"
 
-		const bh2 = new BHAI({ systemPrompt: "" })
-		const conversation = new BHAIConversationImpl(bh2, {
+		const bh2 = new BHZAI({ systemPrompt: "" })
+		const conversation = new BHZAIConversationImpl(bh2, {
 			systemPrompt: perConvOverride,
 		})
 
@@ -249,7 +249,7 @@ describe("TASK_0024: System-prompt layering and start event", () => {
 	// Test 10: start event receives correct payload
 	// =========================================================================
 	it("start event payload contains conversation, options, and firstMessage", async () => {
-		const conversation = new BHAIConversationImpl(bh, {
+		const conversation = new BHZAIConversationImpl(bh, {
 			model: "test/model",
 		})
 
@@ -280,7 +280,7 @@ describe("TASK_0024: System-prompt layering and start event", () => {
 	// Test 11: Prepended messages have proper structure
 	// =========================================================================
 	it("prepended messages have id, time, blocks, and meta fields", async () => {
-		const conversation = new BHAIConversationImpl(bh)
+		const conversation = new BHZAIConversationImpl(bh)
 
 		conversation.on("start", () => ({
 			prepend: [
@@ -311,7 +311,7 @@ describe("TASK_0024: System-prompt layering and start event", () => {
 	// Test 12: Prepended messages come before triggering message
 	// =========================================================================
 	it("prepended messages are inserted before firstMessage in history", async () => {
-		const conversation = new BHAIConversationImpl(bh)
+		const conversation = new BHZAIConversationImpl(bh)
 
 		conversation.on("start", () => ({
 			prepend: [
@@ -353,8 +353,8 @@ describe("TASK_0024: System-prompt layering and start event", () => {
 	// =========================================================================
 	it("systemPrompt handler replaces accumulated appends", async () => {
 		const hostDefault = "Host default"
-		const bh2 = new BHAI({ systemPrompt: hostDefault })
-		const conversation = new BHAIConversationImpl(bh2)
+		const bh2 = new BHZAI({ systemPrompt: hostDefault })
+		const conversation = new BHZAIConversationImpl(bh2)
 
 		conversation.on("start", () => ({
 			appendSystemPrompt: "Appended fragment",
@@ -376,7 +376,7 @@ describe("TASK_0024: System-prompt layering and start event", () => {
 	// Test 14: Message content as ContentBlock array
 	// =========================================================================
 	it("MessageInit with ContentBlock[] content is handled correctly", async () => {
-		const conversation = new BHAIConversationImpl(bh)
+		const conversation = new BHZAIConversationImpl(bh)
 
 		conversation.on("start", () => ({
 			prepend: [
@@ -402,8 +402,8 @@ describe("TASK_0024: System-prompt layering and start event", () => {
 	// =========================================================================
 	it("no patches preserves layers 1-2 prompt unchanged", async () => {
 		const hostDefault = "Host prompt"
-		const bh2 = new BHAI({ systemPrompt: hostDefault })
-		const conversation = new BHAIConversationImpl(bh2)
+		const bh2 = new BHZAI({ systemPrompt: hostDefault })
+		const conversation = new BHZAIConversationImpl(bh2)
 
 		// No handlers registered
 
@@ -516,7 +516,7 @@ describe("Conversation system-prompt resolution", () => {
 
 /**
  * Minimal stand-in for the kernel. `Conversation` depends on the structural
- * `PluginActivationSource` interface rather than on `BHAI`, so the test can
+ * `PluginActivationSource` interface rather than on `BHZAI`, so the test can
  * supply the two methods directly instead of booting a kernel.
  */
 function fakeKernel(disabled: string[] = [], names = ["alpha", "beta"]): PluginActivationSource {
@@ -529,26 +529,26 @@ function fakeKernel(disabled: string[] = [], names = ["alpha", "beta"]): PluginA
 
 describe("Conversation plugin activation", () => {
 	it("runs an owned handler when its plugin is globally enabled", () => {
-		const conversation = new Conversation("base", { bhai: fakeKernel() })
+		const conversation = new Conversation("base", { BHZAI: fakeKernel() })
 		conversation.onStart(() => ({ appendSystemPrompt: "A" }), "alpha")
 		expect(conversation.systemPrompt).toBe("base\n\nA")
 	})
 
 	it("skips an owned handler when its plugin is globally disabled", () => {
-		const conversation = new Conversation("base", { bhai: fakeKernel(["alpha"]) })
+		const conversation = new Conversation("base", { BHZAI: fakeKernel(["alpha"]) })
 		conversation.onStart(() => ({ appendSystemPrompt: "A" }), "alpha")
 		expect(conversation.systemPrompt).toBe("base")
 	})
 
 	it("a conversation override can disable a globally-enabled plugin", () => {
-		const conversation = new Conversation("base", { bhai: fakeKernel() })
+		const conversation = new Conversation("base", { BHZAI: fakeKernel() })
 		conversation.onStart(() => ({ appendSystemPrompt: "A" }), "alpha")
 		conversation.disablePlugin("alpha")
 		expect(conversation.systemPrompt).toBe("base")
 	})
 
 	it("a conversation override can enable a globally-disabled plugin", () => {
-		const conversation = new Conversation("base", { bhai: fakeKernel(["alpha"]) })
+		const conversation = new Conversation("base", { BHZAI: fakeKernel(["alpha"]) })
 		conversation.onStart(() => ({ appendSystemPrompt: "A" }), "alpha")
 		conversation.enablePlugin("alpha")
 		expect(conversation.systemPrompt).toBe("base\n\nA")
@@ -556,8 +556,8 @@ describe("Conversation plugin activation", () => {
 
 	it("overrides are per conversation, not shared", () => {
 		const kernel = fakeKernel()
-		const a = new Conversation("base", { bhai: kernel })
-		const b = new Conversation("base", { bhai: kernel })
+		const a = new Conversation("base", { BHZAI: kernel })
+		const b = new Conversation("base", { BHZAI: kernel })
 		a.onStart(() => ({ appendSystemPrompt: "A" }), "alpha")
 		b.onStart(() => ({ appendSystemPrompt: "A" }), "alpha")
 		a.disablePlugin("alpha")
@@ -566,7 +566,7 @@ describe("Conversation plugin activation", () => {
 	})
 
 	it("resetPlugin returns an overridden plugin to inheriting the global state", () => {
-		const conversation = new Conversation("base", { bhai: fakeKernel(["alpha"]) })
+		const conversation = new Conversation("base", { BHZAI: fakeKernel(["alpha"]) })
 		conversation.enablePlugin("alpha")
 		expect(conversation.isPluginEnabled("alpha")).toBe(true)
 		conversation.resetPlugin("alpha")
@@ -574,21 +574,21 @@ describe("Conversation plugin activation", () => {
 	})
 
 	it("unowned handlers always run, whatever is disabled", () => {
-		const conversation = new Conversation("base", { bhai: fakeKernel(["alpha"]) })
+		const conversation = new Conversation("base", { BHZAI: fakeKernel(["alpha"]) })
 		conversation.disablePlugin("beta")
 		conversation.onStart(() => ({ appendSystemPrompt: "H" }))
 		expect(conversation.systemPrompt).toBe("base\n\nH")
 	})
 
 	it("a skipped handler leaves the running value untouched for the next handler", () => {
-		const conversation = new Conversation("base", { bhai: fakeKernel(["alpha"]) })
+		const conversation = new Conversation("base", { BHZAI: fakeKernel(["alpha"]) })
 		conversation.onStart(() => ({ systemPrompt: "REPLACED" }), "alpha")
 		conversation.onStart(() => ({ appendSystemPrompt: "B" }), "beta")
 		expect(conversation.systemPrompt).toBe("base\n\nB")
 	})
 
 	it("toggling after the conversation has started does not change the resolved prompt", () => {
-		const conversation = new Conversation("base", { bhai: fakeKernel() })
+		const conversation = new Conversation("base", { BHZAI: fakeKernel() })
 		conversation.onStart(() => ({ appendSystemPrompt: "A" }), "alpha")
 		expect(conversation.systemPrompt).toBe("base\n\nA")
 		conversation.disablePlugin("alpha")
@@ -596,7 +596,7 @@ describe("Conversation plugin activation", () => {
 	})
 
 	it("restart() re-resolves against the current activation state", () => {
-		const conversation = new Conversation("base", { bhai: fakeKernel() })
+		const conversation = new Conversation("base", { BHZAI: fakeKernel() })
 		conversation.onStart(() => ({ appendSystemPrompt: "A" }), "alpha")
 		expect(conversation.systemPrompt).toBe("base\n\nA")
 		conversation.disablePlugin("alpha")
@@ -608,7 +608,7 @@ describe("Conversation plugin activation", () => {
 	})
 
 	it("listPlugins reports global state, override and effective state", () => {
-		const conversation = new Conversation("base", { bhai: fakeKernel(["beta"]) })
+		const conversation = new Conversation("base", { BHZAI: fakeKernel(["beta"]) })
 		conversation.disablePlugin("alpha")
 		expect(conversation.listPlugins()).toEqual([
 			{ name: "alpha", globalEnabled: true, override: false, effective: false },

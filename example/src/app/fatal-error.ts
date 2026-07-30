@@ -1,7 +1,7 @@
 /** @file The one path that blocks all interaction. */
 
-import type { BhaiComposer } from "../components/composer.js"
-import type { BhaiTelemetry } from "../components/telemetry-panel.js"
+import type { BhzaiComposer } from "../components/composer.js"
+import type { BhzaiTelemetry } from "../components/telemetry-panel.js"
 
 /**
  * Display an error that makes the demo unusable, and take the composer away so
@@ -15,7 +15,7 @@ import type { BhaiTelemetry } from "../components/telemetry-panel.js"
  */
 export function showFatalError(
 	message: string,
-	ui: { telemetry: BhaiTelemetry; composer: BhaiComposer },
+	ui: { telemetry: BhzaiTelemetry; composer: BhzaiComposer },
 ): void {
 	ui.telemetry.showMessage(message)
 	ui.composer.hide()

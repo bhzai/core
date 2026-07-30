@@ -22,7 +22,7 @@
 // nothing outside of plain TypeScript — no `fetch` directly (it uses the
 // `McpClient`'s transport methods via the injected `DeferredContext`).
 
-import type { BHAIToolDefinition, JSONSchema } from "../../types/index.js"
+import type { BHZAIToolDefinition, JSONSchema } from "../../types/index.js"
 
 /**
  * A minimal projection of `McpTool` (the shape `McpClient.discoverTools()`
@@ -50,10 +50,10 @@ export interface DeferredMcpTool {
  * imports this module to wire the deferred path).
  */
 export interface DeferredContext {
-	/** The BHAI-local server name (used for the `mcp__<server>__` prefix). */
+	/** The bhzai-local server name (used for the `mcp__<server>__` prefix). */
 	readonly serverName: string
 	/** Register a tool into the shared `ToolRegistry`. */
-	registerTool: (tool: BHAIToolDefinition) => void
+	registerTool: (tool: BHZAIToolDefinition) => void
 }
 
 /**
@@ -94,7 +94,7 @@ export function registerDeferredTools(
 ): void {
 	const listToolsName = `mcp__${ctx.serverName}__list_tools`
 	const searchToolsName = `mcp__${ctx.serverName}__search_tools`
-	const listTool: BHAIToolDefinition = {
+	const listTool: BHZAIToolDefinition = {
 		name: listToolsName,
 		description: `List all tools available on the '${ctx.serverName}' MCP server. Returns tool names and descriptions. Call this first to discover what tools exist, then call mcp__<server>__search_tools with a keyword to narrow down, or call any discovered tool directly.`,
 		inputSchema: { type: "object", properties: {} },
@@ -103,7 +103,7 @@ export function registerDeferredTools(
 			return result
 		},
 	}
-	const searchTool: BHAIToolDefinition = {
+	const searchTool: BHZAIToolDefinition = {
 		name: searchToolsName,
 		description: `Search tools on the '${ctx.serverName}' MCP server by keyword. Returns tool names and descriptions whose name or description matches the query. Discovered tools are registered live for the rest of the conversation.`,
 		inputSchema: {
@@ -169,7 +169,7 @@ export async function eagerRegisterAndAnswer(
 	// re-registering an already-registered tool is a safe no-op replace.
 	for (const mcpTool of cachedTools) {
 		const namespacedName = `mcp__${ctx.serverName}__${mcpTool.name}`
-		const def: BHAIToolDefinition = {
+		const def: BHZAIToolDefinition = {
 			name: namespacedName,
 			description: mcpTool.description ?? "",
 			inputSchema: mcpTool.inputSchema ?? { type: "object" },

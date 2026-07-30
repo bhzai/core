@@ -161,7 +161,7 @@ describe("McpClient handshake — initialize", () => {
 		expect(body.params).toMatchObject({
 			protocolVersion: "2025-11-25",
 			capabilities: {},
-			clientInfo: { name: "@lucasschirm/bhai", version: "0.1.0" },
+			clientInfo: { name: "@bhzai/core", version: "0.1.0" },
 		})
 	})
 

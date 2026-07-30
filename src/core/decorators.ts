@@ -1,5 +1,5 @@
 // TC39 stage-3 class decorators for plugin form 3 (ARCHITECTURE.md § 7.2,
-// lines 282-316). `@Plugin(name)` stamps a class as a BHAI plugin;
+// lines 282-316). `@Plugin(name)` stamps a class as a BHZAI plugin;
 // `@On(event)` subscribes a method to a kernel/conversation event;
 // `@Tool(name, schema)` registers a method as a tool against the
 // `ToolRegistrar` seam. `bh.use(new MyDecoratedClass())` detects the stamped
@@ -19,7 +19,7 @@
 // nothing outside of plain TypeScript — no `fetch`, no `crypto`, no Node
 // built-ins. It is runtime-agnostic.
 //
-// PATH NOTE: TASK_0007 specifies `bhai/src/kernel/decorators.ts`, but the
+// PATH NOTE: TASK_0007 specifies `bhzai/src/kernel/decorators.ts`, but the
 // package layout established by TASK_0002/TASK_0003 places the kernel under
 // `src/core/` (see `src/core/index.ts`). This file follows the existing repo
 // convention; the behavioral contract is unchanged.
@@ -45,9 +45,9 @@ export interface BHPlugin {}
 
 /**
  * Per-class metadata stamped by `@Plugin` onto the decorated class's
- * prototype and read by `BHAI.use()` to normalize a decorated instance into
+ * prototype and read by `BHZAI.use()` to normalize a decorated instance into
  * the canonical plugin shape. Stored under the well-known
- * {@link BHAI_PLUGIN_META} symbol; every instance of a decorated class
+ * {@link BHZAI_PLUGIN_META} symbol; every instance of a decorated class
  * inherits it via the prototype chain.
  */
 export interface PluginMetadata {
@@ -62,22 +62,22 @@ export interface PluginMetadata {
 /**
  * Well-known `Symbol` under which {@link PluginMetadata} is stamped on each
  * constructed instance by `@Plugin`'s `context.addInitializer` callback.
- * Exported so `BHAI.use()` (in `bhai.ts`) can read it without re-deriving the
+ * Exported so `BHZAI.use()` (in `bhzai.ts`) can read it without re-deriving the
  * key, and so external tooling/tests can introspect a decorated instance.
  */
-export const BHAI_PLUGIN_META: unique symbol = Symbol("bhai.plugin.meta")
+export const BHZAI_PLUGIN_META: unique symbol = Symbol("BHZAI.plugin.meta")
 
 /**
  * Seam interface satisfied by TASK_0008's real tool registry. Until that
- * lands, `BHAI` supplies a temporary in-memory stub object satisfying this
+ * lands, `BHZAI` supplies a temporary in-memory stub object satisfying this
  * interface so `@Tool`-decorated methods have somewhere to register against
  * without this task's code needing to change later.
  *
  * INTERFACE AGREEMENT (for TASK_0008's author/reviewer): the real tool
  * registry must expose a `register(toolDef)` method accepting exactly this
- * shape — `{ name, schema, execute }`. `BHAI.toolRegistrar` is the property
+ * shape — `{ name, schema, execute }`. `BHZAI.toolRegistrar` is the property
  * the decorator-generated `setup()` calls `register` on; TASK_0008 may back
- * that property with the real registry (or make `BHAI.addTool` itself satisfy
+ * that property with the real registry (or make `BHZAI.addTool` itself satisfy
  * this shape) without touching `decorators.ts`. The `execute` signature is
  * loosely typed here because `ToolInvocation`'s full type is TASK_0008's to
  * define.
@@ -126,12 +126,12 @@ function ensureTools(
 type Class = abstract new (...args: unknown[]) => unknown
 
 /**
- * Class decorator marking the class as a BHAI plugin and stamping its name
+ * Class decorator marking the class as a BHZAI plugin and stamping its name
  * (§ 7.2 form 3). Returns the class unchanged (native decorators may replace
  * the class; we do not need to).
  *
  * Stamps {@link PluginMetadata} onto `target.prototype` under the
- * {@link BHAI_PLUGIN_META} symbol, so every constructed instance inherits it
+ * {@link BHZAI_PLUGIN_META} symbol, so every constructed instance inherits it
  * via the prototype chain and `getPluginMetadata(instance)` can read it
  * without any per-instance work. (The TC39 stage-3 class-decorator
  * `context.addInitializer` runs once with `this` bound to the *class*, not
@@ -163,7 +163,7 @@ export function Plugin(name: string) {
 		}
 		// Stamp on the prototype so every instance inherits it. Non-enumerable
 		// so it doesn't show up in `Object.keys(instance)` / spread copies.
-		Object.defineProperty(target.prototype, BHAI_PLUGIN_META, {
+		Object.defineProperty(target.prototype, BHZAI_PLUGIN_META, {
 			value: pluginMeta,
 			writable: false,
 			enumerable: false,
@@ -228,11 +228,11 @@ export function Tool(name: string, schema: JSONSchema) {
 /**
  * Read the {@link PluginMetadata} stamped by `@Plugin` off an instance, or
  * return `undefined` if the instance is not a decorated plugin. Exported for
- * `BHAI.use()` to detect form-3 instances without re-deriving the symbol key.
+ * `BHZAI.use()` to detect form-3 instances without re-deriving the symbol key.
  */
 export function getPluginMetadata(instance: unknown): PluginMetadata | undefined {
-	if (instance && typeof instance === "object" && BHAI_PLUGIN_META in instance) {
-		return (instance as { [BHAI_PLUGIN_META]: PluginMetadata })[BHAI_PLUGIN_META]
+	if (instance && typeof instance === "object" && BHZAI_PLUGIN_META in instance) {
+		return (instance as { [BHZAI_PLUGIN_META]: PluginMetadata })[BHZAI_PLUGIN_META]
 	}
 	return undefined
 }

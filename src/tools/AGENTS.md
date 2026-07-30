@@ -2,11 +2,11 @@
 
 ## Purpose & scope
 
-The in-process tool registry — the single source of truth for every callable tool BHAI knows about (ARCHITECTURE.md § 9.2). Modeled as "one in-process MCP server": every registration path (imperative `addTool`, `@Tool` decorator, capability-object `tools:`, remote MCP attachment) converges on the store here, so `bh.listTools()` is semantically `tools/list` and invocation is semantically `tools/call`, regardless of where a tool came from.
+The in-process tool registry — the single source of truth for every callable tool BHZAI knows about (ARCHITECTURE.md § 9.2). Modeled as "one in-process MCP server": every registration path (imperative `addTool`, `@Tool` decorator, capability-object `tools:`, remote MCP attachment) converges on the store here, so `bh.listTools()` is semantically `tools/list` and invocation is semantically `tools/call`, regardless of where a tool came from.
 
 ## Key files
 
-- `registry.ts` — `ToolRegistry` class + standalone `normalizeToolResult()` helper (TASK_0008). Stores `BHAIToolDefinition` records keyed by `name` in a `Map`, validates names against § 9.1's regex, implements shadowing (replace, no `tool.removed` fired), and fires `tool.registered`/`tool.removed` (§ 8.1) via the framework `EventBus`'s kernel bypass. Also satisfies the `ToolRegistrar` seam so `@Tool`-decorated methods register through it.
+- `registry.ts` — `ToolRegistry` class + standalone `normalizeToolResult()` helper (TASK_0008). Stores `BHZAIToolDefinition` records keyed by `name` in a `Map`, validates names against § 9.1's regex, implements shadowing (replace, no `tool.removed` fired), and fires `tool.registered`/`tool.removed` (§ 8.1) via the framework `EventBus`'s kernel bypass. Also satisfies the `ToolRegistrar` seam so `@Tool`-decorated methods register through it.
 - `registry.test.ts` — 26 tests covering object/sugar forms, shadowing, name validation, `normalizeToolResult`'s three branches, snapshot freshness, minimal filter subset, the `ToolRegistrar` seam, and accessors.
 - `availability.ts` — Tool availability filtering seam (TASK_0017): `resolveAvailableTools()` and `applyToolFilter()` implement the § 9.5 3-step decision function for determining which tools a given LLM call offers, plus `isToolTrusted()` for the MCP server trust flag.
 - `availability.test.ts` — 31 tests covering filter combinations (allow/deny, tags), trust flag derivation (local vs. MCP tools, trusted vs. untrusted servers), and security verification: a test proving untrusted MCP tools' annotations never drive availability decisions (TASK_0041, § 13).
@@ -21,6 +21,6 @@ The in-process tool registry — the single source of truth for every callable t
 
 ## Consumers
 
-- `src/core/bhai.ts` instantiates a `ToolRegistry` and delegates `addTool`/`removeTool`/`listTools` to it. The `toolRegistrar` seam (used by `decorators.ts`) also funnels through `ToolRegistry.register`.
+- `src/core/bhzai.ts` instantiates a `ToolRegistry` and delegates `addTool`/`removeTool`/`listTools` to it. The `toolRegistrar` seam (used by `decorators.ts`) also funnels through `ToolRegistry.register`.
 - `src/plugins/mcp/client.ts` (TASK_0011 + TASK_0012) registers discovered remote tools into this registry under the `mcp__<server>__<tool>` namespace, and re-syncs (add/remove) on `handleListChanged`/`pollToolsList`.
 - Future: TASK_0017 (`resolveAvailableTools`) reads from it; TASK_0026 (agent loop) invokes `execute()` on records from here.

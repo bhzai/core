@@ -3,7 +3,7 @@
 //
 // CROSS-TASK COORDINATION NOTE: TASK_0002's scope originally covered every
 // shared type under src/types/, but the tool-specific shapes
-// (`BHAIToolDefinition`, `ToolInvocation`, `ToolExecute`, `ToolFilter`,
+// (`BHZAIToolDefinition`, `ToolInvocation`, `ToolExecute`, `ToolFilter`,
 // `Icon`, `ToolAnnotations`) were not landed in that task's barrel before
 // TASK_0008 started. Per TASK_0008's dependency instructions ("if any of
 // these types are missing from the TASK_0002 barrel when this task starts,
@@ -13,10 +13,10 @@
 // flags the gap so TASK_0002's owner can reconcile. The shapes match
 // ARCHITECTURE.md § 9.1 verbatim; TASK_0002 may move/refine them but must
 // preserve these field names and optionality for MCP wire-compatibility
-// (§ 9.1: a BHAI tool definition *is* an MCP `Tool` object plus a local
+// (§ 9.1: a BHZAI tool definition *is* an MCP `Tool` object plus a local
 // `execute` binding).
 
-import type { BHAIConversation as BHAIConversationReal } from "../conversation/conversation.js"
+import type { BHZAIConversation as BHZAIConversationReal } from "../conversation/conversation.js"
 import type { CallToolResult, ContentBlock, JSONSchema } from "./content.js"
 
 /**
@@ -37,7 +37,7 @@ export interface Icon {
 /**
  * MCP `ToolAnnotations` hints (§ 9.1 `annotations?: ToolAnnotations`).
  *
- * Per § 9.1's notes, `annotations` are **untrusted hints**: BHAI surfaces them
+ * Per § 9.1's notes, `annotations` are **untrusted hints**: BHZAI surfaces them
  * to hosts (e.g. for confirmation UIs) but never lets them drive availability
  * or auto-approval unless the host marks the source trusted (§ 13). All fields
  * are optional booleans matching the spec's named hints.
@@ -50,13 +50,13 @@ export interface ToolAnnotations {
 }
 
 /**
- * The real `BHAIConversation` interface (TASK_0023, ARCHITECTURE.md § 11.1).
+ * The real `BHZAIConversation` interface (TASK_0023, ARCHITECTURE.md § 11.1).
  *
  * Represents a single conversation instance — the primary object hosts and
  * plugins interact with. The interface defines conversation lifecycle, event
  * handling, and metadata management.
  */
-export type BHAIConversation = BHAIConversationReal
+export type BHZAIConversation = BHZAIConversationReal
 
 /**
  * The payload handed to a tool's `execute()` (§ 9.1).
@@ -68,7 +68,7 @@ export type BHAIConversation = BHAIConversationReal
  * `notifications/cancelled` for remote MCP tools (TASK_0011).
  */
 export interface ToolInvocation<P = unknown> {
-	conversation: BHAIConversation | undefined
+	conversation: BHZAIConversation | undefined
 	params: P
 	toolCallId: string
 	signal: AbortSignal
@@ -76,7 +76,7 @@ export interface ToolInvocation<P = unknown> {
 }
 
 /**
- * The executor signature stored on a `BHAIToolDefinition` (§ 9.1).
+ * The executor signature stored on a `BHZAIToolDefinition` (§ 9.1).
  *
  * Returns a `CallToolResult`, a bare string (wrapped by `normalizeToolResult`
  * into `{ content: [{ type: 'text', text }] }`), or `void` (normalized to
@@ -90,16 +90,16 @@ export type ToolExecute<P = unknown> = (
 ) => Promise<CallToolResult | string | void> | CallToolResult | string | void
 
 /**
- * A BHAI tool definition *is* an MCP `Tool` object (spec rev 2025-11-25) plus a
+ * A BHZAI tool definition *is* an MCP `Tool` object (spec rev 2025-11-25) plus a
  * local `execute` binding (§ 9.1). Field names and optionality match the spec
  * verbatim for MCP wire-compatibility — do not rename or reorder optionality.
  *
  * The generic `P` parameterizes `execute`'s `ToolInvocation<P>` so a plugin can
  * narrow the validated-params type; the registry stores definitions under the
- * erased `BHAIToolDefinition<unknown>` shape since the registry is agnostic to
+ * erased `BHZAIToolDefinition<unknown>` shape since the registry is agnostic to
  * a tool's param type.
  */
-export interface BHAIToolDefinition<P = unknown> {
+export interface BHZAIToolDefinition<P = unknown> {
 	// ——— MCP `Tool` fields, wire-compatible (spec rev 2025-11-25) ———
 	/** 1–128 chars, `[a-zA-Z0-9_.-]`; later registration shadows earlier. */
 	name: string
@@ -115,7 +115,7 @@ export interface BHAIToolDefinition<P = unknown> {
 	icons?: Icon[]
 	/** Untrusted hints (readOnlyHint / destructiveHint / etc.). */
 	annotations?: ToolAnnotations
-	// ——— BHAI-local fields (never serialized onto the wire) ———
+	// ——— bhzai-local fields (never serialized onto the wire) ———
 	/** Local executor. Invoked by the agent loop (TASK_0026), not the registry. */
 	execute: ToolExecute<P>
 	/** Host-defined grouping for the availability seam (§ 9.5). */
