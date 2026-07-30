@@ -248,3 +248,5 @@ Requirements:
 - **A new DOM region means a new component**, not a new export on an existing
   one. The old `ui.js` grew to 21 exports across six unrelated regions; that is
   the failure mode this layout exists to prevent.
+- **Always log captured exceptions to the console**, make them nice for the user, 
+  but don't hide them for developers.

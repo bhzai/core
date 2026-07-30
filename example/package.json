@@ -12,9 +12,11 @@
 		"@lucasschirm/bhai": "workspace:*",
 		"@lucasschirm/litjs-typeahead": "^0.0.1",
 		"@mlc-ai/web-llm": "^0.2.79",
-		"lit": "^3.2.0"
+		"lit": "^3.2.0",
+		"toastify-js": "^1.12.0"
 	},
 	"devDependencies": {
+		"@types/toastify-js": "^1.12.4",
 		"@webgpu/types": "^0.1.71",
 		"happy-dom": "^15.11.7",
 		"typescript": "5.7.2",

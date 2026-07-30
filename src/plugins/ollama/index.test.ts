@@ -101,6 +101,27 @@ describe("Ollama — constructor", () => {
 		const driver = makeOllama(fetch)
 		expect(driver.id).toBe("ollama")
 	})
+
+	it("binds globalThis.fetch so calling it does not throw 'Illegal invocation'", async () => {
+		const originalFetch = globalThis.fetch
+		let capturedThis: unknown = "not-called"
+		try {
+			;(globalThis as { fetch: typeof fetch }).fetch = vi.fn(async function (
+				this: unknown,
+				_input: string,
+				_init?: RequestInit,
+			) {
+				capturedThis = this
+				return mockResponse({ json: { models: [] } })
+			}) as unknown as typeof fetch
+
+			const driver = new Ollama({ baseUrl: "http://localhost:11434" })
+			await driver.listModels()
+			expect(capturedThis).toBe(globalThis)
+		} finally {
+			;(globalThis as { fetch: typeof fetch }).fetch = originalFetch
+		}
+	})
 })
 
 describe("Ollama — listModels", () => {
@@ -507,5 +528,148 @@ describe("Ollama — embed", () => {
 			input: ["test"],
 		})
 		expect(result.usage).toBeUndefined()
+	})
+})
+
+describe("Ollama — connection events", () => {
+	it("listModels() success dispatches a 'connect' event with the resolved models", async () => {
+		const fetch = fakeFetch([
+			{
+				url: "http://localhost:11434/api/tags",
+				method: "GET",
+				response: mockResponse({
+					json: {
+						models: [
+							{
+								name: "llama3:8b",
+								model: "llama3:8b",
+								size: 4661210672,
+								digest: "abc123",
+							},
+						],
+					},
+				}),
+			},
+			{
+				url: "http://localhost:11434/api/show",
+				method: "POST",
+				response: mockResponse({ json: { capabilities: ["completion"] } }),
+			},
+		])
+		const driver = makeOllama(fetch)
+		let captured: CustomEvent<{ models: { id: string; ref: string }[] }> | undefined
+		driver.addEventListener("connect", (e) => {
+			captured = e as CustomEvent<{ models: { id: string; ref: string }[] }>
+		})
+		const models = await driver.listModels()
+		expect(captured).toBeDefined()
+		expect(captured?.detail.models).toHaveLength(1)
+		expect(captured?.detail.models[0]?.id).toBe("llama3:8b")
+		expect(captured?.detail.models).toEqual(models)
+	})
+
+	it("listModels() non-2xx failure dispatches an 'error' event with phase 'listModels' and re-throws", async () => {
+		const fetch = fakeFetch([
+			{
+				url: "http://localhost:11434/api/tags",
+				method: "GET",
+				response: mockResponse({ status: 503, body: "service unavailable" }),
+			},
+		])
+		const driver = makeOllama(fetch)
+		let captured: CustomEvent<{ error: unknown; phase: string }> | undefined
+		driver.addEventListener("error", (e) => {
+			captured = e as CustomEvent<{ error: unknown; phase: string }>
+		})
+		await expect(driver.listModels()).rejects.toThrow()
+		expect(captured).toBeDefined()
+		expect(captured?.detail.phase).toBe("listModels")
+		expect(captured?.detail.error).toBeDefined()
+	})
+
+	it("listModels() fetch-thrown failure dispatches an 'error' event with phase 'listModels' and re-throws", async () => {
+		const throwingFetch = vi.fn(async () => {
+			throw new TypeError("network error")
+		}) as unknown as typeof fetch
+		const driver = makeOllama(throwingFetch)
+		let captured: CustomEvent<{ error: unknown; phase: string }> | undefined
+		driver.addEventListener("error", (e) => {
+			captured = e as CustomEvent<{ error: unknown; phase: string }>
+		})
+		await expect(driver.listModels()).rejects.toThrow(TypeError)
+		expect(captured).toBeDefined()
+		expect(captured?.detail.phase).toBe("listModels")
+		expect(captured?.detail.error).toBeInstanceOf(TypeError)
+	})
+
+	it("disconnect() dispatches a 'disconnect' event and clears the capabilities cache", async () => {
+		const fetch = fakeFetch([
+			{
+				url: "http://localhost:11434/api/tags",
+				method: "GET",
+				response: mockResponse({
+					json: {
+						models: [
+							{
+								name: "llama3:8b",
+								model: "llama3:8b",
+								size: 4661210672,
+								digest: "abc123",
+							},
+						],
+					},
+				}),
+			},
+			{
+				url: "http://localhost:11434/api/show",
+				method: "POST",
+				response: mockResponse({
+					json: {
+						capabilities: ["completion", "tools"],
+						model_info: { "llama.context_length": 8192 },
+					},
+				}),
+			},
+		])
+		const driver = makeOllama(fetch)
+		// Populate the capabilities cache via a successful listModels().
+		await driver.listModels()
+		expect(driver.capabilities("llama3:8b").toolCalls).toBe(true)
+		expect(driver.capabilities("llama3:8b").contextWindow).toBe(8192)
+
+		let disconnected = false
+		driver.addEventListener("disconnect", () => {
+			disconnected = true
+		})
+		driver.disconnect()
+		expect(disconnected).toBe(true)
+		// After disconnect, capabilities should return conservative defaults
+		// because the cache was cleared.
+		expect(driver.capabilities("llama3:8b")).toEqual({
+			streaming: true,
+			toolCalls: false,
+			reasoning: false,
+			embeddings: false,
+			contextWindow: undefined,
+		})
+	})
+
+	it("embed() failure dispatches an 'error' event with phase 'embed' and re-throws", async () => {
+		const fetch = fakeFetch([
+			{
+				url: "http://localhost:11434/api/embed",
+				method: "POST",
+				response: mockResponse({ status: 500, body: "internal error" }),
+			},
+		])
+		const driver = makeOllama(fetch)
+		let captured: CustomEvent<{ error: unknown; phase: string }> | undefined
+		driver.addEventListener("error", (e) => {
+			captured = e as CustomEvent<{ error: unknown; phase: string }>
+		})
+		await expect(driver.embed({ model: "nomic-embed-text", input: ["test"] })).rejects.toThrow()
+		expect(captured).toBeDefined()
+		expect(captured?.detail.phase).toBe("embed")
+		expect(captured?.detail.error).toBeDefined()
 	})
 })

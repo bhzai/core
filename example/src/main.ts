@@ -18,6 +18,7 @@ import { type MLCEngineInstance, WebLLM } from "@lucasschirm/bhai/plugins/webllm
 import { createChatController } from "./app/chat-controller.js"
 import { showFatalError } from "./app/fatal-error.js"
 import { createMcpController } from "./app/mcp-controller.js"
+import { createProviderController } from "./app/provider-controller.js"
 import { createEngine, hasWebGpu, prebuiltAppConfig } from "./app/webllm-engine.js"
 // Importing the component modules registers their custom elements.
 import "./components/cold-start-panel.js"
@@ -27,6 +28,8 @@ import "./components/mcp-add-form.js"
 import "./components/mcp-error-dialog.js"
 import "./components/mcp-server-list.js"
 import "./components/model-select.js"
+import "./components/provider-cog.js"
+import "./components/providers-dialog.js"
 import "./components/status-indicator.js"
 import "./components/telemetry-panel.js"
 import { byId } from "./lib/dom.js"
@@ -36,6 +39,8 @@ function buildUi() {
 	return {
 		status: byId<BhaiStatusIndicator>("status"),
 		modelSelect: byId<BhaiModelSelect>("model-select"),
+		providerCog: byId<BhaiProviderCog>("provider-cog"),
+		providersDialog: byId<BhaiProvidersDialog>("providers-dialog"),
 		composer: byId<BhaiComposer>("composer"),
 		conversation: byId<BhaiConversation>("conversation"),
 		telemetry: byId<BhaiTelemetry>("telemetry-stats"),
@@ -54,6 +59,8 @@ import type { BhaiMcpAddForm } from "./components/mcp-add-form.js"
 import type { BhaiMcpErrorDialog } from "./components/mcp-error-dialog.js"
 import type { BhaiMcpServerList } from "./components/mcp-server-list.js"
 import type { BhaiModelSelect } from "./components/model-select.js"
+import type { BhaiProviderCog } from "./components/provider-cog.js"
+import type { BhaiProvidersDialog } from "./components/providers-dialog.js"
 import type { BhaiStatusIndicator } from "./components/status-indicator.js"
 import type { BhaiTelemetry } from "./components/telemetry-panel.js"
 
@@ -142,6 +149,17 @@ async function initialize(): Promise<void> {
 		// Deliberately not awaited: a slow or dead MCP endpoint must not delay the
 		// chat UI, and every outcome lands in the panel either way.
 		void mcpController.start()
+
+		// The providers panel owns ollama driver lifecycle. Adding an ollama
+		// driver triggers `models.changed`, so the picker is refreshed via the
+		// same `refreshPicker` callback the kernel subscription uses.
+		const providerController = createProviderController({
+			bh,
+			cog: ui.providerCog,
+			dialog: ui.providersDialog,
+			onProvidersChanged: () => void refreshPicker(),
+		})
+		void providerController.start()
 
 		// The picker shows `defaultModel.id` on load, but a programmatic default
 		// never fires a `bhai-change` event — so bootstrap that conversation here,

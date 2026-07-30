@@ -112,17 +112,67 @@ interface EmbedResponse {
 }
 
 /**
+ * Connection lifecycle event map for {@link Ollama}.
+ *
+ * - `'connect'` — dispatched at the end of a successful `listModels()`,
+ *   carrying the resolved `ModelInfo[]`.
+ * - `'disconnect'` — dispatched by `disconnect()`; a host-intent signal
+ *   (the stateless transport has no real connection to close).
+ * - `'error'` — dispatched when `listModels()` or `embed()` fails, carrying
+ *   the thrown error and the phase that failed. The original error is
+ *   always re-thrown, so retry/kernel error routing is unchanged.
+ */
+export interface OllamaEventMap {
+	/** Resolved model list from a successful `listModels()`. */
+	connect: { models: ModelInfo[] }
+	/** No payload — `disconnect()` is a stateless host-intent signal. */
+	// biome-ignore lint/suspicious/noConfusingVoidType: event-map value type, not a return type
+	disconnect: void
+	/** The thrown error and the method that failed. */
+	error: { error: unknown; phase: "listModels" | "embed" }
+}
+
+/**
+ * Declaration-merged typed `addEventListener` overloads for {@link Ollama},
+ * so consumers get typed listeners for the connection lifecycle events.
+ * The inherited base `EventTarget.addEventListener` overloads remain
+ * available for arbitrary event types.
+ */
+export interface Ollama {
+	/**
+	 * Typed `'connect'` listener — receives the resolved model list.
+	 */
+	addEventListener(
+		type: "connect",
+		listener: (e: CustomEvent<OllamaEventMap["connect"]>) => void,
+	): void
+	/**
+	 * Typed `'disconnect'` listener — no payload (stateless host-intent).
+	 */
+	addEventListener(type: "disconnect", listener: (e: Event) => void): void
+	/**
+	 * Typed `'error'` listener — receives the thrown error and failed phase.
+	 */
+	addEventListener(type: "error", listener: (e: CustomEvent<OllamaEventMap["error"]>) => void): void
+}
+
+/**
  * `Ollama` — a {@link BHAIDriver} that talks to a local or remote Ollama
  * server over plain `fetch`. Works in any fetch-capable runtime (browser,
  * Node, Electron).
  *
  * This is the second of the two "bundled drivers" (§ 10.3). Unlike WebLLM,
  * it needs no peer dependency — just `fetch`.
+ *
+ * Extends `EventTarget` to expose connection lifecycle events
+ * (`'connect'`, `'disconnect'`, `'error'`) so hosts can observe
+ * connect/disconnect/connection-fail without coupling to driver internals.
  */
-export class Ollama implements BHAIDriver {
+// biome-ignore lint/suspicious/noUnsafeDeclarationMerging: intentional typed-event overloads via merged interface; adds only method overloads, no uninitialized fields
+export class Ollama extends EventTarget implements BHAIDriver {
 	readonly id = "ollama" as const
-	private readonly baseUrl: string
-	private readonly headers: Record<string, string>
+	private declare readonly baseUrl: string
+	private declare readonly headers: Record<string, string>
 	/**
 	 * Cache of per-model capabilities, populated eagerly by `listModels()`
 	 * and `chat()` (both call `fetchShowCapabilities` for any model they
@@ -148,12 +198,16 @@ export class Ollama implements BHAIDriver {
 	private readonly capabilitiesCache: Map<string, DriverCapabilities> = new Map()
 
 	constructor(options?: OllamaOptions) {
+		super()
 		this.baseUrl = options?.baseUrl ?? "http://localhost:11434"
 		this.headers = options?.headers ?? {}
 		// Test-injection seam: if the caller passed the internal
 		// `fetchOverride` field, use it; otherwise use the global `fetch`.
 		const internal = options as OllamaInternalOptions | undefined
-		this.fetchFn = internal?.fetchOverride ?? fetch
+		// `globalThis.fetch` must be bound to the global object. Storing it as
+		// a property and calling it later would make `this` the Ollama
+		// instance, which native fetch rejects with "Illegal invocation".
+		this.fetchFn = internal?.fetchOverride ?? globalThis.fetch.bind(globalThis)
 	}
 
 	/**
@@ -168,36 +222,46 @@ export class Ollama implements BHAIDriver {
 	 * "known but unpulled" catalogue endpoint.
 	 */
 	async listModels(): Promise<ModelInfo[]> {
-		const response = await this.fetch(`${this.baseUrl}/api/tags`, {
-			method: "GET",
-			headers: this.headers,
-		})
-		if (!response.ok) {
-			throw await this.httpError(response)
-		}
-		const data = (await response.json()) as TagsResponse
-		// Eagerly fetch and cache capabilities for each model so subsequent
-		// synchronous `capabilities(model)` calls have data to read.
-		const models: ModelInfo[] = []
-		for (const m of data.models ?? []) {
-			await this.refreshCapabilitiesCache(m.name)
-			models.push({
-				ref: `ollama/${m.name}`,
-				driver: "ollama",
-				id: m.name,
-				label: m.name,
-				capabilities: this.capabilities(m.name),
-				availability: "ready",
-				meta: {
-					size: m.size,
-					digest: m.digest,
-					family: m.details?.family,
-					parameterSize: m.details?.parameter_size,
-					quantization: m.details?.quantization_level,
-				},
+		try {
+			const response = await this.fetch(`${this.baseUrl}/api/tags`, {
+				method: "GET",
+				headers: this.headers,
 			})
+			if (!response.ok) {
+				throw await this.httpError(response)
+			}
+			const data = (await response.json()) as TagsResponse
+			// Eagerly fetch and cache capabilities for each model so subsequent
+			// synchronous `capabilities(model)` calls have data to read.
+			const models: ModelInfo[] = []
+			for (const m of data.models ?? []) {
+				await this.refreshCapabilitiesCache(m.name)
+				models.push({
+					ref: `ollama/${m.name}`,
+					driver: "ollama",
+					id: m.name,
+					label: m.name,
+					capabilities: this.capabilities(m.name),
+					availability: "ready",
+					meta: {
+						size: m.size,
+						digest: m.digest,
+						family: m.details?.family,
+						parameterSize: m.details?.parameter_size,
+						quantization: m.details?.quantization_level,
+					},
+				})
+			}
+			this.dispatchEvent(
+				new CustomEvent<OllamaEventMap["connect"]>("connect", {
+					detail: { models },
+				}),
+			)
+			return models
+		} catch (error) {
+			this.emitError("listModels", error)
+			throw error
 		}
-		return models
 	}
 
 	/**
@@ -227,6 +291,19 @@ export class Ollama implements BHAIDriver {
 				contextWindow: undefined,
 			}
 		)
+	}
+
+	/**
+	 * Host-intent disconnect signal. The Ollama transport is stateless
+	 * (plain `fetch` over HTTP — there is no persistent connection to
+	 * close), so this method performs no network I/O. It clears the
+	 * `capabilitiesCache` (a disconnected provider's cached caps are
+	 * stale) and dispatches a `'disconnect'` event so hosts can react to
+	 * the lifecycle transition.
+	 */
+	disconnect(): void {
+		this.capabilitiesCache.clear()
+		this.dispatchEvent(new Event("disconnect"))
 	}
 
 	/**
@@ -389,26 +466,45 @@ export class Ollama implements BHAIDriver {
 		input: string[]
 		signal?: AbortSignal
 	}): Promise<{ embeddings: number[][]; usage?: Usage }> {
-		const response = await this.fetch(`${this.baseUrl}/api/embed`, {
-			method: "POST",
-			headers: { "Content-Type": "application/json", ...this.headers },
-			body: JSON.stringify({ model: request.model, input: request.input }),
-			signal: request.signal,
-		})
-		if (!response.ok) {
-			throw await this.httpError(response)
+		try {
+			const response = await this.fetch(`${this.baseUrl}/api/embed`, {
+				method: "POST",
+				headers: { "Content-Type": "application/json", ...this.headers },
+				body: JSON.stringify({ model: request.model, input: request.input }),
+				signal: request.signal,
+			})
+			if (!response.ok) {
+				throw await this.httpError(response)
+			}
+			const data = (await response.json()) as EmbedResponse
+			return {
+				embeddings: data.embeddings,
+				usage:
+					data.prompt_eval_count !== undefined
+						? {
+								inputTokens: data.prompt_eval_count,
+								outputTokens: 0,
+							}
+						: undefined,
+			}
+		} catch (error) {
+			this.emitError("embed", error)
+			throw error
 		}
-		const data = (await response.json()) as EmbedResponse
-		return {
-			embeddings: data.embeddings,
-			usage:
-				data.prompt_eval_count !== undefined
-					? {
-							inputTokens: data.prompt_eval_count,
-							outputTokens: 0,
-						}
-					: undefined,
-		}
+	}
+
+	/**
+	 * Build and dispatch an `'error'` lifecycle event for a failed
+	 * `listModels()` or `embed()` call. The original error is NOT
+	 * swallowed — callers re-throw it after this helper runs, so retry
+	 * and kernel error-routing behavior is unchanged.
+	 */
+	private emitError(phase: "listModels" | "embed", error: unknown): void {
+		this.dispatchEvent(
+			new CustomEvent<OllamaEventMap["error"]>("error", {
+				detail: { error, phase },
+			}),
+		)
 	}
 
 	/**
@@ -503,7 +599,7 @@ export class Ollama implements BHAIDriver {
 	 * to keep the public API clean). When no override is supplied, the
 	 * global `fetch` is used.
 	 */
-	private readonly fetchFn: typeof fetch
+	private declare readonly fetchFn: typeof fetch
 	private fetch(input: string, init?: RequestInit): Promise<Response> {
 		return this.fetchFn(input, init)
 	}

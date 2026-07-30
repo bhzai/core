@@ -86,6 +86,16 @@ body {
 	color: var(--text);
 }
 
+/* Groups the model selector and the providers cog so they stay together in the
+   status bar instead of drifting apart under `justify-content: space-between`. */
+.center-container {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	flex: 1;
+	max-width: 360px;
+}
+
 .model-select {
 	flex: 1;
 	min-width: 180px;
@@ -576,6 +586,11 @@ details[open] > summary::before {
 	.wordmark {
 		flex: 1;
 		min-width: 100%;
+	}
+
+	.center-container {
+		flex: 1;
+		max-width: none;
 	}
 
 	.model-select {
@@ -1168,4 +1183,335 @@ details[open] > summary::before {
 	line-height: 1.5;
 	color: var(--muted);
 	white-space: pre;
+}
+
+/* ─── Providers cog + dialog ──────────────────────────────────────────────
+   The cog sits in the status bar after the model selector; the dialog is a
+   positioned overlay (not a native <dialog>) so it can be styled with the
+   page's CSS variables. Reuses the status-dot color vocabulary. */
+.provider-cog {
+	padding: 0.2rem 0.4rem;
+	background: transparent;
+	border: 1px solid transparent;
+	border-radius: 4px;
+	color: var(--muted);
+	font-size: 34px;
+	line-height: 1;
+	cursor: pointer;
+	transition: all 150ms ease;
+}
+
+.provider-cog:hover {
+	background: var(--graphite-700);
+	border-color: var(--line);
+	color: var(--text);
+}
+
+.provider-cog:focus-visible {
+	outline: 2px solid var(--cold);
+	outline-offset: 2px;
+}
+
+/* The dialog host is hidden until [open]; the backdrop + panel are siblings. */
+bhai-providers-dialog {
+	display: none;
+}
+
+bhai-providers-dialog[open] {
+	display: block;
+}
+
+.providers-dialog-backdrop {
+	position: fixed;
+	inset: 0;
+	background: rgba(12, 14, 19, 0.7);
+	z-index: 100;
+}
+
+.providers-dialog {
+	position: fixed;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	width: min(480px, calc(100vw - 2rem));
+	max-height: min(80vh, 640px);
+	padding: 1.25rem;
+	background: var(--graphite-800);
+	border: 1px solid var(--line);
+	border-radius: 6px;
+	color: var(--text);
+	font-family: var(--font-body);
+	overflow-y: auto;
+	z-index: 101;
+}
+
+.providers-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem;
+	margin-bottom: 1rem;
+}
+
+.providers-header h2 {
+	margin: 0;
+	font-family: var(--font-display);
+	font-size: 16px;
+	font-weight: 700;
+	color: var(--text);
+}
+
+.providers-close {
+	padding: 0.2rem 0.45rem;
+	background: transparent;
+	border: 1px solid var(--line);
+	border-radius: 3px;
+	color: var(--muted);
+	font-size: 12px;
+	cursor: pointer;
+	transition: all 150ms ease;
+}
+
+.providers-close:hover {
+	background: var(--graphite-700);
+	color: var(--text);
+}
+
+.providers-close:focus-visible {
+	outline: 2px solid var(--cold);
+	outline-offset: 2px;
+}
+
+.provider-list {
+	list-style: none;
+	margin: 0 0 1rem;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 0.4rem;
+}
+
+.provider-row {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 0.5rem 0.6rem;
+	background: var(--graphite-900);
+	border: 1px solid var(--line);
+	border-left: 2px solid var(--line);
+	border-radius: 4px;
+}
+
+.provider-row[data-state="connected"] {
+	border-left-color: var(--ok);
+}
+
+.provider-row[data-state="error"] {
+	border-left-color: var(--warm);
+}
+
+.provider-row[data-state="connecting"] {
+	border-left-color: var(--mid);
+}
+
+.provider-row[data-clickable] {
+	cursor: pointer;
+}
+
+.provider-row[data-clickable]:hover {
+	border-color: var(--cold);
+}
+
+.provider-dot {
+	display: inline-block;
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	background: var(--muted);
+	flex-shrink: 0;
+}
+
+.provider-dot[data-state="connected"] {
+	background: var(--ok);
+}
+
+.provider-dot[data-state="error"] {
+	background: var(--warm);
+}
+
+.provider-dot[data-state="connecting"] {
+	background: var(--mid);
+	animation: thermal-pulse 1.5s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.provider-dot[data-state="connecting"] {
+		animation: none;
+		background: var(--mid);
+	}
+}
+
+.provider-label {
+	font-family: var(--font-mono);
+	font-size: 12px;
+	color: var(--text);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	flex: 1;
+	min-width: 0;
+}
+
+.provider-add {
+	width: 100%;
+	padding: 0.45rem 0.75rem;
+	background: var(--cold);
+	border: none;
+	border-radius: 4px;
+	color: var(--graphite-900);
+	font-family: var(--font-body);
+	font-size: 13px;
+	font-weight: 500;
+	cursor: pointer;
+	transition: all 150ms ease;
+}
+
+.provider-add:hover:not(:disabled) {
+	background: #0ea5e9;
+}
+
+.provider-add:focus-visible {
+	outline: 2px solid var(--cold);
+	outline-offset: 2px;
+}
+
+.provider-add:disabled {
+	opacity: 0.6;
+	cursor: not-allowed;
+}
+
+/* Add/edit form fields, sharing the mcp-field vocabulary. */
+.provider-form {
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+}
+
+.provider-field {
+	display: flex;
+	flex-direction: column;
+	gap: 0.2rem;
+}
+
+.provider-field > span {
+	font-size: 11px;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	color: var(--muted);
+}
+
+.provider-field > span em {
+	font-style: normal;
+	text-transform: none;
+	letter-spacing: 0;
+	opacity: 0.7;
+}
+
+.provider-field input {
+	width: 100%;
+	padding: 0.4rem 0.5rem;
+	background: var(--graphite-700);
+	border: 1px solid var(--line);
+	border-radius: 4px;
+	color: var(--text);
+	font-family: var(--font-mono);
+	font-size: 12px;
+	line-height: 1.4;
+	transition: all 150ms ease;
+}
+
+.provider-field input:hover {
+	border-color: var(--cold);
+}
+
+.provider-field input:focus-visible {
+	outline: 2px solid var(--cold);
+	outline-offset: 1px;
+	border-color: var(--cold);
+}
+
+.provider-field input:disabled {
+	background: var(--graphite-800);
+	color: var(--muted);
+	cursor: not-allowed;
+}
+
+.provider-typeahead {
+	background: var(--graphite-700);
+	color: var(--text);
+	font-family: var(--font-body);
+	font-size: 14px;
+}
+
+.provider-form-error {
+	margin: 0;
+	padding: 0.4rem 0.5rem;
+	background: rgba(251, 113, 133, 0.1);
+	border-left: 2px solid var(--warm);
+	border-radius: 2px;
+	font-size: 11px;
+	line-height: 1.4;
+	color: var(--warm);
+}
+
+.provider-actions {
+	display: flex;
+	gap: 0.5rem;
+}
+
+.provider-actions button {
+	padding: 0.45rem 0.75rem;
+	border: 1px solid var(--line);
+	border-radius: 4px;
+	background: transparent;
+	color: var(--text);
+	font-family: var(--font-body);
+	font-size: 13px;
+	font-weight: 500;
+	cursor: pointer;
+	transition: all 150ms ease;
+}
+
+.provider-actions button:hover:not(:disabled) {
+	border-color: var(--cold);
+}
+
+.provider-actions button:focus-visible {
+	outline: 2px solid var(--cold);
+	outline-offset: 2px;
+}
+
+.provider-actions button:disabled {
+	opacity: 0.6;
+	cursor: not-allowed;
+}
+
+.provider-actions button.provider-connect {
+	flex: 1;
+	background: var(--cold);
+	border: none;
+	color: var(--graphite-900);
+}
+
+.provider-actions button.provider-connect:hover:not(:disabled) {
+	background: #0ea5e9;
+}
+
+.provider-actions button.provider-remove {
+	border-color: var(--warm);
+	color: var(--warm);
+}
+
+.provider-actions button.provider-remove:hover:not(:disabled) {
+	background: rgba(251, 113, 133, 0.1);
 }

@@ -48,7 +48,13 @@ importers:
       lit:
         specifier: ^3.2.0
         version: 3.3.3
+      toastify-js:
+        specifier: ^1.12.0
+        version: 1.12.0
     devDependencies:
+      '@types/toastify-js':
+        specifier: ^1.12.4
+        version: 1.12.4
       '@webgpu/types':
         specifier: ^0.1.71
         version: 0.1.71
@@ -567,6 +573,9 @@ packages:
   '@types/node@22.10.2':
     resolution: {integrity: sha512-Xxr6BBRCAOQixvonOye19wnzyDiUtTeqldOOmj3CkeblonbccA12PFwlufvRdrpjXxqnmUaeiU5EOA+7s5diUQ==}
 
+  '@types/toastify-js@1.12.4':
+    resolution: {integrity: sha512-zfZHU4tKffPCnZRe7pjv/eFKzTVHozKewFCKaCjZ4gFinKgJRz/t0bkZiMCXJxPhv/ZoeDGNOeRD09R0kQZ/nw==}
+
   '@types/trusted-types@2.0.7':
     resolution: {integrity: sha512-ScaPdn1dQczgbl0QFTeTOmVHFULt394XJgOQNoyVhZ6r2vLnMLJfBPd53SB52T/3G36VI1/g2MZaX0cwDuXsfw==}
 
@@ -890,6 +899,9 @@ packages:
   tinyspy@3.0.2:
     resolution: {integrity: sha512-n1cw8k1k0x4pgA2+9XrOkFydTerNcJ1zWCO5Nn9scWHTD+5tp8dghT2x1uduQePZTZgd3Tupf+x9BxJjeJi77Q==}
     engines: {node: '>=14.0.0'}
+
+  toastify-js@1.12.0:
+    resolution: {integrity: sha512-HeMHCO9yLPvP9k0apGSdPUWrUbLnxUKNFzgUoZp1PHCLploIX/4DSQ7V8H25ef+h4iO9n0he7ImfcndnN6nDrQ==}
 
   tree-kill@1.2.2:
     resolution: {integrity: sha512-L0Orpi8qGpRG//Nd+H90vFB+3iHnue1zSSGmNOOCh1GLJ7rUKVwV2HvijphGQS2UmhUZewS9VgvxYIdgr+fG1A==}
@@ -1315,6 +1327,8 @@ snapshots:
       undici-types: 6.20.0
     optional: true
 
+  '@types/toastify-js@1.12.4': {}
+
   '@types/trusted-types@2.0.7': {}
 
   '@vitest/expect@2.1.8':
@@ -1661,6 +1675,8 @@ snapshots:
   tinyrainbow@1.2.0: {}
 
   tinyspy@3.0.2: {}
+
+  toastify-js@1.12.0: {}
 
   tree-kill@1.2.2: {}
 
