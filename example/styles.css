@@ -1362,6 +1362,21 @@ bhzai-providers-dialog[open] {
 	min-width: 0;
 }
 
+/* Kind badge on an added provider row ("Ollama", "LM Studio"), so a list with
+   more than one provider kind is readable at a glance. */
+.provider-kind {
+	font-family: var(--font-mono);
+	font-size: 10px;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	color: var(--muted);
+	border: 1px solid var(--line);
+	border-radius: 3px;
+	padding: 0.1rem 0.3rem;
+	flex-shrink: 0;
+	white-space: nowrap;
+}
+
 .provider-add {
 	width: 100%;
 	padding: 0.45rem 0.75rem;

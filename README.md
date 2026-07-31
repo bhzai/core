@@ -38,6 +38,7 @@ Note: The `@bhzai/core/plugins/webllm` driver requires `@mlc-ai/web-llm` as a pe
 | `@bhzai/core/core`             | Kernel only (bhzai, bhzaiConversation, types, decorators, event bus)                              |
 | `@bhzai/core/plugins/webllm`   | WebLLM driver plugin (peer dep: @mlc-ai/web-llm)                                                |
 | `@bhzai/core/plugins/ollama`   | Ollama driver plugin (fetch, no deps beyond web-standard APIs)                                  |
+| `@bhzai/core/plugins/lmstudio` | LM Studio driver plugin (fetch, no deps beyond web-standard APIs)                               |
 | `@bhzai/core/plugins/mcp`      | MCP streamable-HTTP client plugin + server lifecycle manager                                     |
 | `@bhzai/core/plugins/interop/pi` | Adapter to run (a subset of) pi coding-agent extensions                                        |
 | `@bhzai/core/plugins/interop/opencode` | Adapter to run (a subset of) OpenCode plugins                                           |
@@ -136,7 +137,7 @@ See `docs/plugins/mcp-client.md` for the full API, and `example/` for a working 
 
 2. **Plugin-first architecture** — The kernel ships almost nothing baked in; even the bundled WebLLM/Ollama drivers and the MCP client are plugins that happen to be published from the same package.
 
-3. **Two bundled drivers** — WebLLM (in-browser inference over WebGPU, engine injected by the host) and Ollama (HTTP API, works in any fetch-capable runtime).
+3. **Three bundled drivers** — WebLLM (in-browser inference over WebGPU, engine injected by the host), Ollama, and LM Studio (both HTTP APIs, working in any fetch-capable runtime).
 
 4. **Built-in, spec-conformant MCP client** — Streamable HTTP transport (spec revision 2025-11-25) with handshake, paginated `tools/list`, `tools/call`, list-changed re-sync, progress/cancellation, and optional deferred loading via `search_tools` convention.
 
@@ -170,7 +171,7 @@ See `docs/plugins/mcp-client.md` for the full API, and `example/` for a working 
 
 - **Tools** — A bhzai tool definition _is_ an MCP `Tool` object plus a local `execute` binding; results _are_ MCP `CallToolResult`s. Local and remote MCP tools share one registry.
 
-- **Drivers** — `bhzaiDriver` interface (`listModels`, `capabilities`, `chat`, optional `embed`). Two bundled: WebLLM (browser/WebGPU) and Ollama (plain `fetch`).
+- **Drivers** — `bhzaiDriver` interface (`listModels`, `capabilities`, `chat`, optional `embed`). Three bundled: WebLLM (browser/WebGPU), Ollama (plain `fetch`), and LM Studio (plain `fetch`).
 
 - **MCP client** — Streamable-HTTP transport only (spec rev 2025-11-25). Handles handshake, paginated discovery, live re-sync, progress/cancellation.
 
@@ -205,6 +206,8 @@ Open `http://localhost:5173` and pick a model. See [`docs/examples/webllm-chat.m
 ## Documentation
 
 - **`../ARCHITECTURE.md`** (parent directory) — Full v0.1 design proposal with detailed rationale for every subsystem (§ 1–14).
+
+- **`docs/plugins/`** — Per-plugin references: [`webllm-driver.md`](./docs/plugins/webllm-driver.md), [`ollama-driver.md`](./docs/plugins/ollama-driver.md), [`lmstudio-driver.md`](./docs/plugins/lmstudio-driver.md), and [`mcp-client.md`](./docs/plugins/mcp-client.md).
 
 - **`docs/security-review.md`** — TASK_0041 security audit: verifies five security commitments from ARCHITECTURE.md § 13.
 

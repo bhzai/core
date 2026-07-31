@@ -16,7 +16,7 @@ async function fixture(): Promise<BhzaiProvidersDialog> {
 	return dialog
 }
 
-/** Two sample provider rows for the list view. */
+/** Three sample provider rows for the list view, spanning both addable kinds. */
 function sampleProviders(): ProviderViewState[] {
 	return [
 		{ id: "ollama-1", kind: "ollama", label: "http://localhost:11434", status: "connected" },
@@ -27,6 +27,7 @@ function sampleProviders(): ProviderViewState[] {
 			status: "error",
 			error: "boom",
 		},
+		{ id: "lmstudio-1", kind: "lmstudio", label: "http://localhost:1234", status: "connected" },
 	]
 }
 
@@ -51,11 +52,23 @@ describe("BhzaiProvidersDialog", () => {
 		await dialog.updateComplete
 
 		const rows = dialog.querySelectorAll(".provider-row")
-		expect(rows).toHaveLength(3)
+		expect(rows).toHaveLength(4)
 		// WebLLM is always first and connected.
 		expect(rows[0]?.getAttribute("data-kind")).toBe("webllm")
 		expect(rows[0]?.querySelector(".provider-dot")?.getAttribute("data-state")).toBe("connected")
 		expect(rows[0]?.querySelector(".provider-label")?.textContent).toBe("WebLLM (built-in)")
+		// …and carries no kind badge, since it is not a configurable entry.
+		expect(rows[0]?.querySelector(".provider-kind")).toBeNull()
+	})
+
+	it("badges each added row with its provider kind", async () => {
+		const dialog = await fixture()
+		dialog.show()
+		dialog.setProviders(sampleProviders())
+		await dialog.updateComplete
+
+		const badges = Array.from(dialog.querySelectorAll(".provider-kind")).map((el) => el.textContent)
+		expect(badges).toEqual(["Ollama", "Ollama", "LM Studio"])
 	})
 
 	it("shows a green dot for a connected ollama row and a red dot for an error row", async () => {
@@ -89,6 +102,60 @@ describe("BhzaiProvidersDialog", () => {
 		expect(dialog.querySelector("lit-typeahead")).not.toBeNull()
 		expect(dialog.querySelector("input[name=api-url]")).not.toBeNull()
 		expect(dialog.querySelector("input[name=api-token]")).not.toBeNull()
+	})
+
+	it("offers both addable kinds in the type typeahead, Ollama first", async () => {
+		const dialog = await fixture()
+		dialog.show()
+		dialog.showAddView()
+		await dialog.updateComplete
+
+		const typeahead = dialog.querySelector("lit-typeahead") as HTMLElement & { items: string[] }
+		expect(typeahead.items).toEqual(["Ollama", "LM Studio"])
+		expect(dialog.querySelector(".provider-field > span")?.textContent).toBe("Type")
+	})
+
+	it("re-labels the address field and its placeholder when the type changes", async () => {
+		const dialog = await fixture()
+		dialog.show()
+		dialog.showAddView()
+		await dialog.updateComplete
+
+		const labelFor = () =>
+			Array.from(dialog.querySelectorAll(".provider-field > span")).map((el) => el.textContent)
+		expect(labelFor()).toContain("Ollama API address")
+
+		const typeahead = dialog.querySelector("lit-typeahead") as HTMLElement
+		typeahead.dispatchEvent(
+			new CustomEvent("change", { detail: { value: "LM Studio" }, bubbles: true }),
+		)
+		await dialog.updateComplete
+
+		expect(labelFor()).toContain("LM Studio API address")
+		expect((dialog.querySelector("input[name=api-url]") as HTMLInputElement).placeholder).toBe(
+			"http://localhost:1234",
+		)
+	})
+
+	it("ignores a detail-less change event instead of snapping back to the first kind", async () => {
+		const dialog = await fixture()
+		dialog.show()
+		dialog.showAddView()
+		await dialog.updateComplete
+
+		const labelFor = () =>
+			Array.from(dialog.querySelectorAll(".provider-field > span")).map((el) => el.textContent)
+		const typeahead = dialog.querySelector("lit-typeahead") as HTMLElement
+		typeahead.dispatchEvent(
+			new CustomEvent("change", { detail: { value: "LM Studio" }, bubbles: true }),
+		)
+		await dialog.updateComplete
+		expect(labelFor()).toContain("LM Studio API address")
+
+		// The typeahead's internal <input> bubbles a bare native `change`.
+		typeahead.dispatchEvent(new Event("change", { bubbles: true }))
+		await dialog.updateComplete
+		expect(labelFor()).toContain("LM Studio API address")
 	})
 
 	it("showError reveals an inline error line and clearError hides it", async () => {
@@ -146,6 +213,50 @@ describe("BhzaiProvidersDialog", () => {
 		expect(detail.type).toBe("ollama")
 		expect(detail.baseUrl).toBe("http://localhost:11434/api")
 		expect(detail.token).toBe("")
+	})
+
+	it("submitting after switching type dispatches the lmstudio kind", async () => {
+		const dialog = await fixture()
+		dialog.show()
+		dialog.showAddView()
+		await dialog.updateComplete
+
+		const typeahead = dialog.querySelector("lit-typeahead") as HTMLElement
+		typeahead.dispatchEvent(
+			new CustomEvent("change", { detail: { value: "LM Studio" }, bubbles: true }),
+		)
+		await dialog.updateComplete
+
+		const spy = vi.fn()
+		dialog.addEventListener("bhzai-add-provider", (event) => spy(event))
+
+		const urlInput = dialog.querySelector("input[name=api-url]") as HTMLInputElement
+		urlInput.value = "http://localhost:1234"
+		const form = dialog.querySelector("form") as HTMLFormElement
+		form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }))
+
+		const detail = (spy.mock.calls[0][0] as CustomEvent).detail
+		expect(detail.type).toBe("lmstudio")
+		expect(detail.baseUrl).toBe("http://localhost:1234")
+	})
+
+	it("editing an lmstudio row labels the address field for LM Studio", async () => {
+		const dialog = await fixture()
+		dialog.show()
+		dialog.setProviders(sampleProviders())
+		await dialog.updateComplete
+
+		const row = dialog.querySelector('.provider-row[data-kind="lmstudio"]') as HTMLElement
+		row.click()
+		await dialog.updateComplete
+
+		expect(dialog.querySelector("h2")?.textContent).toBe("Edit provider")
+		expect(dialog.querySelector(".provider-field > span")?.textContent).toBe(
+			"LM Studio API address",
+		)
+		expect((dialog.querySelector("input[name=api-url]") as HTMLInputElement).value).toBe(
+			"http://localhost:1234",
+		)
 	})
 
 	it("clicking a connected ollama row opens the edit view", async () => {

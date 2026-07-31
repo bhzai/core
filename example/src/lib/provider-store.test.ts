@@ -2,9 +2,12 @@
 
 import { describe, expect, it } from "vitest"
 import {
-	type OllamaProviderConfig,
+	DEFAULT_PROVIDER_API,
+	type ProviderConfig,
 	loadProviders,
 	normalizeBaseUrl,
+	providerKindFromLabel,
+	providerLabel,
 	saveProviders,
 	validateApiUrl,
 } from "./provider-store.js"
@@ -40,11 +43,11 @@ function brokenStorage(): Storage {
 }
 
 describe("loadProviders / saveProviders", () => {
-	it("round-trips a provider list", () => {
+	it("round-trips a mixed-kind provider list", () => {
 		const storage = fakeStorage()
-		const providers: OllamaProviderConfig[] = [
-			{ id: "a", baseUrl: "http://localhost:11434", token: "" },
-			{ id: "b", baseUrl: "http://gpu.box:11434", token: "Bearer abc" },
+		const providers: ProviderConfig[] = [
+			{ id: "a", kind: "ollama", baseUrl: "http://localhost:11434", token: "" },
+			{ id: "b", kind: "lmstudio", baseUrl: "http://localhost:1234", token: "Bearer abc" },
 		]
 
 		expect(saveProviders(providers, storage)).toBe(true)
@@ -56,35 +59,47 @@ describe("loadProviders / saveProviders", () => {
 	})
 
 	it("returns an empty list for corrupt JSON rather than throwing", () => {
-		const storage = fakeStorage({ "bhzai.providers.ollama": "{not json" })
+		const storage = fakeStorage({ "bhzai.providers": "{not json" })
 		expect(loadProviders(storage)).toEqual([])
 	})
 
 	it("discards a payload from an unknown schema version", () => {
 		const storage = fakeStorage({
-			"bhzai.providers.ollama": JSON.stringify({
+			"bhzai.providers": JSON.stringify({
 				v: 99,
+				providers: [{ id: "a", kind: "ollama", baseUrl: "http://localhost:11434", token: "" }],
+			}),
+		})
+		expect(loadProviders(storage)).toEqual([])
+	})
+
+	it("ignores the pre-v2 ollama-only key rather than migrating it", () => {
+		const storage = fakeStorage({
+			"bhzai.providers.ollama": JSON.stringify({
+				v: 1,
 				providers: [{ id: "a", baseUrl: "http://localhost:11434", token: "" }],
 			}),
 		})
 		expect(loadProviders(storage)).toEqual([])
 	})
 
-	it("discards entries with no usable id or baseUrl", () => {
+	it("discards entries with no usable id, kind, or baseUrl", () => {
 		const storage = fakeStorage({
-			"bhzai.providers.ollama": JSON.stringify({
-				v: 1,
+			"bhzai.providers": JSON.stringify({
+				v: 2,
 				providers: [
-					{ id: "ok", baseUrl: "http://localhost:11434", token: "" },
-					{ baseUrl: "http://no-id:11434", token: "" },
-					{ id: "no-url", token: "" },
+					{ id: "ok", kind: "ollama", baseUrl: "http://localhost:11434", token: "" },
+					{ kind: "ollama", baseUrl: "http://no-id:11434", token: "" },
+					{ id: "no-url", kind: "ollama", token: "" },
+					{ id: "bad-kind", kind: "vllm", baseUrl: "http://x:8000", token: "" },
+					{ id: "no-kind", baseUrl: "http://x:11434", token: "" },
 					null,
-					{ id: "", baseUrl: "http://empty-id:11434", token: "" },
+					{ id: "", kind: "ollama", baseUrl: "http://empty-id:11434", token: "" },
 				],
 			}),
 		})
 		expect(loadProviders(storage)).toEqual([
-			{ id: "ok", baseUrl: "http://localhost:11434", token: "" },
+			{ id: "ok", kind: "ollama", baseUrl: "http://localhost:11434", token: "" },
 		])
 	})
 
@@ -92,7 +107,10 @@ describe("loadProviders / saveProviders", () => {
 		const storage = brokenStorage()
 		expect(loadProviders(storage)).toEqual([])
 		expect(
-			saveProviders([{ id: "a", baseUrl: "http://localhost:11434", token: "" }], storage),
+			saveProviders(
+				[{ id: "a", kind: "ollama", baseUrl: "http://localhost:11434", token: "" }],
+				storage,
+			),
 		).toBe(false)
 	})
 })
@@ -106,20 +124,27 @@ describe("normalizeBaseUrl", () => {
 		expect(normalizeBaseUrl("http://localhost:11434/api/")).toBe("http://localhost:11434")
 	})
 
+	it("strips LM Studio's /api/v0 and /v1 suffixes", () => {
+		expect(normalizeBaseUrl("http://localhost:1234/api/v0")).toBe("http://localhost:1234")
+		expect(normalizeBaseUrl("http://localhost:1234/api/v0/")).toBe("http://localhost:1234")
+		expect(normalizeBaseUrl("http://localhost:1234/v1")).toBe("http://localhost:1234")
+	})
+
 	it("strips a trailing slash from a bare root", () => {
 		expect(normalizeBaseUrl("http://localhost:11434/")).toBe("http://localhost:11434")
 	})
 
 	it("leaves a bare root untouched", () => {
-		expect(normalizeBaseUrl("http://localhost:11434")).toBe("http://localhost:11434")
+		expect(normalizeBaseUrl("http://localhost:1234")).toBe("http://localhost:1234")
 	})
 
-	it("leaves a root with a path prefix untouched (no /api suffix)", () => {
+	it("leaves a root with a path prefix untouched (no API suffix)", () => {
 		expect(normalizeBaseUrl("http://host/ollama")).toBe("http://host/ollama")
 	})
 
-	it("strips /api case-insensitively", () => {
+	it("strips the API segment case-insensitively", () => {
 		expect(normalizeBaseUrl("http://localhost:11434/API")).toBe("http://localhost:11434")
+		expect(normalizeBaseUrl("http://localhost:1234/API/V0")).toBe("http://localhost:1234")
 	})
 
 	it("trims surrounding whitespace", () => {
@@ -129,21 +154,38 @@ describe("normalizeBaseUrl", () => {
 
 describe("validateApiUrl", () => {
 	it("accepts http and https addresses", () => {
-		expect(validateApiUrl("http://localhost:11434/api")).toBeNull()
-		expect(validateApiUrl("https://gpu.example:11434")).toBeNull()
+		expect(validateApiUrl("http://localhost:11434/api", "ollama")).toBeNull()
+		expect(validateApiUrl("https://gpu.example:11434", "ollama")).toBeNull()
+		expect(validateApiUrl("http://localhost:1234", "lmstudio")).toBeNull()
 	})
 
-	it("rejects an empty entry", () => {
-		expect(validateApiUrl("")).toMatch(/Enter the Ollama/)
-		expect(validateApiUrl("   ")).toMatch(/Enter the Ollama/)
+	it("rejects an empty entry, naming the provider", () => {
+		expect(validateApiUrl("", "ollama")).toMatch(/Enter the Ollama/)
+		expect(validateApiUrl("   ", "lmstudio")).toMatch(/Enter the LM Studio/)
 	})
 
-	it("rejects a URL with no scheme", () => {
-		expect(validateApiUrl("example.com/ollama")).toMatch(/not a valid URL/)
+	it("rejects a URL with no scheme and suggests that kind's default", () => {
+		expect(validateApiUrl("example.com/ollama", "ollama")).toContain(DEFAULT_PROVIDER_API.ollama)
+		expect(validateApiUrl("example.com", "lmstudio")).toContain(DEFAULT_PROVIDER_API.lmstudio)
 	})
 
-	it("rejects non-HTTP transports — the Ollama plugin speaks HTTP only", () => {
-		expect(validateApiUrl("ws://localhost:11434")).toMatch(/Only HTTP Ollama servers/)
-		expect(validateApiUrl("file:///tmp/ollama")).toMatch(/Only HTTP Ollama servers/)
+	it("rejects non-HTTP transports — both drivers speak HTTP only", () => {
+		expect(validateApiUrl("ws://localhost:11434", "ollama")).toMatch(/Only HTTP Ollama servers/)
+		expect(validateApiUrl("file:///tmp/lmstudio", "lmstudio")).toMatch(
+			/Only HTTP LM Studio servers/,
+		)
+	})
+})
+
+describe("provider labels", () => {
+	it("maps a kind to its display label and back", () => {
+		expect(providerLabel("lmstudio")).toBe("LM Studio")
+		expect(providerKindFromLabel("LM Studio")).toBe("lmstudio")
+		expect(providerKindFromLabel("Ollama")).toBe("ollama")
+	})
+
+	it("falls back to the raw value for an unknown kind and to ollama for an unknown label", () => {
+		expect(providerLabel("vllm")).toBe("vllm")
+		expect(providerKindFromLabel("Nonsense")).toBe("ollama")
 	})
 })

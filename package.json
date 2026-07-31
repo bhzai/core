@@ -28,6 +28,10 @@
 			"types": "./dist/plugins/ollama/index.d.ts",
 			"import": "./dist/plugins/ollama/index.js"
 		},
+		"./plugins/lmstudio": {
+			"types": "./dist/plugins/lmstudio/index.d.ts",
+			"import": "./dist/plugins/lmstudio/index.js"
+		},
 		"./plugins/mcp": {
 			"types": "./dist/plugins/mcp/index.d.ts",
 			"import": "./dist/plugins/mcp/index.js"

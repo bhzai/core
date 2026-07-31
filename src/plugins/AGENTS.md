@@ -8,6 +8,8 @@ Holds the plugin subpath entry points shipped from the same package (ARCHITECTUR
 
 - `webllm/` — WebLLM driver plugin (browser/WebGPU). Peer dep: `@mlc-ai/web-llm`. TASK_0019.
 - `ollama/` — Ollama driver plugin (plain `fetch`). TASK_0020.
+- `lmstudio/` — LM Studio driver plugin (plain `fetch`, LM Studio's native
+  `/api/v0` REST API, OpenAI-shaped SSE streaming).
 - `mcp/` — MCP streamable-HTTP client plugin (spec rev 2025-11-25). TASK_0011-0016.
 - `interop/pi/` — adapter for a subset of pi coding-agent extensions. Future task.
 - `interop/opencode/` — adapter for a subset of OpenCode plugins. Future task.

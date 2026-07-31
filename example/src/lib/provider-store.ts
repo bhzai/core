@@ -1,6 +1,6 @@
 /**
  * @file Pure helpers for the providers panel: persistence and validation of
- * Ollama provider configs.
+ * local HTTP provider configs (Ollama and LM Studio).
  *
  * DOM-free by convention (see `example/AGENTS.md`) so every branch here is
  * unit-testable in Node. `localStorage` is reached through the injectable
@@ -9,29 +9,67 @@
  * versioned localStorage payload, injectable backend, defensive parsing.
  */
 
-/** localStorage key holding the configured Ollama provider list. */
-const STORAGE_KEY = "bhzai.providers.ollama"
+/** localStorage key holding the configured provider list. */
+const STORAGE_KEY = "bhzai.providers"
 
 /**
  * Schema version of the persisted payload. Bump it when the stored shape
  * changes; {@link loadProviders} discards anything it does not recognize
  * rather than trying to migrate, since this is a demo app whose stored data
  * is trivially re-entered.
+ *
+ * v2 added the `kind` discriminator and moved off the ollama-only
+ * `bhzai.providers.ollama` key, so a v1 payload is simply left behind.
  */
-const STORAGE_VERSION = 1
+const STORAGE_VERSION = 2
+
+/** The local HTTP providers the panel can add. WebLLM is the built-in, not one of these. */
+export type ProviderKind = "ollama" | "lmstudio"
+
+/** Every addable provider kind, in the order the add form offers them. */
+export const PROVIDER_KINDS: ProviderKind[] = ["ollama", "lmstudio"]
+
+/** Human-readable name per kind, used in form labels and error messages. */
+export const PROVIDER_LABELS: Record<ProviderKind, string> = {
+	ollama: "Ollama",
+	lmstudio: "LM Studio",
+}
 
 /**
- * The default Ollama API address offered in the add-provider form. The plugin
- * appends `/api/tags` itself, so the driver wants the server ROOT, not the
- * `/api` path — see {@link normalizeBaseUrl}.
+ * The default API address offered in the add-provider form, per kind. Both
+ * drivers append their own API path, so they want the server ROOT — see
+ * {@link normalizeBaseUrl}.
  */
-export const DEFAULT_OLLAMA_API = "http://localhost:11434/api"
+export const DEFAULT_PROVIDER_API: Record<ProviderKind, string> = {
+	ollama: "http://localhost:11434/api",
+	lmstudio: "http://localhost:1234",
+}
 
-/** One persisted Ollama provider entry. */
-export interface OllamaProviderConfig {
+/** Resolve a display label from an arbitrary string, falling back to the raw value. */
+export function providerLabel(kind: string): string {
+	return PROVIDER_LABELS[kind as ProviderKind] ?? kind
+}
+
+/**
+ * Map a user-facing label back to its kind. The add form's typeahead shows
+ * labels ("LM Studio"), not slugs, so its reported value has to be translated
+ * before it can select a driver.
+ *
+ * @param label - The label the typeahead reported
+ * @returns The matching kind, or the first kind when nothing matches
+ */
+export function providerKindFromLabel(label: string): ProviderKind {
+	const match = PROVIDER_KINDS.find((kind) => PROVIDER_LABELS[kind] === label)
+	return match ?? (PROVIDER_KINDS[0] as ProviderKind)
+}
+
+/** One persisted provider entry. */
+export interface ProviderConfig {
 	/** Stable client-side id (`crypto.randomUUID()`), persisted across reloads. */
 	id: string
-	/** The Ollama server root URL (after {@link normalizeBaseUrl}). */
+	/** Which driver this entry configures. */
+	kind: ProviderKind
+	/** The server root URL (after {@link normalizeBaseUrl}). */
 	baseUrl: string
 	/** Optional bearer token; empty string means unauthenticated. */
 	token: string
@@ -55,7 +93,7 @@ function resolveStorage(storage: Storage | undefined): Storage | null {
 }
 
 /**
- * Read the persisted Ollama provider list.
+ * Read the persisted provider list.
  *
  * Returns `[]` for every failure mode — absent key, disabled storage, corrupt
  * JSON, an unknown schema version, or a payload of the wrong shape. A demo
@@ -65,7 +103,7 @@ function resolveStorage(storage: Storage | undefined): Storage | null {
  * @param storage - Storage backend (defaults to `localStorage`)
  * @returns The stored providers, or an empty list
  */
-export function loadProviders(storage?: Storage): OllamaProviderConfig[] {
+export function loadProviders(storage?: Storage): ProviderConfig[] {
 	const backend = resolveStorage(storage)
 	if (!backend) return []
 
@@ -83,16 +121,18 @@ export function loadProviders(storage?: Storage): OllamaProviderConfig[] {
 			return []
 		}
 		// Filter rather than trust: a hand-edited entry without a usable baseUrl
-		// would otherwise become a provider row that can never connect.
+		// would otherwise become a provider row that can never connect, and an
+		// unrecognized `kind` has no driver to instantiate.
 		return parsed.providers.filter(
-			(p: unknown): p is OllamaProviderConfig =>
+			(p: unknown): p is ProviderConfig =>
 				typeof p === "object" &&
 				p !== null &&
-				typeof (p as OllamaProviderConfig).id === "string" &&
-				(p as OllamaProviderConfig).id.length > 0 &&
-				typeof (p as OllamaProviderConfig).baseUrl === "string" &&
-				(p as OllamaProviderConfig).baseUrl.length > 0 &&
-				typeof (p as OllamaProviderConfig).token === "string",
+				typeof (p as ProviderConfig).id === "string" &&
+				(p as ProviderConfig).id.length > 0 &&
+				PROVIDER_KINDS.includes((p as ProviderConfig).kind) &&
+				typeof (p as ProviderConfig).baseUrl === "string" &&
+				(p as ProviderConfig).baseUrl.length > 0 &&
+				typeof (p as ProviderConfig).token === "string",
 		)
 	} catch {
 		return []
@@ -100,7 +140,7 @@ export function loadProviders(storage?: Storage): OllamaProviderConfig[] {
 }
 
 /**
- * Persist the Ollama provider list.
+ * Persist the provider list.
  *
  * ⚠️ Stores the bearer token verbatim in plaintext under this browser origin.
  * That is a deliberate trade-off for a local demo (one-click reconnect); a
@@ -114,7 +154,7 @@ export function loadProviders(storage?: Storage): OllamaProviderConfig[] {
  * @param storage - Storage backend (defaults to `localStorage`)
  * @returns Whether the write succeeded
  */
-export function saveProviders(providers: OllamaProviderConfig[], storage?: Storage): boolean {
+export function saveProviders(providers: ProviderConfig[], storage?: Storage): boolean {
 	const backend = resolveStorage(storage)
 	if (!backend) return false
 
@@ -127,50 +167,54 @@ export function saveProviders(providers: OllamaProviderConfig[], storage?: Stora
 }
 
 /**
- * Strip a trailing `/api` (and any trailing slash) from a user-entered Ollama
- * address so the plugin receives the server ROOT.
+ * Strip a trailing API path segment (and any trailing slash) from a
+ * user-entered address so the driver receives the server ROOT.
  *
- * The Ollama plugin appends `/api/tags` itself, so a baseUrl that already ends
- * in `/api` would produce `/api/api/tags`. A bare root (`http://host:11434`)
- * is returned unchanged. A trailing slash on the root is removed too.
+ * Both drivers append their own API path — Ollama appends `/api/tags`, LM
+ * Studio appends `/api/v0/models` — so a baseUrl that already ends in one
+ * would produce a doubled path. The three suffixes users realistically paste
+ * are handled: `/api/v0` and `/v1` (the two addresses LM Studio's Developer
+ * tab shows) and `/api` (Ollama's). A bare root is returned unchanged.
  *
- * @param api - The user-entered address (e.g. `http://localhost:11434/api`)
- * @returns The server root (e.g. `http://localhost:11434`)
+ * @param api - The user-entered address (e.g. `http://localhost:1234/api/v0`)
+ * @returns The server root (e.g. `http://localhost:1234`)
  */
 export function normalizeBaseUrl(api: string): string {
 	let url = (api ?? "").trim()
 	// Drop a trailing slash first so `/api/` and `/api` both reduce to `/api`.
 	url = url.replace(/\/+$/, "")
-	// Now strip a trailing `/api` segment (case-insensitive) if present.
-	url = url.replace(/\/api$/i, "")
-	// A second slash trim in case stripping `/api` exposed one.
+	// Now strip a trailing API-path segment (case-insensitive) if present.
+	url = url.replace(/\/(api\/v0|v1|api)$/i, "")
+	// A second slash trim in case stripping the segment exposed one.
 	return url.replace(/\/+$/, "")
 }
 
 /**
- * Validate a user-entered Ollama API address.
+ * Validate a user-entered provider API address.
  *
- * Only `http:`/`https:` are accepted: the Ollama plugin speaks HTTP and
- * nothing else, so a `ws://` or `file://` entry is a mistake worth catching
- * before it becomes a confusing fetch failure. Mirrors `mcp-store.ts`'s
+ * Only `http:`/`https:` are accepted: both drivers speak HTTP and nothing
+ * else, so a `ws://` or `file://` entry is a mistake worth catching before it
+ * becomes a confusing fetch failure. Mirrors `mcp-store.ts`'s
  * `validateServerUrl` style.
  *
  * @param url - The candidate address
+ * @param kind - Which provider is being configured, for the message wording
  * @returns An error message, or null when the URL is usable
  */
-export function validateApiUrl(url: string): string | null {
+export function validateApiUrl(url: string, kind: ProviderKind = "ollama"): string | null {
+	const label = providerLabel(kind)
 	const trimmed = (url ?? "").trim()
-	if (trimmed === "") return "Enter the Ollama API address."
+	if (trimmed === "") return `Enter the ${label} API address.`
 
 	let parsed: URL
 	try {
 		parsed = new URL(trimmed)
 	} catch {
-		return "That is not a valid URL. Include the scheme, e.g. http://localhost:11434/api"
+		return `That is not a valid URL. Include the scheme, e.g. ${DEFAULT_PROVIDER_API[kind]}`
 	}
 
 	if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-		return `Only HTTP Ollama servers are supported — "${parsed.protocol}" is not.`
+		return `Only HTTP ${label} servers are supported — "${parsed.protocol}" is not.`
 	}
 
 	return null

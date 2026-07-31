@@ -1,45 +1,66 @@
 /**
- * @file Provider orchestration: the providers dialog, ollama driver lifecycle,
- * and persistence.
+ * @file Provider orchestration: the providers dialog, local HTTP driver
+ * lifecycle, and persistence.
  *
- * Mirrors `mcp-controller.ts`'s structure: the controller owns the live ollama
- * driver instances keyed by provider id, wires the dialog's events, persists
- * the provider list, and refreshes the model picker via the
- * `onProvidersChanged` callback (adding an ollama driver triggers
- * `models.changed`).
+ * Mirrors `mcp-controller.ts`'s structure: the controller owns the live driver
+ * instances keyed by provider id, wires the dialog's events, persists the
+ * provider list, and refreshes the model picker via the `onProvidersChanged`
+ * callback (adding a driver triggers `models.changed`).
+ *
+ * Two provider kinds are supported, both plain-`fetch` local servers with the
+ * same lifecycle-event surface: `Ollama` (`@bhzai/core/plugins/ollama`) and
+ * `LMStudio` (`@bhzai/core/plugins/lmstudio`). Everything below is written
+ * against the shared {@link ProviderDriver} shape, so adding a third kind means
+ * one entry in `PROVIDER_KINDS` plus one line in {@link createDriver}.
  *
  * KERNEL SHADOWING NOTE: `bh.addDriver` is synchronous and shadows by
- * `driver.id`. Every `Ollama` instance has `id === 'ollama'`, so only the
- * LAST-added ollama driver is live in the kernel at any time — earlier ones
- * are replaced in the catalogue but their `Ollama` instances keep emitting
- * lifecycle events to this controller. For this example that is acceptable:
- * the UI still tracks each configured provider's connection state
- * independently via its own `Ollama` instance's events, but only the
- * most-recently-added contributes models to the catalogue. If each provider
- * needed to be independently live, the drivers would need distinct ids —
- * out of scope here.
+ * `driver.id`. Every `Ollama` instance has `id === 'ollama'` and every
+ * `LMStudio` instance has `id === 'lmstudio'`, so only the LAST-added driver
+ * OF EACH KIND is live in the kernel at any time — earlier ones are replaced in
+ * the catalogue but their instances keep emitting lifecycle events to this
+ * controller. (An Ollama provider and an LM Studio provider do NOT shadow each
+ * other; the ids differ.) For this example that is acceptable: the UI still
+ * tracks each configured provider's connection state independently via its own
+ * driver instance's events, but only the most-recently-added of a kind
+ * contributes models to the catalogue. If each provider needed to be
+ * independently live, the drivers would need distinct ids — out of scope here.
  *
  * REMOVAL LIMITATION: the kernel has no `removeDriver`. For removal we
- * disconnect our `Ollama` reference (clearing its caps cache and firing the
+ * disconnect our driver reference (clearing its caps cache and firing the
  * `disconnect` event) and drop it from our tracking map, but the kernel's
- * shadowed `ollama` entry is NOT unregistered — a later `addDriver` would
- * replace it, but a remove leaves the last-added one in place. Documented
- * here; acceptable for a local demo.
+ * shadowed entry is NOT unregistered — a later `addDriver` would replace it,
+ * but a remove leaves the last-added one in place. Documented here; acceptable
+ * for a local demo.
  */
 
-import type { BHZAI } from "@bhzai/core"
+import type { BHZAI, BHZAIDriver } from "@bhzai/core"
+import { LMStudio } from "@bhzai/core/plugins/lmstudio"
 import { Ollama } from "@bhzai/core/plugins/ollama"
 
 import type { BhzaiProviderCog } from "../components/provider-cog.js"
 import type { BhzaiProvidersDialog, ProviderViewState } from "../components/providers-dialog.js"
 import {
-	type OllamaProviderConfig,
+	PROVIDER_KINDS,
+	type ProviderConfig,
+	type ProviderKind,
 	loadProviders,
 	normalizeBaseUrl,
+	providerLabel,
 	saveProviders,
 	validateApiUrl,
 } from "../lib/provider-store.js"
 import { showErrorToast } from "../lib/toast.js"
+
+/**
+ * The slice of a local HTTP driver this controller needs.
+ *
+ * Both `Ollama` and `LMStudio` satisfy it. It is spelled structurally rather
+ * than as `Ollama | LMStudio` because calling `addEventListener` on a union of
+ * two classes that each declaration-merge their own typed overloads resolves
+ * to no common signature; going through the plain `EventTarget` contract keeps
+ * one code path for every kind.
+ */
+type ProviderDriver = BHZAIDriver & EventTarget & { disconnect(): void }
 
 /** Everything the provider controller drives. */
 export interface ProviderControllerDeps {
@@ -61,14 +82,42 @@ export interface ProviderController {
 
 /** Per-provider runtime tracking: the live driver plus its view state. */
 interface ProviderEntry {
-	/** The live `Ollama` driver instance. */
-	driver: Ollama
+	/** The live driver instance for this provider's kind. */
+	driver: ProviderDriver
 	/** The persisted config. */
-	config: OllamaProviderConfig
+	config: ProviderConfig
 	/** Current connection status, updated by lifecycle events. */
 	status: "connected" | "error" | "connecting"
 	/** Whether the driver has been registered on the kernel via `bh.addDriver`. */
 	registered: boolean
+}
+
+/**
+ * Instantiate the driver for a provider kind.
+ *
+ * @param kind - Which provider to build
+ * @param baseUrl - The normalized server root
+ * @param token - Optional bearer token; empty string means unauthenticated
+ * @returns A driver instance, not yet registered on the kernel
+ */
+function createDriver(kind: ProviderKind, baseUrl: string, token: string): ProviderDriver {
+	const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {}
+	switch (kind) {
+		case "lmstudio":
+			return new LMStudio({ baseUrl, headers })
+		default:
+			return new Ollama({ baseUrl, headers })
+	}
+}
+
+/**
+ * Narrow an untrusted `type` from the dialog's add event to a known kind.
+ *
+ * @param type - The event detail's `type` field
+ * @returns The matching kind, or null when it is not one we can build
+ */
+function toProviderKind(type: unknown): ProviderKind | null {
+	return PROVIDER_KINDS.find((kind) => kind === type) ?? null
 }
 
 /**
@@ -79,14 +128,14 @@ interface ProviderEntry {
 export function createProviderController(deps: ProviderControllerDeps): ProviderController {
 	const { bh, cog, dialog, onProvidersChanged } = deps
 
-	/** Live ollama driver instances keyed by provider id. */
+	/** Live driver instances keyed by provider id. */
 	const providers = new Map<string, ProviderEntry>()
 
 	/** Build the view-state list the dialog renders, from the live map. */
 	function viewStates(): ProviderViewState[] {
 		return Array.from(providers.values()).map((entry) => ({
 			id: entry.config.id,
-			kind: "ollama",
+			kind: entry.config.kind,
 			label: entry.config.baseUrl,
 			status: entry.status,
 			token: entry.config.token,
@@ -103,6 +152,7 @@ export function createProviderController(deps: ProviderControllerDeps): Provider
 		saveProviders(
 			Array.from(providers.values()).map((entry) => ({
 				id: entry.config.id,
+				kind: entry.config.kind,
 				baseUrl: entry.config.baseUrl,
 				token: entry.config.token,
 			})),
@@ -110,20 +160,22 @@ export function createProviderController(deps: ProviderControllerDeps): Provider
 	}
 
 	/**
-	 * Create an `Ollama` driver with lifecycle event handlers, WITHOUT
-	 * registering it on the kernel yet. The caller probes the connection
-	 * (via `driver.listModels()`) and only calls {@link registerDriver} on
-	 * success — this makes the probe the single, deterministic fetch the
-	 * user sees in the network tab, rather than racing the kernel's
-	 * background `addDriver` refresh (which can be skipped entirely when
-	 * `syncingModels` is already true).
+	 * Create a driver with lifecycle event handlers, WITHOUT registering it on
+	 * the kernel yet. The caller probes the connection (via
+	 * `driver.listModels()`) and only calls {@link registerDriver} on success —
+	 * this makes the probe the single, deterministic fetch the user sees in the
+	 * network tab, rather than racing the kernel's background `addDriver`
+	 * refresh (which can be skipped entirely when `syncingModels` is already
+	 * true).
 	 */
-	function createEntry(id: string, baseUrl: string, token: string): ProviderEntry {
-		const driver = new Ollama({
-			baseUrl,
-			headers: token ? { Authorization: `Bearer ${token}` } : {},
-		})
-		const config: OllamaProviderConfig = { id, baseUrl, token }
+	function createEntry(
+		id: string,
+		kind: ProviderKind,
+		baseUrl: string,
+		token: string,
+	): ProviderEntry {
+		const driver = createDriver(kind, baseUrl, token)
+		const config: ProviderConfig = { id, kind, baseUrl, token }
 		const entry: ProviderEntry = { driver, config, status: "connecting", registered: false }
 
 		driver.addEventListener("connect", () => {
@@ -138,7 +190,10 @@ export function createProviderController(deps: ProviderControllerDeps): Provider
 			dialog.setBusy(false)
 			refreshList()
 			if (detail?.phase === "listModels") {
-				showErrorToast(`Ollama connection failed: ${baseUrl}`)
+				// Keep the underlying failure inspectable — the toast is for the
+				// user, the console line is for whoever is debugging.
+				console.error(`${providerLabel(kind)} connection failed: ${baseUrl}`, detail.error)
+				showErrorToast(`${providerLabel(kind)} connection failed: ${baseUrl}`)
 			}
 		})
 		driver.addEventListener("disconnect", () => {
@@ -159,9 +214,23 @@ export function createProviderController(deps: ProviderControllerDeps): Provider
 		entry.registered = true
 	}
 
-	/** Add a new ollama provider from the add form. */
-	async function addProvider(baseUrl: string, token: string): Promise<void> {
-		const error = validateApiUrl(baseUrl)
+	/**
+	 * Probe a freshly created entry and register it on success. The driver's
+	 * own `error` event has already handled status and the toast on failure,
+	 * so the rejection is deliberately absorbed here.
+	 */
+	async function connectEntry(entry: ProviderEntry): Promise<void> {
+		try {
+			await entry.driver.listModels()
+			registerDriver(entry)
+		} catch {
+			// The 'error' event already handled status + toast + console.
+		}
+	}
+
+	/** Add a new provider from the add form. */
+	async function addProvider(kind: ProviderKind, baseUrl: string, token: string): Promise<void> {
+		const error = validateApiUrl(baseUrl, kind)
 		if (error) {
 			dialog.showError(error)
 			return
@@ -169,10 +238,13 @@ export function createProviderController(deps: ProviderControllerDeps): Provider
 
 		const normalized = normalizeBaseUrl(baseUrl)
 
-		// If a provider with the same baseUrl already exists, update it instead
-		// of creating a duplicate. The id is preserved so the UI stays in place.
+		// If a provider of the same kind and baseUrl already exists, update it
+		// instead of creating a duplicate. The id is preserved so the UI stays
+		// in place. The kind is part of the key: the same host and port can
+		// legitimately not be two providers, but two kinds on different ports
+		// are distinct entries.
 		const existing = Array.from(providers.values()).find(
-			(entry) => entry.config.baseUrl === normalized,
+			(entry) => entry.config.kind === kind && entry.config.baseUrl === normalized,
 		)
 		if (existing) {
 			await updateProvider(existing.config.id, baseUrl, token)
@@ -184,7 +256,7 @@ export function createProviderController(deps: ProviderControllerDeps): Provider
 		dialog.clearError()
 		dialog.setBusy(true)
 
-		const entry = createEntry(id, normalized, token)
+		const entry = createEntry(id, kind, normalized, token)
 		providers.set(id, entry)
 		refreshList()
 
@@ -193,12 +265,7 @@ export function createProviderController(deps: ProviderControllerDeps): Provider
 		// success the 'connect' event fires and we register the driver; on
 		// failure the 'error' event fires and we keep the provider with red
 		// status so the user can edit/retry.
-		try {
-			await entry.driver.listModels()
-			registerDriver(entry)
-		} catch {
-			// The 'error' event already handled status + toast.
-		}
+		await connectEntry(entry)
 
 		persist()
 		dialog.setProviders(viewStates())
@@ -207,17 +274,19 @@ export function createProviderController(deps: ProviderControllerDeps): Provider
 		dialog.showEditView(id)
 	}
 
-	/** Update an existing ollama provider from the edit form. */
+	/** Update an existing provider from the edit form. */
 	async function updateProvider(id: string, baseUrl: string, token: string): Promise<void> {
-		const error = validateApiUrl(baseUrl)
+		const existing = providers.get(id)
+		if (!existing) return
+
+		const kind = existing.config.kind
+		const error = validateApiUrl(baseUrl, kind)
 		if (error) {
 			dialog.showError(error)
 			return
 		}
 
 		const normalized = normalizeBaseUrl(baseUrl)
-		const existing = providers.get(id)
-		if (!existing) return
 
 		// Disconnect the old driver first so its caps cache clears and the
 		// disconnect event fires.
@@ -227,29 +296,24 @@ export function createProviderController(deps: ProviderControllerDeps): Provider
 		dialog.clearError()
 		dialog.setBusy(true)
 
-		const entry = createEntry(id, normalized, token)
+		const entry = createEntry(id, kind, normalized, token)
 		providers.set(id, entry)
 		refreshList()
 
-		try {
-			await entry.driver.listModels()
-			registerDriver(entry)
-		} catch {
-			// The 'error' event already handled status + toast.
-		}
+		await connectEntry(entry)
 
 		persist()
 		dialog.setProviders(viewStates())
 	}
 
-	/** Remove an ollama provider. */
+	/** Remove a provider. */
 	function removeProvider(id: string): void {
 		const entry = providers.get(id)
 		if (!entry) return
 
 		// See the file-level REMOVAL LIMITATION note: the kernel has no
-		// removeDriver, so the shadowed 'ollama' entry stays registered. We
-		// disconnect our reference and drop it from tracking.
+		// removeDriver, so the shadowed entry stays registered. We disconnect
+		// our reference and drop it from tracking.
 		entry.driver.disconnect()
 		providers.delete(id)
 		persist()
@@ -268,8 +332,9 @@ export function createProviderController(deps: ProviderControllerDeps): Provider
 			dialog.addEventListener("bhzai-add-provider", (event) => {
 				const detail = (event as CustomEvent<{ type: string; baseUrl: string; token: string }>)
 					.detail
-				if (detail?.type === "ollama") {
-					void addProvider(detail.baseUrl, detail.token)
+				const kind = toProviderKind(detail?.type)
+				if (kind) {
+					void addProvider(kind, detail.baseUrl, detail.token)
 				}
 			})
 
@@ -290,15 +355,10 @@ export function createProviderController(deps: ProviderControllerDeps): Provider
 			// Restore saved providers one at a time, like mcp-controller
 			// reconnects saved servers. Sequential so the list fills top-down.
 			for (const saved of loadProviders()) {
-				const entry = createEntry(saved.id, saved.baseUrl, saved.token)
+				const entry = createEntry(saved.id, saved.kind, saved.baseUrl, saved.token)
 				providers.set(saved.id, entry)
 				refreshList()
-				try {
-					await entry.driver.listModels()
-					registerDriver(entry)
-				} catch {
-					// The 'error' event already handled status + toast.
-				}
+				await connectEntry(entry)
 			}
 			refreshList()
 		},

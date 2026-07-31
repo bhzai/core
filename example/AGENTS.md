@@ -3,9 +3,10 @@
 ## Purpose & scope
 
 A Lit 3 + TypeScript browser example demonstrating bhzai's core capabilities:
-streaming responses, in-browser model execution via WebLLM, live telemetry
-(decode/prefill tokens per second, time-to-first-token, context usage),
-framework-side parsing of reasoning blocks (`` regions, via
+streaming responses, in-browser model execution via WebLLM, runtime attachment
+of local HTTP providers (Ollama and LM Studio) through the providers panel, live
+telemetry (decode/prefill tokens per second, time-to-first-token, context
+usage), framework-side parsing of reasoning blocks (`` regions, via
 `parseThink: true`), and runtime attachment of HTTP MCP servers with live
 connection status, searchable tool discovery, and error inspection.
 
@@ -75,6 +76,16 @@ the elements to the two orchestrators.
 - **`mcp-controller.ts`** — Subscribes the server list to `McpManager`, wires
   the add-server form, persists the server list, and owns the card-level event
   listeners (`bhzai-refresh`, `bhzai-retry`, `bhzai-remove`, `bhzai-show-error`).
+- **`provider-controller.ts`** — Owns the lifecycle of the added local HTTP
+  drivers (`Ollama`, `LMStudio`): wires the providers dialog's add/update/remove
+  events, probes each connection with `listModels()` BEFORE calling
+  `bh.addDriver`, persists the list, and refreshes the model picker via
+  `onProvidersChanged`. Written against a structural `ProviderDriver` type
+  rather than a `Ollama | LMStudio` union, so adding a kind is one line in
+  `createDriver()`. Two documented limits: `bh.addDriver` shadows by
+  `driver.id`, so only the last-added provider **of each kind** contributes
+  models; and the kernel has no `removeDriver`, so removal disconnects our
+  reference without unregistering the kernel's entry.
 - **`fatal-error.ts`** — The one path that spans two components (telemetry +
   composer), so it belongs to neither.
 
@@ -98,6 +109,8 @@ CSS variables continue to drive their appearance.
 | `mcp-tool-list.ts` | `<bhzai-mcp-tool-list>` | one server's collapsible, filterable tool list |
 | `mcp-add-form.ts` | `<bhzai-mcp-add-form>` | add-server form |
 | `mcp-error-dialog.ts` | `<bhzai-mcp-error-dialog>` | error details dialog |
+| `provider-cog.ts` | `<bhzai-provider-cog>` | statusbar button that opens the providers dialog |
+| `providers-dialog.ts` | `<bhzai-providers-dialog>` | providers list / add / edit views |
 
 `conversation-view.ts`'s `beginAssistantTurn()` returns an object whose methods
 close over that message's own nodes, rather than a string id the caller has to
@@ -113,6 +126,19 @@ look back up on every delta.
 - **`thermal.ts`** — `thermalRatio(decodeTps)` → 0..1, `thermalColor(ratio)` →
   CSS color.
 - **`format.ts`** — `formatTps`, `formatTokens`, `formatBytes`, `formatSeconds`.
+- **`models.ts`** — `selectableModels()`: drops catalogue entries whose
+  `meta.state` is explicitly `'not-loaded'` (LM Studio's downloaded-but-idle
+  models), so the picker lists only warm models. Entries with no `state` —
+  every WebLLM and Ollama model — pass through. **Do not "simplify" this to a
+  filter on `availability`**: the WebLLM driver reports `'downloadable'` for
+  its entire catalogue, so that would empty the picker.
+- **`provider-store.ts`** — `loadProviders()` / `saveProviders()` (localStorage
+  key `bhzai.providers`, schema v2, injectable backend), the `ProviderKind`
+  union and its `PROVIDER_KINDS` / `PROVIDER_LABELS` / `DEFAULT_PROVIDER_API`
+  tables, `providerLabel()` / `providerKindFromLabel()` (the add form's
+  typeahead shows display labels, not slugs), `normalizeBaseUrl()` (strips a
+  trailing `/api/v0`, `/v1`, or `/api` so drivers get the server ROOT), and
+  `validateApiUrl(url, kind)` (http/https only, messages named per provider).
 - **`mcp-store.ts`** — `loadServers()` / `saveServers()` (localStorage, versioned
   payload, injectable backend so persistence is testable in Node),
   `parseHeaderLines()` (one `Key: Value` per line, first-colon split so values
@@ -124,10 +150,46 @@ look back up on every delta.
 
 The bare `<select>` was replaced by a reactive `<bhzai-model-select>` wrapper that
 owns a `<lit-typeahead>` from `@lucasschirm/litjs-typeahead`. `main.ts` seeds
-`bhzai-model-select.models` from `bh.listModels()`, subscribes to `models.changed`
+`bhzai-model-select.models` from `bh.listModels()` passed through
+`selectableModels()` (see `lib/models.ts` — LM Studio's idle models are hidden),
+subscribes to `models.changed`
 to refresh the list, and listens for the custom `bhzai-change` event
 (detail: `{ model: ModelInfo, ref: string }`) to switch conversations. The
 default still prefers a Qwen3 model when available.
+
+## Providers panel
+
+The cog next to the model picker opens `<bhzai-providers-dialog>`. It lists the
+always-on **WebLLM (built-in)** row plus every provider the user has added, each
+badged with its kind. Two kinds are addable, both plain-`fetch` local servers:
+
+| Kind | Driver | Default address |
+| --- | --- | --- |
+| `ollama` | `Ollama` from `@bhzai/core/plugins/ollama` | `http://localhost:11434/api` |
+| `lmstudio` | `LMStudio` from `@bhzai/core/plugins/lmstudio` | `http://localhost:1234` |
+
+The add form's Type field is a `<lit-typeahead>` showing display labels
+("Ollama", "LM Studio"), mapped back to kind slugs by `providerKindFromLabel()`.
+Because the typeahead is a native `<input list>` + `<datalist>`, the browser
+filters suggestions by the input's current value — pre-filled with "Ollama", the
+dropdown lists only Ollama until the field is cleared. That is the intended
+typeahead interaction: **clear the field to see every kind.**
+
+Changing the type re-labels the address field and its placeholder, so an LM
+Studio entry never ships with an Ollama default. The
+entered address is normalized to the server ROOT before it reaches the driver
+(`normalizeBaseUrl` strips a trailing `/api/v0`, `/v1`, or `/api`), because both
+drivers append their own API path.
+
+**Adding a third kind** touches four places: `PROVIDER_KINDS` /
+`PROVIDER_LABELS` / `DEFAULT_PROVIDER_API` in `provider-store.ts`, and the
+`switch` in `provider-controller.ts`'s `createDriver()`. The dialog and the
+controller are otherwise kind-agnostic.
+
+Both local providers need CORS permitted on the server side to be reachable from
+the browser (`OLLAMA_ORIGINS` for Ollama; the CORS toggle in LM Studio's
+Developer settings). Without it the probe fails with the same opaque
+`TypeError: Failed to fetch` the MCP panel maps to a CORS hint.
 
 ## MCP filtering and sorting
 
@@ -167,8 +229,12 @@ Requirements:
 
 - **Unit tests** (`pnpm test` from the root, `example/**/*.test.ts` is in the
   vitest `include`):
-  - `src/lib/{format,stats,thermal,mcp-store}.test.ts` — pure functions, default
-    `node` environment.
+  - `src/lib/{format,stats,thermal,mcp-store,provider-store,models}.test.ts` —
+    pure functions, default `node` environment.
+  - `src/components/providers-dialog.test.ts` — list/add/edit view transitions,
+    the kind badge and type typeahead, kind-aware field labels, the dispatched
+    add/update/remove event details, and an untrusted-text guard on a
+    provider's base URL.
   - `src/components/conversation-view.test.ts` — delta routing, lazy Thought
     disclosure, independent concurrent turns.
   - `src/components/mcp-server-card.test.ts` — **the untrusted-text regression

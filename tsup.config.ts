@@ -12,6 +12,7 @@
 //   `core/index`                   -> `./core`
 //   `plugins/webllm/index`         -> `./plugins/webllm`
 //   `plugins/ollama/index`         -> `./plugins/ollama`
+//   `plugins/lmstudio/index`       -> `./plugins/lmstudio`
 //   `plugins/mcp/index`            -> `./plugins/mcp`
 //   `plugins/interop/pi/index`     -> `./plugins/interop/pi`
 //   `plugins/interop/opencode/index` -> `./plugins/interop/opencode`
@@ -26,6 +27,7 @@ export default defineConfig({
 		"core/index": "src/core/index.ts",
 		"plugins/webllm/index": "src/plugins/webllm/index.ts",
 		"plugins/ollama/index": "src/plugins/ollama/index.ts",
+		"plugins/lmstudio/index": "src/plugins/lmstudio/index.ts",
 		"plugins/mcp/index": "src/plugins/mcp/index.ts",
 		"plugins/interop/pi/index": "src/plugins/interop/pi/index.ts",
 		"plugins/interop/opencode/index": "src/plugins/interop/opencode/index.ts",

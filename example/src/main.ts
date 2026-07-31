@@ -33,6 +33,7 @@ import "./components/providers-dialog.js"
 import "./components/status-indicator.js"
 import "./components/telemetry-panel.js"
 import { byId } from "./lib/dom.js"
+import { selectableModels } from "./lib/models.js"
 
 /** Resolve every custom element from the markup in `index.html`. */
 function buildUi() {
@@ -116,7 +117,9 @@ async function initialize(): Promise<void> {
 
 		// Seed the picker from the live kernel catalogue and keep it in sync.
 		const refreshPicker = async () => {
-			ui.modelSelect.models = await bh.listModels()
+			// `selectableModels` drops LM Studio's downloaded-but-idle entries, so
+			// the picker lists only models that are actually warm.
+			ui.modelSelect.models = selectableModels(await bh.listModels())
 		}
 		await refreshPicker()
 		bh.on("models.changed", refreshPicker)
@@ -150,9 +153,10 @@ async function initialize(): Promise<void> {
 		// chat UI, and every outcome lands in the panel either way.
 		void mcpController.start()
 
-		// The providers panel owns ollama driver lifecycle. Adding an ollama
-		// driver triggers `models.changed`, so the picker is refreshed via the
-		// same `refreshPicker` callback the kernel subscription uses.
+		// The providers panel owns the lifecycle of the local HTTP drivers
+		// (Ollama and LM Studio). Adding one triggers `models.changed`, so the
+		// picker is refreshed via the same `refreshPicker` callback the kernel
+		// subscription uses.
 		const providerController = createProviderController({
 			bh,
 			cog: ui.providerCog,
