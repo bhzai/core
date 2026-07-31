@@ -1,6 +1,6 @@
 # `@bhzai/core`
 
-[View online demo](https://lucasschirm.github.io/bhzai/)
+[View online demo](https://bhzai.github.io/core/)
 
 > Browser-Hosted Agentic AI Framework — a standalone, environment-agnostic TypeScript framework that extracts agent-harness internals (provider gateway, tool-calling loop, conversation persistence, streaming, memory, MCP client) into a plugin-first micro-kernel designed for extension and reuse.
 

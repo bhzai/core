@@ -37,7 +37,11 @@ single model-selection typeahead (`@lucasschirm/litjs-typeahead`).
   leaking into the root typecheck.
 - **`vite.config.ts`** — Minimal Vite config with `@mlc-ai/web-llm` pre-bundling
   excluded (MLC does its own wasm/worker loading). Comments explain the
-  COOP/COEP header tradeoff.
+  COOP/COEP header tradeoff. Also sets the GitHub Pages `base` path: when
+  `GITHUB_PAGES` is set the base is `/core/`, matching the repo name in
+  `bhzai/core` (the site is served at https://bhzai.github.io/core/). It is NOT
+  the org name `bhzai` — that mismatch previously 404'd every JS and CSS file.
+  Local dev and `preview` leave `GITHUB_PAGES` unset and serve from `/`.
 - **`variables.css`** — The single source of truth for the dark theme's CSS
   variables (colors, typography, spacing). Imported first in `index.html`.
 - **`styles.css`** — Layout and component styling; every value is read from
