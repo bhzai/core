@@ -29,9 +29,12 @@ import { defineConfig } from "vite"
  *   },
  */
 export default defineConfig({
-	// GitHub Pages serves project pages under /<repo>/, not /. Local dev and
-	// `pnpm run preview` keep serving from / by leaving GITHUB_PAGES unset.
-	base: process.env.GITHUB_PAGES ? "/bhzai/" : "/",
+	// GitHub Pages serves project pages under /<repo>/, not /. The repo is
+	// bhzai/core, so the site lives at https://bhzai.github.io/core/ and assets
+	// must resolve under /core/ — NOT /bhzai/ (the org name), which 404'd every
+	// JS and CSS file. Local dev and `pnpm run preview` leave GITHUB_PAGES unset
+	// and keep serving from /.
+	base: process.env.GITHUB_PAGES ? "/core/" : "/",
 	optimizeDeps: {
 		exclude: ["@mlc-ai/web-llm"],
 	},

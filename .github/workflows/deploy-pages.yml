@@ -38,6 +38,8 @@ jobs:
       - name: Build library
         run: pnpm run build
 
+      # GITHUB_PAGES switches vite's `base` to /core/ so assets resolve under
+      # the project-page sub-path at https://bhzai.github.io/core/.
       - name: Build example site
         run: pnpm --filter bhzai-example run build
         env:
