@@ -15,24 +15,31 @@ import { LitElement, html } from "lit"
 import { customElement, property, query, state } from "lit/decorators.js"
 
 import "@lucasschirm/litjs-typeahead"
-import { DEFAULT_OLLAMA_API } from "../lib/provider-store.js"
+import {
+	DEFAULT_PROVIDER_API,
+	PROVIDER_KINDS,
+	PROVIDER_LABELS,
+	type ProviderKind,
+	providerKindFromLabel,
+	providerLabel,
+} from "../lib/provider-store.js"
 
 /** The connection status a provider row renders, via its `data-state`. */
 export type ProviderStatus = "connected" | "error" | "connecting"
 
 /** One row in the providers list. */
 export interface ProviderViewState {
-	/** Stable id; matches the persisted `OllamaProviderConfig.id` for ollama rows. */
+	/** Stable id; matches the persisted `ProviderConfig.id` for addable rows. */
 	id: string
 	/** The provider kind. `webllm` is the always-on built-in. */
-	kind: "webllm" | "ollama"
+	kind: "webllm" | ProviderKind
 	/** Human-readable label. */
 	label: string
 	/** Connection status driving the dot color. */
 	status: ProviderStatus
 	/** Optional error text shown on error rows. */
 	error?: string
-	/** Optional bearer token (ollama rows only), pre-filled in the edit view. */
+	/** Optional bearer token (addable rows only), pre-filled in the edit view. */
 	token?: string
 }
 
@@ -42,7 +49,7 @@ type DialogView = "list" | "add" | "edit"
 /**
  * Providers dialog custom element.
  *
- * @fires bhzai-add-provider - The add form was submitted. Detail: `{ type: 'ollama', baseUrl, token }`.
+ * @fires bhzai-add-provider - The add form was submitted. Detail: `{ type: ProviderKind, baseUrl, token }`.
  * @fires bhzai-update-provider - The edit form was submitted. Detail: `{ id, baseUrl, token }`.
  * @fires bhzai-remove-provider - The edit form's remove button was clicked. Detail: `{ id }`.
  */
@@ -63,6 +70,15 @@ export class BhzaiProvidersDialog extends LitElement {
 	/** The id of the provider being edited (edit view only). */
 	@state()
 	private _editId = ""
+
+	/**
+	 * The provider kind the add form is currently configured for. Drives the
+	 * address field's label and default, so switching the Type typeahead
+	 * re-labels the form instead of leaving an Ollama address on an LM Studio
+	 * entry.
+	 */
+	@state()
+	private _addKind: ProviderKind = PROVIDER_KINDS[0] as ProviderKind
 
 	/** Inline error text for the current form view. */
 	@state()
@@ -102,10 +118,11 @@ export class BhzaiProvidersDialog extends LitElement {
 		this.providers = list
 	}
 
-	/** Switch to the add view with fresh fields. */
+	/** Switch to the add view with fresh fields, back on the first kind. */
 	showAddView(): void {
 		this._view = "add"
 		this._editId = ""
+		this._addKind = PROVIDER_KINDS[0] as ProviderKind
 		this._error = ""
 		this._busy = false
 	}
@@ -173,7 +190,8 @@ export class BhzaiProvidersDialog extends LitElement {
 	}
 
 	private _renderRow(row: ProviderViewState) {
-		const clickable = row.kind === "ollama"
+		// The WebLLM built-in has nothing to configure; every added provider does.
+		const clickable = row.kind !== "webllm"
 		return html`
 			<li
 				class="provider-row"
@@ -184,10 +202,20 @@ export class BhzaiProvidersDialog extends LitElement {
 			>
 				<span class="provider-dot" data-state=${row.status}></span>
 				<span class="provider-label">${row.label}</span>
+				${clickable ? html`<span class="provider-kind">${providerLabel(row.kind)}</span>` : ""}
 			</li>
 		`
 	}
 
+	/**
+	 * The add view: a Type picker plus the kind-specific address fields.
+	 *
+	 * NOTE on the Type picker: `lit-typeahead` renders a native `input[list]` +
+	 * `datalist`, so the browser filters the suggestion list by whatever the
+	 * input currently holds. Pre-filled with "Ollama", the dropdown offers only
+	 * Ollama until the field is cleared — the normal typeahead interaction:
+	 * clear the field to browse every kind.
+	 */
 	private _renderAdd() {
 		return html`
 			<header class="providers-header">
@@ -202,12 +230,13 @@ export class BhzaiProvidersDialog extends LitElement {
 					<lit-typeahead
 						class="provider-typeahead"
 						name="provider-type"
-						.items=${["ollama"]}
-						.value=${"ollama"}
+						.items=${PROVIDER_KINDS.map((kind) => PROVIDER_LABELS[kind])}
+						.value=${PROVIDER_LABELS[this._addKind]}
+						@change=${this._onTypeChange}
 						selectFirst
 					></lit-typeahead>
 				</label>
-				${this._renderFields(DEFAULT_OLLAMA_API, "")}
+				${this._renderFields(this._addKind, DEFAULT_PROVIDER_API[this._addKind], "")}
 				<p class="provider-form-error" role="alert" ?hidden=${!this._error}>${this._error}</p>
 				<div class="provider-actions">
 					<button type="button" ?disabled=${this._busy} @click=${() => this._back()}>
@@ -223,7 +252,12 @@ export class BhzaiProvidersDialog extends LitElement {
 
 	private _renderEdit() {
 		const existing = this.providers.find((p) => p.id === this._editId)
-		const apiUrl = existing?.label ?? DEFAULT_OLLAMA_API
+		// The built-in WebLLM row is never editable, so any row that reaches
+		// here has an addable kind; fall back to the first kind if the row went
+		// away between click and render.
+		const kind =
+			existing && existing.kind !== "webllm" ? existing.kind : (PROVIDER_KINDS[0] as ProviderKind)
+		const apiUrl = existing?.label ?? DEFAULT_PROVIDER_API[kind]
 		const apiToken = existing?.token ?? ""
 		return html`
 			<header class="providers-header">
@@ -233,7 +267,7 @@ export class BhzaiProvidersDialog extends LitElement {
 				</button>
 			</header>
 			<form class="provider-form" @submit=${this._onEditSubmit} novalidate>
-				${this._renderFields(apiUrl, apiToken)}
+				${this._renderFields(kind, apiUrl, apiToken)}
 				<p class="provider-form-error" role="alert" ?hidden=${!this._error}>${this._error}</p>
 				<div class="provider-actions">
 					<button type="button" ?disabled=${this._busy} @click=${() => this._back()}>
@@ -255,17 +289,17 @@ export class BhzaiProvidersDialog extends LitElement {
 		`
 	}
 
-	private _renderFields(apiUrl: string, apiToken: string) {
+	private _renderFields(kind: ProviderKind, apiUrl: string, apiToken: string) {
 		return html`
 			<label class="provider-field">
-				<span>Ollama API address</span>
+				<span>${providerLabel(kind)} API address</span>
 				<input
 					name="api-url"
 					type="url"
 					.value=${apiUrl}
 					autocomplete="off"
 					spellcheck="false"
-					placeholder=${DEFAULT_OLLAMA_API}
+					placeholder=${DEFAULT_PROVIDER_API[kind]}
 					?disabled=${this._busy}
 				/>
 			</label>
@@ -294,13 +328,27 @@ export class BhzaiProvidersDialog extends LitElement {
 		this.hide()
 	}
 
+	/**
+	 * Re-label the address field when the Type typeahead changes. The value it
+	 * reports is the display label, so it is mapped back to a kind first.
+	 */
+	private _onTypeChange(event: Event): void {
+		const value = (event as CustomEvent<{ value: string }>).detail?.value
+		// The typeahead's internal <input> also emits a bubbling native `change`
+		// carrying no detail. Ignore anything that is not one of our labels,
+		// rather than silently snapping the form back to the first kind.
+		if (!value || !PROVIDER_KINDS.some((kind) => PROVIDER_LABELS[kind] === value)) return
+		this._addKind = providerKindFromLabel(value)
+		this._error = ""
+	}
+
 	private _onAddSubmit(event: SubmitEvent): void {
 		event.preventDefault()
 		const baseUrl = this._apiUrl.value
 		const token = this._apiToken.value
 		this.dispatchEvent(
 			new CustomEvent("bhzai-add-provider", {
-				detail: { type: "ollama", baseUrl, token },
+				detail: { type: this._addKind, baseUrl, token },
 				bubbles: true,
 				composed: true,
 			}),

@@ -45,6 +45,10 @@ Implemented:
 - **Ollama driver** (`src/plugins/ollama/`) — `bhzaiDriver` implementation
   backed entirely by web-standard `fetch`. NDJSON streaming, capabilities
   cache, `embed()`. Works in any fetch-capable runtime.
+- **LM Studio driver** (`src/plugins/lmstudio/`) — `bhzaiDriver` implementation
+  over LM Studio's native `/api/v0` REST API, also `fetch`-only. OpenAI-shaped
+  SSE streaming with fragment-accumulated tool calls, a one-request
+  capabilities cache, and `embed()`. Works in any fetch-capable runtime.
 - **Credential resolution** (`src/core/credentials.ts`) —
   `resolveCredentials()` three-tier chain (runtime value → `auth` hooks →
   unauthenticated). `bh.getAuthHooks()` exposes registered resolvers.

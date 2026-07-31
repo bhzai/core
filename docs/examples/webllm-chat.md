@@ -16,6 +16,7 @@ client-side parsing of reasoning blocks.
 5. **Model selection & cold-start feedback** — Download progress as weights are loaded from the cloud.
 6. **Context usage** — Visual bar showing how much of the available context window is being used.
 7. **Thermal design** — Visual metaphor where the app is cold/dim when idle, warming up as the model loads and runs (status dot, decode gauge, and download progress bar all interpolate from cold cyan → warm coral).
+8. **Local providers** — Ollama and LM Studio servers can be attached at runtime from the providers panel; their models join the same picker as the in-browser WebLLM ones.
 
 ## Running it
 
@@ -70,6 +71,7 @@ app/ (orchestration — no DOM)
 ├─ webllm-engine.ts — WebGPU guard, model allowlist, MLCEngine creation
 ├─ chat-controller.ts — conversation lifecycle, send/abort, TTFT, stats pipeline
 ├─ mcp-controller.ts — McpManager subscription, add-server form, persistence
+├─ provider-controller.ts — Ollama/LM Studio driver lifecycle, dialog wiring
 └─ fatal-error.ts — the one path spanning telemetry + composer
 
 components/ (DOM — one Lit custom element per region)
@@ -78,6 +80,8 @@ components/ (DOM — one Lit custom element per region)
 ├─ conversation-view.ts → <bhzai-conversation> (user/assistant bubbles, streaming)
 ├─ cold-start-panel.ts → <bhzai-cold-start>
 ├─ telemetry-panel.ts → <bhzai-telemetry>
+├─ model-select.ts → <bhzai-model-select>
+├─ provider-cog.ts, providers-dialog.ts → <bhzai-provider-cog>, <bhzai-providers-dialog>
 └─ mcp-server-list.ts, mcp-server-card.ts, mcp-tool-list.ts,
    mcp-add-form.ts, mcp-error-dialog.ts → <bhzai-mcp-*>
 
@@ -86,6 +90,8 @@ lib/ (pure functions, testable)
 ├─ stats.ts — extract tok/s from engine.runtimeStatsText()
 ├─ thermal.ts — map decode tok/s to colors
 ├─ format.ts — pretty-print numbers for display
+├─ models.ts — hide LM Studio's downloaded-but-idle models from the picker
+├─ provider-store.ts — persist providers, normalize/validate addresses
 └─ mcp-store.ts — persist servers, parse headers, interpret errors
 ```
 
@@ -169,6 +175,54 @@ The default selection prefers a Qwen3 model because it emits reasoning blocks,
 which the demo's Thought panel is built to surface; otherwise it falls back to
 the first available model. Selecting a model creates a fresh conversation
 (simplest correct behavior).
+
+### Local providers (Ollama, LM Studio)
+
+The cog beside the model picker opens the **Providers** dialog. It lists the
+always-on *WebLLM (built-in)* row plus every provider you have added, each
+badged with its kind and given a status dot (green connected, red failed, pulsing
+while connecting). *Add provider* offers two kinds:
+
+| Kind | Driver subpath | Default address |
+| --- | --- | --- |
+| Ollama | `@bhzai/core/plugins/ollama` | `http://localhost:11434/api` |
+| LM Studio | `@bhzai/core/plugins/lmstudio` | `http://localhost:1234` |
+
+The Type field is a typeahead, backed by a native `<input list>` + `<datalist>`.
+The browser filters its suggestions by what the input currently holds, and the
+field starts pre-filled with `Ollama` — so **clear it to see every kind**, then
+pick LM Studio. Choosing a kind re-labels the address field and its placeholder.
+
+Whatever you type is normalized to the server ROOT before it reaches the driver
+— a trailing
+`/api/v0`, `/v1`, or `/api` is stripped, since each driver appends its own API
+path. An optional bearer token is forwarded as an `Authorization` header.
+
+`provider-controller.ts` probes the connection with `driver.listModels()` and
+only calls `bh.addDriver()` once it succeeds, so a dead endpoint never enters the
+catalogue — it stays as a red row you can edit and retry. A successful add fires
+`models.changed`, and the picker refreshes through the same subscription the
+WebLLM catalogue uses; LM Studio and Ollama models then appear alongside the
+in-browser ones as `lmstudio/…` and `ollama/…` refs.
+
+**Only loaded LM Studio models are listed.** LM Studio reports every model it
+has downloaded, and the picker would otherwise fill with a dozen idle entries
+that each stall the first message behind a multi-gigabyte load. `lib/models.ts`
+filters entries whose `meta.state` is `'not-loaded'`; load a model in LM Studio
+and the next refresh picks it up. Ollama and WebLLM models report no `state` and
+are never filtered.
+
+Providers are persisted to `localStorage` (key `bhzai.providers`) and
+re-connected on load. ⚠️ The bearer token is stored in plaintext under the page
+origin — a deliberate demo trade-off for one-click reconnect; a production host
+should re-prompt instead.
+
+Two documented limits, both consequences of the kernel API rather than the UI:
+`bh.addDriver` shadows by `driver.id`, so only the last-added provider **of each
+kind** contributes models to the catalogue (an Ollama and an LM Studio provider
+do not shadow each other); and there is no `removeDriver`, so removing a row
+disconnects the example's driver reference without unregistering the kernel's
+entry.
 
 ### Cold-start feedback
 
@@ -292,6 +346,35 @@ On mobile (<861px), it stacks into a single column.
   - Reload and try a smaller model.
   - Close other tabs to free memory.
   - Check your device's available RAM (WebLLM needs ~2–3x the model size in working memory).
+
+### A provider row turns red immediately after Connect
+
+- **Cause**: Same opaque `TypeError: Failed to fetch` the MCP panel hits — most
+  often CORS, since the page's origin (`http://localhost:5173`) differs from the
+  provider's. The browser reports a CORS rejection, an unreachable host, and a
+  refused connection identically. The underlying error is logged to the console
+  even though the toast can only show the generic message.
+- **Solution**:
+  - **Ollama**: restart it with the page origin allowed, e.g.
+    `OLLAMA_ORIGINS=http://localhost:5173 ollama serve`.
+  - **LM Studio**: enable CORS in the Developer tab's server settings, and make
+    sure the server is actually started (`lms server start`).
+  - Confirm the port: Ollama defaults to `11434`, LM Studio to `1234`.
+  - Check the Network tab, which shows the CORS reason even though JavaScript
+    cannot.
+
+### An LM Studio provider connects but the picker shows no new models
+
+- **Cause**: Most often **no model is loaded**. The picker deliberately lists
+  only LM Studio models whose `state` is `loaded` (see "Local providers"), so a
+  provider with a dozen downloaded-but-idle models contributes nothing while its
+  row still shows connected. Less often: LM Studio has nothing downloaded at
+  all, or another provider of the same kind was added afterwards and shadowed it
+  (`bh.addDriver` shadows by `driver.id`).
+- **Solution**: Load a model in LM Studio (or send it one request from
+  `lms`), then reopen the picker — `models.changed` refreshes it. Otherwise
+  download a model, or remove the competing LM Studio row so only one is
+  registered.
 
 ### An MCP server fails with "TypeError: Failed to fetch"
 

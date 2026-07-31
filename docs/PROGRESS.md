@@ -108,6 +108,32 @@ All 44 tasks (TASK_0001–TASK_0044) are now complete. See "Recently completed
 | Item                                          | Status |
 | --------------------------------------------- | ------ |
 | Open message-field contract + `parseThink`    | [x]    |
+| LM Studio driver plugin + example provider    | [x]    |
+
+## Recently completed (LM Studio driver plugin)
+
+Post-v0.1. Adds a third bundled driver and generalizes the example's providers
+panel from Ollama-only to multi-kind.
+
+- **`src/plugins/lmstudio/index.ts`** (new) — `LMStudio` class implementing
+  `BHZAIDriver` over LM Studio's native `/api/v0` REST API. `fetch`-only, no
+  peer dependency, same posture as the Ollama driver (§ 10.3). Covers
+  `chat()` (OpenAI-shaped SSE with fragment-accumulated tool calls),
+  `listModels()`, a synchronous `capabilities()` backed by a one-request cache,
+  `embed()`, and the `connect`/`disconnect`/`error` lifecycle events.
+- **Packaging** — new `./plugins/lmstudio` export, `tsup` entry, and root-barrel
+  re-export, per `.claude/rules/packaging.md`.
+- **Example** — `provider-store.ts` gained a `ProviderKind` discriminator
+  (storage key `bhzai.providers`, schema v2); `providers-dialog.ts` gained a
+  working type selector with kind-aware field labels and per-row kind badges;
+  `provider-controller.ts` was rewritten against a structural `ProviderDriver`
+  type so both kinds share one code path.
+- **Docs** — `docs/plugins/lmstudio-driver.md` and
+  `src/plugins/lmstudio/README.md` (new); `docs/examples/webllm-chat.md` gained
+  a "Local providers" section and two troubleshooting entries.
+- 36 tests in `src/plugins/lmstudio/index.test.ts`, plus expanded
+  `example/src/lib/provider-store.test.ts` and
+  `example/src/components/providers-dialog.test.ts`.
 
 ## Recently completed (open message-field contract + `parseThink`)
 
