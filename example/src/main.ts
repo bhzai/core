@@ -29,16 +29,20 @@ import "./components/mcp-error-dialog.js"
 import "./components/mcp-server-list.js"
 import "./components/model-select.js"
 import "./components/provider-cog.js"
+import "./components/provider-select.js"
 import "./components/providers-dialog.js"
 import "./components/status-indicator.js"
 import "./components/telemetry-panel.js"
+import { ALL_PROVIDERS } from "./components/provider-select.js"
 import { byId } from "./lib/dom.js"
 import { selectableModels } from "./lib/models.js"
+import { loadSelection, saveSelection } from "./lib/selection-store.js"
 
 /** Resolve every custom element from the markup in `index.html`. */
 function buildUi() {
 	return {
 		status: byId<BhzaiStatusIndicator>("status"),
+		providerSelect: byId<BhzaiProviderSelect>("provider-select"),
 		modelSelect: byId<BhzaiModelSelect>("model-select"),
 		providerCog: byId<BhzaiProviderCog>("provider-cog"),
 		providersDialog: byId<BhzaiProvidersDialog>("providers-dialog"),
@@ -61,6 +65,7 @@ import type { BhzaiMcpErrorDialog } from "./components/mcp-error-dialog.js"
 import type { BhzaiMcpServerList } from "./components/mcp-server-list.js"
 import type { BhzaiModelSelect } from "./components/model-select.js"
 import type { BhzaiProviderCog } from "./components/provider-cog.js"
+import type { BhzaiProviderSelect } from "./components/provider-select.js"
 import type { BhzaiProvidersDialog } from "./components/providers-dialog.js"
 import type { BhzaiStatusIndicator } from "./components/status-indicator.js"
 import type { BhzaiTelemetry } from "./components/telemetry-panel.js"
@@ -115,20 +120,64 @@ async function initialize(): Promise<void> {
 
 		await bh.init()
 
+		// The full, unfiltered catalogue from the last refresh — the provider
+		// filter narrows `ui.modelSelect.models` down from this on every change.
+		let catalogue: ModelInfo[] = []
+
+		/** Apply the provider select's current filter to a catalogue. */
+		function filterByProvider(list: ModelInfo[]): ModelInfo[] {
+			const provider = ui.providerSelect.selectedProvider
+			return provider === ALL_PROVIDERS ? list : list.filter((m) => m.driver === provider)
+		}
+
+		/** Persist the current provider + model choice. */
+		function persistSelection(): void {
+			saveSelection({
+				provider: ui.providerSelect.selectedProvider,
+				modelId: ui.modelSelect.selectedModelId,
+			})
+		}
+
 		// Seed the picker from the live kernel catalogue and keep it in sync.
 		const refreshPicker = async () => {
 			// `selectableModels` drops LM Studio's downloaded-but-idle entries, so
 			// the picker lists only models that are actually warm.
-			ui.modelSelect.models = selectableModels(await bh.listModels())
+			catalogue = selectableModels(await bh.listModels())
+
+			// The provider select only makes sense once there is more than one
+			// provider contributing models — otherwise there is nothing to filter.
+			const providerIds = Array.from(new Set(catalogue.map((m) => m.driver)))
+			ui.providerSelect.providers = providerIds
+			ui.providerSelect.hidden = providerIds.length <= 1
+
+			ui.modelSelect.models = filterByProvider(catalogue)
 		}
+
+		const savedSelection = loadSelection()
+		ui.providerSelect.selectedProvider = savedSelection?.provider ?? ALL_PROVIDERS
+
 		await refreshPicker()
 		bh.on("models.changed", refreshPicker)
 
-		const models = ui.modelSelect.models
-		const defaultModel = pickDefaultModel(models)
+		// Prefer the saved model if it is already in the (unfiltered) catalogue —
+		// its provider may not have finished reconnecting yet, and the app must
+		// not fail to start over that. Otherwise fall back to the Qwen3 heuristic,
+		// first within the current filter, then across the whole catalogue.
+		const defaultModel =
+			(savedSelection?.modelId && catalogue.find((m) => m.id === savedSelection.modelId)) ||
+			pickDefaultModel(ui.modelSelect.models) ||
+			pickDefaultModel(catalogue)
 		if (!defaultModel) {
 			showFatalError("No models available in @mlc-ai/web-llm — check your installation.", ui)
 			return
+		}
+		// Keep the picker consistent with whatever gets bootstrapped: if the
+		// resolved default isn't in the current filter (the saved-provider case
+		// above), drop the filter back to "All" rather than show a selection that
+		// matches nothing in the list.
+		if (!ui.modelSelect.models.some((m) => m.id === defaultModel.id)) {
+			ui.providerSelect.selectedProvider = ALL_PROVIDERS
+			ui.modelSelect.models = catalogue
 		}
 		ui.modelSelect.selectedModelId = defaultModel.id
 
@@ -140,6 +189,20 @@ async function initialize(): Promise<void> {
 		ui.modelSelect.addEventListener("bhzai-change", (event) => {
 			const ref = (event as CustomEvent<{ ref: string }>).detail?.ref
 			if (ref) void chat.selectModel(ref)
+			persistSelection()
+		})
+		ui.providerSelect.addEventListener("bhzai-change", () => {
+			ui.modelSelect.models = filterByProvider(catalogue)
+
+			// Switch to a sensible model when the current one fell out of the new
+			// filter; otherwise leave the active conversation untouched.
+			if (!ui.modelSelect.models.some((m) => m.id === ui.modelSelect.selectedModelId)) {
+				const next = pickDefaultModel(ui.modelSelect.models)
+				ui.modelSelect.selectedModelId = next?.id ?? ""
+				if (next) void chat.selectModel(next.ref)
+			}
+
+			persistSelection()
 		})
 
 		const mcpController = createMcpController({

@@ -103,6 +103,7 @@ CSS variables continue to drive their appearance.
 | Module | Custom element | Owns |
 | --- | --- | --- |
 | `status-indicator.ts` | `<bhzai-status-indicator>` | statusbar dot + label |
+| `provider-select.ts` | `<bhzai-provider-select>` | provider filter, to the left of the model picker; hidden unless more than one driver contributes models |
 | `model-select.ts` | `<bhzai-model-select>` | reactive model picker, consumes `bh.listModels()` and `models.changed` |
 | `composer.ts` | `<bhzai-composer>` | Send/Stop state, text, keyboard |
 | `conversation-view.ts` | `<bhzai-conversation>` | user bubbles, assistant turns, inline errors |
@@ -149,6 +150,10 @@ look back up on every delta.
   may contain colons), `validateServerUrl()` (http/https only), `errorHint()`
   (plain-language next step — notably mapping the opaque `TypeError: Failed to
   fetch` to the CORS explanation).
+- **`selection-store.ts`** — `loadSelection()` / `saveSelection()` (localStorage
+  key `bhzai.selection`, schema v1, injectable backend), mirroring
+  `provider-store.ts`'s shape. Persists `{ provider, modelId }` so the provider
+  filter and model picker restore on the next visit.
 
 ## Model selection
 
@@ -160,6 +165,40 @@ subscribes to `models.changed`
 to refresh the list, and listens for the custom `bhzai-change` event
 (detail: `{ model: ModelInfo, ref: string }`) to switch conversations. The
 default still prefers a Qwen3 model when available.
+
+## Provider filter
+
+`<bhzai-provider-select>` sits immediately to the left of `<bhzai-model-select>`
+in `.center-container`, built the same way — a thin `LitElement` wrapper around
+its own `<lit-typeahead>` — so it fires the same shape of custom event
+(`bhzai-change`, detail `{ provider: string }` — a `ModelInfo.driver` id, or
+`"all"`) rather than sharing a single generic element with the model picker.
+
+It is a pure filter over the driver ids already present in the merged
+catalogue, not a second source of provider truth: `main.ts`'s `refreshPicker()`
+derives `providers` as `[...new Set(catalogue.map(m => m.driver))]` on every
+`models.changed` refresh, and sets `hidden` whenever that set has one or fewer
+entries — the element ships `hidden` in `index.html` so there is no flash
+before the first refresh decides. `"All"` (`ALL_PROVIDERS` from
+`provider-select.ts`) is always the first item and the default.
+
+Selecting a provider narrows `bhzai-model-select.models` to that driver's
+entries via `main.ts`'s `filterByProvider()`. If the currently active model
+falls outside the new filter, `main.ts` picks a fresh default within it (same
+Qwen3-first heuristic as initial load) and switches the conversation; if it is
+still in the filtered list, the conversation is left untouched — narrowing the
+list is not itself a reason to reload a working conversation.
+
+Both the provider and the model choice are persisted via
+`selection-store.ts` (`bhzai.selection`) on every `bhzai-change` from either
+picker, and restored on the next visit. Restoration prefers an exact saved
+model id from the full catalogue over the Qwen3 heuristic — the saved
+provider's driver may not have finished reconnecting yet at that point in
+`main.ts`'s startup sequence, so the fallback chain tries the current filter's
+heuristic next and finally the whole catalogue's, guaranteeing a bootstrap
+model is always found. If the resolved default ends up outside the saved
+filter, the filter is dropped back to `"all"` rather than leave the picker
+showing a selection that matches nothing in its own list.
 
 ## Providers panel
 
@@ -233,8 +272,8 @@ Requirements:
 
 - **Unit tests** (`pnpm test` from the root, `example/**/*.test.ts` is in the
   vitest `include`):
-  - `src/lib/{format,stats,thermal,mcp-store,provider-store,models}.test.ts` —
-    pure functions, default `node` environment.
+  - `src/lib/{format,stats,thermal,mcp-store,provider-store,models,selection-store}.test.ts`
+    — pure functions, default `node` environment.
   - `src/components/providers-dialog.test.ts` — list/add/edit view transitions,
     the kind badge and type typeahead, kind-aware field labels, the dispatched
     add/update/remove event details, and an untrusted-text guard on a
@@ -252,8 +291,8 @@ Requirements:
   `environment: "node"` by default.
 - **Not unit-tested**: `main.ts`, `app/*`, and the thin components
   (`status-indicator`, `composer`, `cold-start-panel`, `telemetry-panel`,
-  `mcp-add-form`, `mcp-error-dialog`). These are glue over APIs that are
-  themselves tested; they are covered by the smoke run.
+  `mcp-add-form`, `mcp-error-dialog`, `provider-select`). These are glue over
+  APIs that are themselves tested; they are covered by the smoke run.
 - **Smoke test**: `pnpm run preview` in a WebGPU browser — verify the
   typeahead populates, a message streams with its Thought region, telemetry
   fills in, and Stop then re-send works.
