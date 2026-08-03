@@ -49,6 +49,16 @@ Implemented:
   over LM Studio's native `/api/v0` REST API, also `fetch`-only. OpenAI-shaped
   SSE streaming with fragment-accumulated tool calls, a one-request
   capabilities cache, and `embed()`. Works in any fetch-capable runtime.
+- **OpenAI driver** (`src/plugins/openai/`) — `bhzaiDriver` implementation over
+  the hosted `/v1` REST API, `fetch`-only (no `openai` SDK). Same SSE shape as
+  the LM Studio driver, plus what a hosted multi-tenant platform forces:
+  capabilities inferred from the model id when nothing is declared
+  (api.openai.com's `/v1/models` declares none) but READ from a gateway's
+  `context_length` / `supported_parameters` when they are, id normalization for
+  vendor-namespaced gateway ids, a `meta.type` modality tag over its multi-modal
+  catalogue, an overridable context-window family table, and assistant
+  `tool_calls` reconstruction so multi-iteration tool loops pass the API's
+  structural validation. Serves any OpenAI-compatible gateway via `baseUrl`.
 - **Credential resolution** (`src/core/credentials.ts`) —
   `resolveCredentials()` three-tier chain (runtime value → `auth` hooks →
   unauthenticated). `bh.getAuthHooks()` exposes registered resolvers.

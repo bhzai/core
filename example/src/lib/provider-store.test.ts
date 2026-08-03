@@ -130,6 +130,20 @@ describe("normalizeBaseUrl", () => {
 		expect(normalizeBaseUrl("http://localhost:1234/v1")).toBe("http://localhost:1234")
 	})
 
+	it("strips the /v1 suffix OpenAI's docs print, leaving the API root", () => {
+		expect(normalizeBaseUrl("https://api.openai.com/v1")).toBe("https://api.openai.com")
+		expect(normalizeBaseUrl("https://api.openai.com/v1/")).toBe("https://api.openai.com")
+	})
+
+	it("strips a full endpoint address, which is what docs actually print", () => {
+		// Pasting this verbatim used to yield `.../v1/models/v1/models` — a 404.
+		expect(normalizeBaseUrl("https://openrouter.ai/api/v1/models")).toBe(
+			"https://openrouter.ai/api",
+		)
+		expect(normalizeBaseUrl("https://api.openai.com/v1/models")).toBe("https://api.openai.com")
+		expect(normalizeBaseUrl("http://localhost:11434/api/tags")).toBe("http://localhost:11434")
+	})
+
 	it("strips a trailing slash from a bare root", () => {
 		expect(normalizeBaseUrl("http://localhost:11434/")).toBe("http://localhost:11434")
 	})
@@ -157,6 +171,7 @@ describe("validateApiUrl", () => {
 		expect(validateApiUrl("http://localhost:11434/api", "ollama")).toBeNull()
 		expect(validateApiUrl("https://gpu.example:11434", "ollama")).toBeNull()
 		expect(validateApiUrl("http://localhost:1234", "lmstudio")).toBeNull()
+		expect(validateApiUrl("https://api.openai.com/v1", "openai")).toBeNull()
 	})
 
 	it("rejects an empty entry, naming the provider", () => {
@@ -167,9 +182,10 @@ describe("validateApiUrl", () => {
 	it("rejects a URL with no scheme and suggests that kind's default", () => {
 		expect(validateApiUrl("example.com/ollama", "ollama")).toContain(DEFAULT_PROVIDER_API.ollama)
 		expect(validateApiUrl("example.com", "lmstudio")).toContain(DEFAULT_PROVIDER_API.lmstudio)
+		expect(validateApiUrl("api.openai.com", "openai")).toContain(DEFAULT_PROVIDER_API.openai)
 	})
 
-	it("rejects non-HTTP transports — both drivers speak HTTP only", () => {
+	it("rejects non-HTTP transports — every driver speaks HTTP only", () => {
 		expect(validateApiUrl("ws://localhost:11434", "ollama")).toMatch(/Only HTTP Ollama servers/)
 		expect(validateApiUrl("file:///tmp/lmstudio", "lmstudio")).toMatch(
 			/Only HTTP LM Studio servers/,
@@ -182,6 +198,8 @@ describe("provider labels", () => {
 		expect(providerLabel("lmstudio")).toBe("LM Studio")
 		expect(providerKindFromLabel("LM Studio")).toBe("lmstudio")
 		expect(providerKindFromLabel("Ollama")).toBe("ollama")
+		expect(providerLabel("openai")).toBe("OpenAI")
+		expect(providerKindFromLabel("OpenAI")).toBe("openai")
 	})
 
 	it("falls back to the raw value for an unknown kind and to ollama for an unknown label", () => {

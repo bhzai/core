@@ -86,6 +86,16 @@ parsing/resolution consumed by the loop to find a driver), `retry.ts`
 - **History is never deleted** — compaction only ever marks
   `meta.contextIncluded = false` and inserts a `role: 'system'` summary
   message; snapshots always contain the complete transcript.
+- **`meta.toolCalls: ToolCallRecord[]`** — the tool calls an assistant message
+  asked for, recorded as `{ id, name, arguments }` (arguments is the raw JSON
+  string). Set by the agent loop on any turn that produced tool calls, and paired
+  with the tool-result messages' `meta.toolCallId` / `meta.toolName`. The loop's
+  tool-call buffer is per-iteration, so without this record the calls are
+  unrecoverable from history — which breaks two things: drivers whose provider
+  validates conversation structure (OpenAI rejects a `tool` message whose
+  preceding assistant message does not advertise the matching id, so its driver
+  rebuilds the pairing from this), and anything replaying history after a snapshot
+  restore. Plain JSON by design, so it round-trips through `snapshot.ts` unchanged.
 - **`meta.reasoning: string`** — a driver's *native* `reasoning-delta` channel,
   accumulated on the assistant message and mirrored as `message.delta` with
   `kind: 'reasoning'`.

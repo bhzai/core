@@ -45,9 +45,48 @@ export interface BHZAIMessageExtensions {
 }
 
 /**
+ * One tool call an assistant message asked for, as recorded by the agent loop
+ * under `meta.toolCalls`.
+ *
+ * The agent loop's tool-call buffer is local to a single iteration, so without
+ * this record the calls a turn produced are unrecoverable from history. Two
+ * consumers need them:
+ *
+ * - **Drivers whose provider validates conversation structure.** OpenAI rejects
+ *   a `role: 'tool'` message whose preceding assistant message does not
+ *   advertise the matching `tool_call_id`, so its driver rebuilds that pairing
+ *   from this record. The tool-result message carries the id and name, but never
+ *   the arguments.
+ * - **Anything replaying history** — a snapshot restore, a host rendering what
+ *   the model actually asked for, or a different driver picking up an existing
+ *   conversation.
+ *
+ * `arguments` is the raw JSON argument **string**, matching both the
+ * `tool-call` `DriverEvent`'s `input` and every provider's wire format. It is
+ * not parsed or validated here; a malformed value is the conversation layer's
+ * validate-and-repair concern.
+ *
+ * Deliberately plain JSON so it survives the snapshot round-trip (§ 11.3)
+ * unchanged.
+ */
+export interface ToolCallRecord {
+	/** The tool-call id, matching the tool-result message's `meta.toolCallId`. */
+	id: string
+	/** The tool's name. */
+	name: string
+	/** Raw JSON argument text, exactly as the driver accumulated it. */
+	arguments: string
+}
+
+/**
  * The normalized internal message shape drivers and the conversation manager
  * operate on (§ 11.1). `content` is a convenience view of the text blocks;
  * `blocks` is the structured payload.
+ *
+ * Two `meta` keys the agent loop populates are load-bearing across turns and
+ * worth knowing about: an assistant message that requested tools carries
+ * `meta.toolCalls` ({@link ToolCallRecord}`[]`), and the matching tool-result
+ * messages carry `meta.toolCallId` / `meta.toolName`.
  *
  * Extends {@link BHZAIMessageExtensions}, which is open for module augmentation
  * so plugins can add typed per-message fields.

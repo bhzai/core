@@ -302,6 +302,59 @@ describe("BHZAI model lifecycle events", () => {
 		expect(batch.mock.calls[1][0].changed).toHaveLength(1)
 	})
 
+	// REGRESSION: drivers dispatch 'connect' from inside listModels(), and a host
+	// that refreshes its catalogue on that event re-enters bh.listModels(). Before
+	// the guard spanned the driver poll, each refresh polled every driver and each
+	// poll triggered another refresh — an unbounded request storm (observed as
+	// 5000+ requests against an OpenAI-compatible gateway).
+	it("does not re-poll drivers when a driver event re-enters listModels()", async () => {
+		const bh = new BHZAI()
+		let polls = 0
+		const driver = Object.assign(new EventTarget(), {
+			id: "loopy",
+			listModels: async () => {
+				polls++
+				if (polls > 100) throw new Error(`runaway: ${polls} polls`)
+				const models = [testModel("loopy/m1")]
+				driver.dispatchEvent(new CustomEvent("connect", { detail: { models } }))
+				return models
+			},
+			capabilities: () => ({ streaming: true, toolCalls: false, reasoning: false }),
+			chat: async function* () {},
+		})
+		// The host refreshes its picker whenever the provider connects.
+		driver.addEventListener("connect", () => {
+			void bh.listModels()
+		})
+
+		bh.addDriver(driver as unknown as BHZAIDriver)
+		await bh.listModels()
+		await new Promise((resolve) => setTimeout(resolve, 50))
+
+		// Bounded: the re-entrant calls read the snapshot instead of polling.
+		expect(polls).toBeLessThanOrEqual(3)
+	})
+
+	it("still returns the fresh catalogue to the outer caller after re-entry", async () => {
+		const bh = new BHZAI()
+		const m1 = testModel("loopy/m1")
+		const driver = Object.assign(new EventTarget(), {
+			id: "loopy",
+			listModels: async () => {
+				driver.dispatchEvent(new CustomEvent("connect", { detail: { models: [m1] } }))
+				return [m1]
+			},
+			capabilities: () => ({ streaming: true, toolCalls: false, reasoning: false }),
+			chat: async function* () {},
+		})
+		driver.addEventListener("connect", () => {
+			void bh.listModels()
+		})
+		bh.addDriver(driver as unknown as BHZAIDriver)
+
+		expect(await bh.listModels()).toEqual([m1])
+	})
+
 	it("emits model.added for modelSource hook contributions", async () => {
 		const bh = new BHZAI()
 		const added = vi.fn()

@@ -763,4 +763,86 @@ describe("TASK_0026: Tool execution in the agent loop", () => {
 		expect(toolMessages[0].meta.isError).toBe(true)
 		expect(toolMessages[0].content).toContain("validation")
 	})
+
+	// The tool-call buffer is local to one iteration, so without this record the
+	// calls a turn made are unrecoverable from history. Drivers whose provider
+	// validates conversation structure (OpenAI rejects a `tool` message whose
+	// preceding assistant message does not advertise the matching id) rebuild the
+	// pairing from it, and it must survive a snapshot round-trip.
+	it("records the tool calls a turn produced on the assistant message as meta.toolCalls", async () => {
+		const conversation = (await bh.createConversation({
+			model: "mock-driver/mock-model",
+		})) as BHZAIConversationImpl
+
+		bh.addTool({
+			name: "get_weather",
+			description: "Weather",
+			inputSchema: { type: "object" },
+			execute: async () => "sunny",
+		})
+
+		let callCount = 0
+		const driver = makeMockDriver([])
+		driver.chat = vi.fn(async function* (_request: ChatRequest) {
+			callCount++
+			if (callCount === 1) {
+				yield {
+					type: "tool-call" as const,
+					toolCallId: "call_1",
+					name: "get_weather",
+					input: '{"city":"SF"}',
+				}
+				yield { type: "done" as const, stopReason: "tool-calls" as const }
+			} else {
+				yield { type: "delta" as const, text: "It is sunny." }
+				yield { type: "done" as const, stopReason: "stop" as const }
+			}
+		}) as typeof driver.chat
+		bh.addDriver(driver)
+
+		await sendMessage(conversation, "weather?")
+
+		const assistant = conversation.messages.filter((m) => m.role === "assistant")
+		expect(assistant[0]?.meta.toolCalls).toEqual([
+			{ id: "call_1", name: "get_weather", arguments: '{"city":"SF"}' },
+		])
+		// The tool-result message still carries the id it answers, so the two
+		// halves of the pairing line up.
+		const toolMsg = conversation.messages.find((m) => m.role === "tool")
+		expect(toolMsg?.meta.toolCallId).toBe("call_1")
+		// A turn that made no tool calls carries no record at all.
+		expect(assistant[1]?.meta.toolCalls).toBeUndefined()
+	})
+
+	it("serializes a structured tool-call input into the recorded arguments string", async () => {
+		const conversation = (await bh.createConversation({
+			model: "mock-driver/mock-model",
+		})) as BHZAIConversationImpl
+
+		bh.addTool({
+			name: "t",
+			description: "t",
+			inputSchema: { type: "object" },
+			execute: async () => "ok",
+		})
+
+		let callCount = 0
+		const driver = makeMockDriver([])
+		driver.chat = vi.fn(async function* (_request: ChatRequest) {
+			callCount++
+			if (callCount === 1) {
+				// A driver that yields a parsed object rather than raw JSON text.
+				yield { type: "tool-call" as const, toolCallId: "c1", name: "t", input: { a: 1 } }
+				yield { type: "done" as const, stopReason: "tool-calls" as const }
+			} else {
+				yield { type: "done" as const, stopReason: "stop" as const }
+			}
+		}) as typeof driver.chat
+		bh.addDriver(driver)
+
+		await sendMessage(conversation, "go")
+
+		const assistant = conversation.messages.find((m) => m.role === "assistant")
+		expect(assistant?.meta.toolCalls).toEqual([{ id: "c1", name: "t", arguments: '{"a":1}' }])
+	})
 })

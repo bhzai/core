@@ -104,14 +104,14 @@ describe("BhzaiProvidersDialog", () => {
 		expect(dialog.querySelector("input[name=api-token]")).not.toBeNull()
 	})
 
-	it("offers both addable kinds in the type typeahead, Ollama first", async () => {
+	it("offers every addable kind in the type typeahead, Ollama first", async () => {
 		const dialog = await fixture()
 		dialog.show()
 		dialog.showAddView()
 		await dialog.updateComplete
 
 		const typeahead = dialog.querySelector("lit-typeahead") as HTMLElement & { items: string[] }
-		expect(typeahead.items).toEqual(["Ollama", "LM Studio"])
+		expect(typeahead.items).toEqual(["Ollama", "LM Studio", "OpenAI"])
 		expect(dialog.querySelector(".provider-field > span")?.textContent).toBe("Type")
 	})
 
@@ -238,6 +238,45 @@ describe("BhzaiProvidersDialog", () => {
 		const detail = (spy.mock.calls[0][0] as CustomEvent).detail
 		expect(detail.type).toBe("lmstudio")
 		expect(detail.baseUrl).toBe("http://localhost:1234")
+	})
+
+	it("shows the connection status on the edit view, where a successful Connect lands", async () => {
+		const dialog = await fixture()
+		dialog.setProviders([
+			{ id: "p1", kind: "openai", label: "https://openrouter.ai/api", status: "connected" },
+		])
+		dialog.show()
+		dialog.showEditView("p1")
+		await dialog.updateComplete
+
+		const status = dialog.querySelector(".provider-status") as HTMLElement
+		expect(status).toBeTruthy()
+		expect(status.getAttribute("data-state")).toBe("connected")
+		expect(status.textContent).toContain("Connected")
+		expect(status.getAttribute("role")).toBe("status")
+	})
+
+	it("reports a failed connection on the edit view too", async () => {
+		const dialog = await fixture()
+		dialog.setProviders([
+			{ id: "p1", kind: "openai", label: "https://api.openai.com", status: "error" },
+		])
+		dialog.show()
+		dialog.showEditView("p1")
+		await dialog.updateComplete
+
+		const status = dialog.querySelector(".provider-status") as HTMLElement
+		expect(status.getAttribute("data-state")).toBe("error")
+		expect(status.textContent).toContain("Connection failed")
+	})
+
+	it("omits the status line when the row is gone", async () => {
+		const dialog = await fixture()
+		dialog.setProviders([])
+		dialog.show()
+		dialog.showEditView("missing")
+		await dialog.updateComplete
+		expect(dialog.querySelector(".provider-status")).toBeNull()
 	})
 
 	it("editing an lmstudio row labels the address field for LM Studio", async () => {

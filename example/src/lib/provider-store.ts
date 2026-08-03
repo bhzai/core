@@ -23,26 +23,36 @@ const STORAGE_KEY = "bhzai.providers"
  */
 const STORAGE_VERSION = 2
 
-/** The local HTTP providers the panel can add. WebLLM is the built-in, not one of these. */
-export type ProviderKind = "ollama" | "lmstudio"
+/**
+ * The HTTP providers the panel can add. WebLLM is the built-in, not one of
+ * these.
+ *
+ * `ollama` and `lmstudio` are local servers; `openai` is the hosted platform,
+ * which differs only in that its API token is required rather than optional —
+ * every request to api.openai.com without one is rejected with 401.
+ */
+export type ProviderKind = "ollama" | "lmstudio" | "openai"
 
 /** Every addable provider kind, in the order the add form offers them. */
-export const PROVIDER_KINDS: ProviderKind[] = ["ollama", "lmstudio"]
+export const PROVIDER_KINDS: ProviderKind[] = ["ollama", "lmstudio", "openai"]
 
 /** Human-readable name per kind, used in form labels and error messages. */
 export const PROVIDER_LABELS: Record<ProviderKind, string> = {
 	ollama: "Ollama",
 	lmstudio: "LM Studio",
+	openai: "OpenAI",
 }
 
 /**
- * The default API address offered in the add-provider form, per kind. Both
- * drivers append their own API path, so they want the server ROOT — see
- * {@link normalizeBaseUrl}.
+ * The default API address offered in the add-provider form, per kind. Every
+ * driver appends its own API path, so they want the server ROOT — see
+ * {@link normalizeBaseUrl}, which strips the `/v1` and `/api` suffixes users
+ * paste out of habit.
  */
 export const DEFAULT_PROVIDER_API: Record<ProviderKind, string> = {
 	ollama: "http://localhost:11434/api",
 	lmstudio: "http://localhost:1234",
+	openai: "https://api.openai.com/v1",
 }
 
 /** Resolve a display label from an arbitrary string, falling back to the raw value. */
@@ -145,7 +155,10 @@ export function loadProviders(storage?: Storage): ProviderConfig[] {
  * ⚠️ Stores the bearer token verbatim in plaintext under this browser origin.
  * That is a deliberate trade-off for a local demo (one-click reconnect); a
  * production host should keep credentials out of `localStorage` and re-prompt
- * instead. Mirrors `mcp-store.ts`'s `saveServers` policy.
+ * instead. Mirrors `mcp-store.ts`'s `saveServers` policy. It matters more for
+ * an `openai` provider than for a local one: that token is a real,
+ * billable API key, readable by any script on this origin, so use a key scoped
+ * to a throwaway project — or a proxy that injects the key server-side.
  *
  * Silently no-ops when storage is unavailable or full — persistence is a
  * convenience here, and losing it must not break the session in progress.
@@ -170,11 +183,14 @@ export function saveProviders(providers: ProviderConfig[], storage?: Storage): b
  * Strip a trailing API path segment (and any trailing slash) from a
  * user-entered address so the driver receives the server ROOT.
  *
- * Both drivers append their own API path — Ollama appends `/api/tags`, LM
- * Studio appends `/api/v0/models` — so a baseUrl that already ends in one
- * would produce a doubled path. The three suffixes users realistically paste
- * are handled: `/api/v0` and `/v1` (the two addresses LM Studio's Developer
- * tab shows) and `/api` (Ollama's). A bare root is returned unchanged.
+ * Every driver appends its own API path — Ollama appends `/api/tags`, LM
+ * Studio appends `/api/v0/models`, OpenAI appends `/v1/models` — so a baseUrl
+ * that already ends in one would produce a doubled path. The three suffixes
+ * users realistically paste are handled: `/api/v0` and `/v1` (the two
+ * addresses LM Studio's Developer tab shows, and the one every OpenAI doc page
+ * prints) and `/api` (Ollama's). A trailing endpoint name (`/models`, `/tags`)
+ * is stripped first, since docs quote the full endpoint far more often than the
+ * root. A bare root is returned unchanged.
  *
  * @param api - The user-entered address (e.g. `http://localhost:1234/api/v0`)
  * @returns The server root (e.g. `http://localhost:1234`)
@@ -183,6 +199,11 @@ export function normalizeBaseUrl(api: string): string {
 	let url = (api ?? "").trim()
 	// Drop a trailing slash first so `/api/` and `/api` both reduce to `/api`.
 	url = url.replace(/\/+$/, "")
+	// Drop a trailing `/models` or `/tags` — the endpoint people copy out of a
+	// provider's docs (`https://openrouter.ai/api/v1/models`) rather than its
+	// root. Without this the driver appends its own path to it and requests
+	// `.../v1/models/v1/models`, which 404s with an HTML body.
+	url = url.replace(/\/(models|tags)$/i, "")
 	// Now strip a trailing API-path segment (case-insensitive) if present.
 	url = url.replace(/\/(api\/v0|v1|api)$/i, "")
 	// A second slash trim in case stripping the segment exposed one.

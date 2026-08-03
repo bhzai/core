@@ -538,6 +538,15 @@ export class BHZAI {
 	private syncingModels = false
 
 	/**
+	 * The catalogue poll currently in flight, or `null`.
+	 *
+	 * Concurrent `listModels()` callers join this promise rather than polling
+	 * every driver again — see {@link listModels}'s re-entrancy note. Distinct
+	 * from {@link syncingModels}, which covers only the event-dispatch phase.
+	 */
+	private modelPoll: Promise<ModelInfo[]> | null = null
+
+	/**
 	 * The plugin currently being set up or initialized. Every registration made
 	 * while this is set is attributed to that plugin.
 	 *
@@ -1160,11 +1169,54 @@ export class BHZAI {
 	 * Every successful call diff's the new catalogue against the cached
 	 * `modelSnapshot` and dispatches `model.added`, `model.changed`,
 	 * `model.removed`, and `models.changed` for any differences.
+	 *
+	 * RE-ENTRANCY. This method is re-entered routinely, and the two phases need
+	 * different treatment:
+	 *
+	 * - **During the driver poll**, concurrent callers JOIN the in-flight poll
+	 *   instead of starting their own. This matters because drivers dispatch
+	 *   their own events from inside `listModels()` (all three bundled HTTP
+	 *   drivers fire `'connect'` there), so a host that refreshes its model list
+	 *   in response — the obvious thing to do — re-enters here while the first
+	 *   poll is still running. Starting a fresh poll each time means every
+	 *   refresh polls every driver and every poll triggers another refresh,
+	 *   without bound. Joining collapses that to exactly one poll, and every
+	 *   caller still receives the real, fresh catalogue.
+	 * - **During event dispatch** (`syncingModels`), re-entrant callers get the
+	 *   cached `modelSnapshot` immediately. Joining is not an option there: the
+	 *   in-flight call is itself waiting on this dispatch to finish, so awaiting
+	 *   it would deadlock. The snapshot has already been updated to the new
+	 *   catalogue by that point, so it is not stale.
 	 */
 	async listModels(): Promise<ModelInfo[]> {
 		if (this.syncingModels) {
 			return this.modelSnapshot
 		}
+		if (this.modelPoll) {
+			return this.modelPoll
+		}
+		const poll = this.runModelPoll()
+		this.modelPoll = poll
+		try {
+			return await poll
+		} finally {
+			this.modelPoll = null
+		}
+	}
+
+	/**
+	 * One catalogue poll followed by its event dispatch. Split out of
+	 * {@link listModels} so the in-flight promise can be published before any
+	 * driver code runs.
+	 *
+	 * The leading `await` is load-bearing, not ceremony: it yields once so
+	 * `listModels()` has assigned `modelPoll` before the first driver is touched.
+	 * Without it, a driver that dispatched an event synchronously (before its own
+	 * first `await`) would re-enter `listModels()` while `modelPoll` was still
+	 * unset — and start the very poll storm this exists to prevent.
+	 */
+	private async runModelPoll(): Promise<ModelInfo[]> {
+		await Promise.resolve()
 		const next = await this.computeListModels()
 		await this.syncModelEvents(next)
 		return next
@@ -1203,6 +1255,10 @@ export class BHZAI {
 	 * Models are keyed by their qualified `ref`. The snapshot is updated
 	 * before events are dispatched so re-entrant `listModels()` calls see
 	 * the new catalogue while `syncingModels` is true.
+	 *
+	 * Owns `syncingModels` for the dispatch phase only. The poll phase is
+	 * serialized separately, by `modelPoll` in {@link listModels} — see its
+	 * re-entrancy note for why the two phases cannot share one mechanism.
 	 */
 	private async syncModelEvents(next: ModelInfo[]): Promise<void> {
 		if (this.syncingModels) return

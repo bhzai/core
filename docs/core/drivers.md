@@ -7,9 +7,10 @@ ARCHITECTURE.md § 10.1.
 
 The `DriverRegistry` stores `BHZAIDriver` instances keyed by `id`. It is
 the kernel-side store of model-provider drivers (WebLLM, Ollama, LM Studio,
-or any future provider). It does **not** implement any actual driver — those
-are TASK_0019 (WebLLM), TASK_0020 (Ollama), and the post-v0.1 LM Studio
-plugin (`src/plugins/lmstudio/`). It implements the registry
+OpenAI, or any future provider). It does **not** implement any actual driver —
+those are TASK_0019 (WebLLM), TASK_0020 (Ollama), and the post-v0.1 LM Studio
+and OpenAI plugins (`src/plugins/lmstudio/`, `src/plugins/openai/`). It
+implements the registry
 that drivers plug into and the merge logic that aggregates their model
 catalogues.
 
@@ -35,7 +36,7 @@ const models = await bh.listModels(); // ModelInfo[] — merged across all drive
 
 ```typescript
 interface BHZAIDriver {
-  id: string; // 'webllm', 'ollama', 'lmstudio', ...
+  id: string; // 'webllm', 'ollama', 'lmstudio', 'openai', ...
   listModels(): Promise<ModelInfo[]>;
   capabilities(model: string): DriverCapabilities;
   chat(request: ChatRequest): AsyncIterable<DriverEvent>;
@@ -73,6 +74,26 @@ how many drivers are contributing.
 `modelSource` plugin hook results. See the inline seam comment in
 `drivers.ts`.
 
+### Re-entrancy of `bh.listModels()`
+
+Drivers are allowed — and the bundled HTTP ones are expected — to dispatch their
+own lifecycle events from inside `listModels()`. A host that refreshes its model
+list when a provider connects therefore re-enters `bh.listModels()` while the
+first poll is still running, which without a guard means every refresh polls
+every driver and every poll triggers another refresh. Left unbounded that is a
+request storm, not a slow path.
+
+`bh.listModels()` handles the two phases differently:
+
+- **While polling**, concurrent callers join the in-flight poll instead of
+  starting their own. One poll happens; every caller receives its real result.
+- **While dispatching** `model.*` / `models.changed`, re-entrant callers get the
+  cached snapshot immediately. Joining would deadlock, because the in-flight call
+  is itself waiting on that dispatch. The snapshot is updated before any event
+  fires, so it is already the new catalogue.
+
+A host does not need to debounce its own refreshes to stay safe.
+
 ## Conventions
 
 - **"Last registration wins"** shadowing: re-registering a driver with
@@ -88,7 +109,7 @@ how many drivers are contributing.
 `drivers.ts` uses only web-standard APIs. No driver is imported here —
 the registry stores instances it's handed; concrete drivers live in
 `src/plugins/webllm/` and `src/plugins/ollama/` (TASK_0019/0020), plus
-`src/plugins/lmstudio/` (added post-v0.1).
+`src/plugins/lmstudio/` and `src/plugins/openai/` (added post-v0.1).
 
 ## Test coverage
 
