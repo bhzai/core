@@ -91,7 +91,7 @@ describe("loadProviders / saveProviders", () => {
 					{ id: "ok", kind: "ollama", baseUrl: "http://localhost:11434", token: "" },
 					{ kind: "ollama", baseUrl: "http://no-id:11434", token: "" },
 					{ id: "no-url", kind: "ollama", token: "" },
-					{ id: "bad-kind", kind: "vllm", baseUrl: "http://x:8000", token: "" },
+					{ id: "bad-kind", kind: "not-a-provider", baseUrl: "http://x:8000", token: "" },
 					{ id: "no-kind", baseUrl: "http://x:11434", token: "" },
 					null,
 					{ id: "", kind: "ollama", baseUrl: "http://empty-id:11434", token: "" },
@@ -130,6 +130,28 @@ describe("normalizeBaseUrl", () => {
 		expect(normalizeBaseUrl("http://localhost:1234/v1")).toBe("http://localhost:1234")
 	})
 
+	it("strips the /v1 suffix OpenAI's docs print, leaving the API root", () => {
+		expect(normalizeBaseUrl("https://api.openai.com/v1")).toBe("https://api.openai.com")
+		expect(normalizeBaseUrl("https://api.openai.com/v1/")).toBe("https://api.openai.com")
+	})
+
+	it("strips the /v1 suffix vLLM's docs print, leaving the server root", () => {
+		// The vLLM driver appends `/v1/models` itself, so the stored value must be
+		// the root even though every vLLM doc page prints the /v1 address.
+		expect(normalizeBaseUrl("http://localhost:8000/v1")).toBe("http://localhost:8000")
+		expect(normalizeBaseUrl("http://localhost:8000/v1/")).toBe("http://localhost:8000")
+		expect(normalizeBaseUrl("http://localhost:8000/v1/models")).toBe("http://localhost:8000")
+	})
+
+	it("strips a full endpoint address, which is what docs actually print", () => {
+		// Pasting this verbatim used to yield `.../v1/models/v1/models` — a 404.
+		expect(normalizeBaseUrl("https://openrouter.ai/api/v1/models")).toBe(
+			"https://openrouter.ai/api",
+		)
+		expect(normalizeBaseUrl("https://api.openai.com/v1/models")).toBe("https://api.openai.com")
+		expect(normalizeBaseUrl("http://localhost:11434/api/tags")).toBe("http://localhost:11434")
+	})
+
 	it("strips a trailing slash from a bare root", () => {
 		expect(normalizeBaseUrl("http://localhost:11434/")).toBe("http://localhost:11434")
 	})
@@ -157,6 +179,8 @@ describe("validateApiUrl", () => {
 		expect(validateApiUrl("http://localhost:11434/api", "ollama")).toBeNull()
 		expect(validateApiUrl("https://gpu.example:11434", "ollama")).toBeNull()
 		expect(validateApiUrl("http://localhost:1234", "lmstudio")).toBeNull()
+		expect(validateApiUrl("https://api.openai.com/v1", "openai")).toBeNull()
+		expect(validateApiUrl("http://localhost:8000/v1", "vllm")).toBeNull()
 	})
 
 	it("rejects an empty entry, naming the provider", () => {
@@ -167,9 +191,10 @@ describe("validateApiUrl", () => {
 	it("rejects a URL with no scheme and suggests that kind's default", () => {
 		expect(validateApiUrl("example.com/ollama", "ollama")).toContain(DEFAULT_PROVIDER_API.ollama)
 		expect(validateApiUrl("example.com", "lmstudio")).toContain(DEFAULT_PROVIDER_API.lmstudio)
+		expect(validateApiUrl("api.openai.com", "openai")).toContain(DEFAULT_PROVIDER_API.openai)
 	})
 
-	it("rejects non-HTTP transports — both drivers speak HTTP only", () => {
+	it("rejects non-HTTP transports — every driver speaks HTTP only", () => {
 		expect(validateApiUrl("ws://localhost:11434", "ollama")).toMatch(/Only HTTP Ollama servers/)
 		expect(validateApiUrl("file:///tmp/lmstudio", "lmstudio")).toMatch(
 			/Only HTTP LM Studio servers/,
@@ -182,10 +207,14 @@ describe("provider labels", () => {
 		expect(providerLabel("lmstudio")).toBe("LM Studio")
 		expect(providerKindFromLabel("LM Studio")).toBe("lmstudio")
 		expect(providerKindFromLabel("Ollama")).toBe("ollama")
+		expect(providerLabel("openai")).toBe("OpenAI")
+		expect(providerKindFromLabel("OpenAI")).toBe("openai")
+		expect(providerLabel("vllm")).toBe("vLLM")
+		expect(providerKindFromLabel("vLLM")).toBe("vllm")
 	})
 
 	it("falls back to the raw value for an unknown kind and to ollama for an unknown label", () => {
-		expect(providerLabel("vllm")).toBe("vllm")
+		expect(providerLabel("not-a-provider")).toBe("not-a-provider")
 		expect(providerKindFromLabel("Nonsense")).toBe("ollama")
 	})
 })

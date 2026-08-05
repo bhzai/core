@@ -10,7 +10,7 @@ import { normalizeToolResult } from "../tools/registry.js"
 import type { CallToolResult, ContentBlock } from "../types/content.js"
 import type { BHZAIDriver, ChatRequest, DriverEvent } from "../types/driver.js"
 import type { BHZAIToolDefinition } from "../types/index.js"
-import type { BHZAIMessage, ConversationStatus } from "../types/message.js"
+import type { BHZAIMessage, ConversationStatus, ToolCallRecord } from "../types/message.js"
 import type { BHZAIConversationImpl } from "./conversation.js"
 import { createMessage, withMessageFields } from "./message.js"
 import { computePreContextSystemPrompt, ensureStarted } from "./system-prompt.js"
@@ -513,6 +513,44 @@ export async function sendMessage(
 		// Clear timeout if still pending.
 		if (timeoutHandle) {
 			clearTimeout(timeoutHandle)
+		}
+
+		// Record the tool calls this turn produced ON the assistant message that
+		// made them, as `meta.toolCalls` (§ 11.1's open message-field contract).
+		//
+		// WHY: `toolCallBuffer` is local to this iteration, but the message list
+		// is what a driver sees on the NEXT one — so without this the calls are
+		// unrecoverable from history. Two things depend on having them:
+		//
+		//  1. Providers that validate conversation structure. OpenAI rejects a
+		//     `role: 'tool'` message whose preceding assistant message does not
+		//     advertise the matching `tool_call_id`, so its driver has to rebuild
+		//     that pairing; the tool-result message alone carries the id and name
+		//     but never the arguments.
+		//  2. Any consumer replaying history — a snapshot restore, a host
+		//     rendering the call the model chose, a different driver picking up
+		//     an existing conversation.
+		//
+		// Shaped as plain JSON (`{ id, name, arguments }` with `arguments` a raw
+		// string) so it survives the snapshot round-trip unchanged, and so it
+		// matches what every provider's wire format wants. `input` is normally
+		// already the raw argument string the driver accumulated; a driver that
+		// yields a structured value gets serialized here rather than at each
+		// consumer.
+		const producedToolCalls = toolCallBuffer.filter((e) => e.type === "tool-call") as Array<{
+			type: "tool-call"
+			toolCallId: string
+			name: string
+			input: unknown
+		}>
+		if (producedToolCalls.length > 0) {
+			assistantMessage.meta.toolCalls = producedToolCalls.map(
+				(call): ToolCallRecord => ({
+					id: call.toolCallId,
+					name: call.name,
+					arguments: typeof call.input === "string" ? call.input : JSON.stringify(call.input),
+				}),
+			)
 		}
 
 		// Finalize the assistant message (for both natural stop and tool-calls paths).

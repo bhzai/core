@@ -4,7 +4,7 @@
 
 A Lit 3 + TypeScript browser example demonstrating bhzai's core capabilities:
 streaming responses, in-browser model execution via WebLLM, runtime attachment
-of local HTTP providers (Ollama and LM Studio) through the providers panel, live
+of HTTP providers (Ollama, LM Studio, vLLM and OpenAI) through the providers panel, live
 telemetry (decode/prefill tokens per second, time-to-first-token, context
 usage), framework-side parsing of reasoning blocks (`` regions, via
 `parseThink: true`), and runtime attachment of HTTP MCP servers with live
@@ -131,10 +131,13 @@ look back up on every delta.
 - **`thermal.ts`** — `thermalRatio(decodeTps)` → 0..1, `thermalColor(ratio)` →
   CSS color.
 - **`format.ts`** — `formatTps`, `formatTokens`, `formatBytes`, `formatSeconds`.
-- **`models.ts`** — `selectableModels()`: drops catalogue entries whose
-  `meta.state` is explicitly `'not-loaded'` (LM Studio's downloaded-but-idle
-  models), so the picker lists only warm models. Entries with no `state` —
-  every WebLLM and Ollama model — pass through. **Do not "simplify" this to a
+- **`models.ts`** — `selectableModels()`: two narrow drops, both keyed on an
+  **explicit** `meta` field. (1) `meta.state === 'not-loaded'` (LM Studio's
+  downloaded-but-idle models), so the picker lists only warm models. (2) a
+  `meta.type` that is not conversational (`chat`/`llm`/`vlm`) — OpenAI's
+  `/v1/models` returns its whole multi-modal catalogue, so without this the
+  picker fills with `dall-e-3` and `whisper-1`. Entries carrying neither field —
+  every WebLLM and Ollama model — pass through. **Do not "simplify" either to a
   filter on `availability`**: the WebLLM driver reports `'downloadable'` for
   its entire catalogue, so that would empty the picker.
 - **`provider-store.ts`** — `loadProviders()` / `saveProviders()` (localStorage
@@ -142,8 +145,11 @@ look back up on every delta.
   union and its `PROVIDER_KINDS` / `PROVIDER_LABELS` / `DEFAULT_PROVIDER_API`
   tables, `providerLabel()` / `providerKindFromLabel()` (the add form's
   typeahead shows display labels, not slugs), `normalizeBaseUrl()` (strips a
-  trailing `/api/v0`, `/v1`, or `/api` so drivers get the server ROOT), and
+  trailing `/api/v0`, `/v1`, or `/api` so drivers get the server ROOT — `/v1`
+  covers both LM Studio's compat surface and OpenAI's canonical address), and
   `validateApiUrl(url, kind)` (http/https only, messages named per provider).
+  ⚠️ The persisted token is stored in plaintext; for an `openai` provider that
+  is a real, billable API key, so use a throwaway spend-limited project key.
 - **`mcp-store.ts`** — `loadServers()` / `saveServers()` (localStorage, versioned
   payload, injectable backend so persistence is testable in Node),
   `parseHeaderLines()` (one `Key: Value` per line, first-colon split so values
@@ -204,15 +210,23 @@ showing a selection that matches nothing in its own list.
 
 The cog next to the model picker opens `<bhzai-providers-dialog>`. It lists the
 always-on **WebLLM (built-in)** row plus every provider the user has added, each
-badged with its kind. Two kinds are addable, both plain-`fetch` local servers:
+badged with its kind. Three kinds are addable, all plain-`fetch` drivers:
 
 | Kind | Driver | Default address |
 | --- | --- | --- |
 | `ollama` | `Ollama` from `@bhzai/core/plugins/ollama` | `http://localhost:11434/api` |
 | `lmstudio` | `LMStudio` from `@bhzai/core/plugins/lmstudio` | `http://localhost:1234` |
+| `vllm` | `VLLM` from `@bhzai/core/plugins/vllm` | `http://localhost:8000/v1` |
+| `openai` | `OpenAI` from `@bhzai/core/plugins/openai` | `https://api.openai.com/v1` |
+
+The first three are self-hosted servers; `openai` is the hosted platform and is the only
+kind whose **API token is required** — the form's token field is labelled
+optional because the local kinds do not need one, but api.openai.com 401s
+without it, so an OpenAI row added without a key shows red.
 
 The add form's Type field is a `<lit-typeahead>` showing display labels
-("Ollama", "LM Studio"), mapped back to kind slugs by `providerKindFromLabel()`.
+("Ollama", "LM Studio", "vLLM", "OpenAI"), mapped back to kind slugs by
+`providerKindFromLabel()`.
 Because the typeahead is a native `<input list>` + `<datalist>`, the browser
 filters suggestions by the input's current value — pre-filled with "Ollama", the
 dropdown lists only Ollama until the field is cleared. That is the intended
@@ -221,18 +235,36 @@ typeahead interaction: **clear the field to see every kind.**
 Changing the type re-labels the address field and its placeholder, so an LM
 Studio entry never ships with an Ollama default. The
 entered address is normalized to the server ROOT before it reaches the driver
-(`normalizeBaseUrl` strips a trailing `/api/v0`, `/v1`, or `/api`), because both
-drivers append their own API path.
+(`normalizeBaseUrl` strips a trailing `/api/v0`, `/v1`, or `/api`), because every
+driver appends its own API path.
 
-**Adding a third kind** touches four places: `PROVIDER_KINDS` /
+**A green row means the model-list endpoint answered — not that the token is
+valid.** Some gateways serve their catalogue publicly (OpenRouter's
+`/api/v1/models` returns 337 models with no key at all), so the probe succeeds
+with a bad token and the first 401 lands on the first message instead. The edit
+view's status line reports the same probe result, with the same caveat.
+
+**The `'connect'` handler must not refresh the picker.** Drivers dispatch
+`'connect'` from inside `listModels()`, and the picker refresh calls
+`bh.listModels()`, which polls every driver — so refreshing from that handler
+feeds back into another `'connect'`. `connectEntry()` refreshes after
+`listModels()` has settled instead. The kernel now caps the damage (concurrent
+`listModels()` callers join the in-flight poll), but the edge was also redundant:
+`bh.addDriver()` dispatches `models.changed` on its own.
+
+**Adding another kind** touches four places: `PROVIDER_KINDS` /
 `PROVIDER_LABELS` / `DEFAULT_PROVIDER_API` in `provider-store.ts`, and the
 `switch` in `provider-controller.ts`'s `createDriver()`. The dialog and the
 controller are otherwise kind-agnostic.
 
-Both local providers need CORS permitted on the server side to be reachable from
-the browser (`OLLAMA_ORIGINS` for Ollama; the CORS toggle in LM Studio's
-Developer settings). Without it the probe fails with the same opaque
-`TypeError: Failed to fetch` the MCP panel maps to a CORS hint.
+The three self-hosted providers need CORS permitted on the server side to be
+reachable from the browser (`OLLAMA_ORIGINS` for Ollama; the CORS toggle in LM
+Studio's Developer settings; `--allowed-origins '["http://localhost:5173"]'` for
+vLLM, which sends no CORS headers at all by default). Without it the probe fails
+with the same opaque
+`TypeError: Failed to fetch` the MCP panel maps to a CORS hint. api.openai.com
+sends permissive CORS headers, so an OpenAI row failing that way is a network or
+proxy problem, not a server setting.
 
 ## MCP filtering and sorting
 

@@ -7,11 +7,14 @@
  * provider list, and refreshes the model picker via the `onProvidersChanged`
  * callback (adding a driver triggers `models.changed`).
  *
- * Two provider kinds are supported, both plain-`fetch` local servers with the
- * same lifecycle-event surface: `Ollama` (`@bhzai/core/plugins/ollama`) and
- * `LMStudio` (`@bhzai/core/plugins/lmstudio`). Everything below is written
- * against the shared {@link ProviderDriver} shape, so adding a third kind means
- * one entry in `PROVIDER_KINDS` plus one line in {@link createDriver}.
+ * Three provider kinds are supported, all plain-`fetch` drivers with the same
+ * lifecycle-event surface: `Ollama` (`@bhzai/core/plugins/ollama`), `LMStudio`
+ * (`@bhzai/core/plugins/lmstudio`) and `OpenAI`
+ * (`@bhzai/core/plugins/openai`). The first two are local servers; the third is
+ * the hosted platform, and differs only in needing the API token the form
+ * already collects. Everything below is written against the shared
+ * {@link ProviderDriver} shape, so adding a fourth kind means one entry in
+ * `PROVIDER_KINDS` plus one line in {@link createDriver}.
  *
  * KERNEL SHADOWING NOTE: `bh.addDriver` is synchronous and shadows by
  * `driver.id`. Every `Ollama` instance has `id === 'ollama'` and every
@@ -36,6 +39,8 @@
 import type { BHZAI, BHZAIDriver } from "@bhzai/core"
 import { LMStudio } from "@bhzai/core/plugins/lmstudio"
 import { Ollama } from "@bhzai/core/plugins/ollama"
+import { OpenAI } from "@bhzai/core/plugins/openai"
+import { VLLM } from "@bhzai/core/plugins/vllm"
 
 import type { BhzaiProviderCog } from "../components/provider-cog.js"
 import type { BhzaiProvidersDialog, ProviderViewState } from "../components/providers-dialog.js"
@@ -105,6 +110,18 @@ function createDriver(kind: ProviderKind, baseUrl: string, token: string): Provi
 	switch (kind) {
 		case "lmstudio":
 			return new LMStudio({ baseUrl, headers })
+		case "vllm":
+			// The token is optional: a vLLM server only expects one when it was
+			// started with `--api-key`. Tool-call and reasoning support are
+			// server-launch flags invisible on the wire, so the driver's defaults
+			// (tools on, reasoning off) are left in place here — see the plugin
+			// README for when to override them.
+			return new VLLM({ baseUrl, headers })
+		case "openai":
+			// The token is the API key here, not an optional extra: an OpenAI
+			// provider added without one fails its probe with 401 and shows red,
+			// which is the correct and legible outcome.
+			return new OpenAI({ baseUrl, headers })
 		default:
 			return new Ollama({ baseUrl, headers })
 	}
@@ -182,7 +199,14 @@ export function createProviderController(deps: ProviderControllerDeps): Provider
 			entry.status = "connected"
 			dialog.setBusy(false)
 			refreshList()
-			onProvidersChanged?.()
+			// Deliberately does NOT refresh the picker. Drivers dispatch
+			// 'connect' from inside `listModels()`, and the picker refresh calls
+			// `bh.listModels()`, which polls every driver — so refreshing here
+			// feeds straight back into another 'connect'. The kernel's
+			// re-entrancy guard now caps that at one extra poll, but the edge is
+			// redundant regardless: `registerDriver` below calls
+			// `bh.addDriver()`, whose own refresh dispatches `models.changed`,
+			// which is what `onProvidersChanged` is subscribed to.
 		})
 		driver.addEventListener("error", (event) => {
 			const detail = (event as CustomEvent<{ error: unknown; phase: string }>).detail
@@ -223,6 +247,11 @@ export function createProviderController(deps: ProviderControllerDeps): Provider
 		try {
 			await entry.driver.listModels()
 			registerDriver(entry)
+			// Refresh the picker HERE rather than from the driver's 'connect'
+			// handler: this runs after `listModels()` has settled, so it cannot
+			// re-enter a driver poll that is still in flight (see the note in
+			// `createEntry`).
+			onProvidersChanged?.()
 		} catch {
 			// The 'error' event already handled status + toast + console.
 		}

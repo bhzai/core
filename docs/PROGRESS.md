@@ -109,6 +109,183 @@ All 44 tasks (TASK_0001–TASK_0044) are now complete. See "Recently completed
 | --------------------------------------------- | ------ |
 | Open message-field contract + `parseThink`    | [x]    |
 | LM Studio driver plugin + example provider    | [x]    |
+| OpenAI driver plugin + example provider       | [x]    |
+| vLLM driver plugin + example provider         | [x]    |
+
+## Recently completed (vLLM driver plugin)
+
+Post-v0.1. Adds a fifth bundled driver and a fourth kind to the example's
+providers panel.
+
+- **`src/plugins/vllm/index.ts`** (new) — `VLLM` class implementing
+  `BHZAIDriver` over a self-hosted vLLM server's OpenAI-compatible `/v1` REST
+  API. `fetch`-only, no peer dependency. Covers `chat()` (SSE with
+  fragment-accumulated tool calls), `listModels()`, a synchronous cache-backed
+  `capabilities()`, and `embed()`.
+
+  Wire format verified against the current vLLM docs rather than from memory,
+  which surfaced the field-name difference in point 3 below.
+
+  **Why not just `new OpenAI({ baseUrl })`**, which already works against vLLM —
+  three reasons, documented in the source and in `docs/plugins/vllm-driver.md`:
+
+  1. **`driver.id`.** `addDriver` shadows by id, so an `OpenAI` instance aimed at
+     vLLM and one aimed at api.openai.com cannot both be live. `'vllm'` lets a
+     host run both.
+  2. **`max_model_len`.** vLLM reports a real per-model context window; the
+     OpenAI driver's family table has no entry for an arbitrary HuggingFace repo
+     id, and a model reporting no `contextWindow` has auto-compaction disabled
+     outright. Behavioral, not cosmetic.
+  3. **`delta.reasoning`.** Current vLLM names the separated-thinking channel
+     `reasoning`, not `reasoning_content`; the OpenAI driver would drop it
+     silently. Both names are read.
+
+  Three further vLLM-specific decisions:
+
+  - **Tool-call and reasoning support are server-launch flags**
+    (`--enable-auto-tool-choice --tool-call-parser`, `--reasoning-parser`) that
+    are invisible on the wire, so both are overridable via `VLLMOptions`.
+    `toolCalls` still defaults to `true` for non-embedding models — the same
+    deviation the LM Studio and OpenAI drivers document, because `false`
+    silently strips every tool while `true` produces a loud, actionable 400.
+  - **Reasoning is a chat-template kwarg, not an effort enum.** vLLM has no
+    `reasoning_effort`, so the six-level scale collapses to a boolean sent as
+    `chat_template_kwargs: { enable_thinking, thinking }` — and is gated on the
+    host explicitly setting `params.reasoning`, NOT on `capabilities().reasoning`
+    (which is undetectable and defaults `false`, so gating there would make the
+    control dead everywhere).
+  - **LoRA adapters** appear as their own entries carrying `root`/`parent`, and
+    inherit their parent's context window when they report none.
+
+- **Packaging** — new `./plugins/vllm` export, `tsup` entry, and root-barrel
+  re-export, updated together per `.claude/rules/packaging.md`.
+
+- **Example** — `vllm` added to `ProviderKind`/`PROVIDER_KINDS`/
+  `PROVIDER_LABELS`/`DEFAULT_PROVIDER_API` plus one `case` in `createDriver()`;
+  nothing else in the panel touched. `normalizeBaseUrl` already stripped the
+  `/v1` suffix vLLM's docs print. Three pre-existing example tests used `"vllm"`
+  as their stand-in for an *unknown* provider kind and were switched to a
+  genuinely unknown slug.
+
+- **Docs** — `docs/plugins/vllm-driver.md`, `src/plugins/vllm/README.md` and
+  `src/plugins/vllm/AGENTS.md` (new); `README.md`, `AGENTS.md`,
+  `src/plugins/AGENTS.md`, `docs/core/drivers.md`, `example/AGENTS.md` and
+  `docs/examples/webllm-chat.md` updated.
+
+- 51 tests in `src/plugins/vllm/index.test.ts`, plus 3 new example
+  provider-controller tests (including one asserting a vLLM and an OpenAI
+  provider coexist without shadowing) and expanded provider-store coverage.
+
+- **Not smoke-tested against a live server** — no vLLM instance was reachable in
+  this environment. Every assertion is against the documented wire format via a
+  fake `fetch`.
+
+## Recently completed (OpenAI driver plugin)
+
+Post-v0.1. Adds a fourth bundled driver — the first hosted one — and a third
+kind to the example's providers panel.
+
+- **`src/plugins/openai/index.ts`** (new) — `OpenAI` class implementing
+  `BHZAIDriver` over the public `/v1` REST API. `fetch`-only, no peer
+  dependency and deliberately not the `openai` SDK. Covers `chat()` (SSE with
+  fragment-accumulated tool calls), `listModels()`, a synchronous
+  `capabilities()` backed by a one-request cache, `embed()`, and the
+  `connect`/`disconnect`/`error` lifecycle events. Because the wire format is
+  the de-facto standard, it also serves any OpenAI-compatible gateway via
+  `baseUrl`.
+- **Three deviations forced by a hosted multi-tenant platform**, all documented
+  in the source and in `docs/plugins/openai-driver.md`:
+  1. **Capabilities are inferred, not declared.** `GET /v1/models` returns
+     `{ id, object, created, owned_by }` and nothing else, so modality,
+     tool-calling, reasoning and embeddings are derived from the model id's
+     family. `contextWindow` comes from an overridable, errs-low family table
+     (`OpenAIOptions.contextWindows` wins) because reporting `undefined` would
+     disable auto-compaction for the whole provider.
+  2. **The catalogue is multi-modal.** Audio, image, moderation and embedding
+     models are returned alongside chat ones, each tagged with `meta.type`, and
+     the example filters the picker on it.
+  3. **Tool loops are reconstructed.** OpenAI rejects a `role: 'tool'` message
+     that lacks a `tool_call_id` or whose preceding assistant message does not
+     advertise it — state the kernel does not record — so the driver rebuilds
+     the pairing when mapping the request, replaying real arguments from a
+     bounded memory of the calls it streamed.
+- **Packaging** — new `./plugins/openai` export, `tsup` entry, and root-barrel
+  re-export, per `.claude/rules/packaging.md`.
+- **Example** — one `ProviderKind` entry plus one `createDriver()` case (the
+  dialog and controller wiring were already kind-agnostic);
+  `example/src/lib/models.ts` gained the `meta.type` filter so the picker is not
+  flooded with non-chat models.
+- **Docs** — `docs/plugins/openai-driver.md`, `src/plugins/openai/README.md` and
+  `src/plugins/openai/AGENTS.md` (new); `README.md`, `AGENTS.md`,
+  `docs/core/drivers.md`, `src/plugins/AGENTS.md`, `example/AGENTS.md` and
+  `docs/examples/webllm-chat.md` updated.
+- 63 tests in `src/plugins/openai/index.test.ts`, plus expanded
+  `example/src/lib/models.test.ts`, `example/src/lib/provider-store.test.ts` and
+  `example/src/components/providers-dialog.test.ts`.
+
+### Follow-ups from smoke-testing the driver against a live gateway
+
+Running `listModels()` against the real `https://openrouter.ai/api` catalogue
+(337 models) surfaced four defects that unit tests against a fake `fetch` could
+not have:
+
+- **Unbounded model-refresh loop** (`src/core/bhzai.ts`) — drivers dispatch
+  `'connect'` from inside `listModels()`, and a host that refreshes its picker on
+  that event re-enters `bh.listModels()`, which polls every driver, which fires
+  `'connect'` again. Reported in the wild as 5000+ requests against one gateway;
+  reproduced at 200+ in a test. `bh.listModels()` now serializes the poll phase —
+  concurrent callers join the in-flight poll — while keeping the snapshot
+  short-circuit for the dispatch phase, where joining would deadlock. The example
+  no longer refreshes from the `'connect'` handler either, since `addDriver()`
+  already dispatches `models.changed`. **Pre-existing; it affected the Ollama and
+  LM Studio providers equally.**
+- **Gateway metadata was thrown away** — all 337 OpenRouter models report
+  `context_length` and 270 declare `tools` in `supported_parameters`, none of
+  which the driver read. It reported `contextWindow: undefined` for every one,
+  silently disabling auto-compaction for the whole provider. Declarations now win
+  over inference (`context_length` → `contextWindow`, `supported_parameters` →
+  `toolCalls`/`reasoning`), matching the LM Studio driver's posture.
+- **Namespaced ids defeated every inference** — gateway ids are vendor-prefixed
+  (`openai/gpt-5-mini`), so no prefix test matched and all inference degraded to
+  the conservative default. `familyKeys()` now matches the last path segment too.
+  The id itself is left intact, since `parseModelRef` splits on the first slash.
+- **Empty catalogues re-polled forever** — a catalogue that returns `data: []`
+  never populates the per-model cache, so `chat()` re-fetched `/v1/models` before
+  every call and never succeeded. The poll budget is now tracked by "did a fetch
+  succeed", not by a per-model miss. `normalizeBaseUrl` also strips a trailing
+  `/models` or `/tags`, since docs quote the full endpoint far more often than
+  the root.
+
+### Follow-ups from connecting a real OpenRouter provider in the example
+
+- **A successful Connect gave no visible feedback** — `addProvider` leaves the
+  user on the EDIT view (so a second Connect updates rather than duplicates), and
+  that view had no status affordance at all. The row's green dot lives in the list
+  view, behind the Back button, so the form looked identical before and after a
+  successful connection. `_renderStatus()` now renders the same `.provider-dot` +
+  a label at the top of the edit form.
+- **`example/src/app/provider-controller.test.ts` (new)** — the controller had no
+  test at all, which is why the gap survived. Four tests drive the real drivers
+  through the add → probe → register → status pipeline against a fake `fetch`,
+  asserting what the dialog is *told* to render, plus a regression test for the
+  refresh storm.
+- **Documented: "connected" does not validate credentials.** The probe is
+  `listModels()`, and some gateways serve their catalogue publicly — OpenRouter's
+  `/api/v1/models` returns 337 models with no key at all — so a bad token still
+  goes green and the first 401 lands on the first message. Troubleshooting entries
+  added to `docs/examples/webllm-chat.md` and the plugin README, including the
+  `GET /api/v1/key` check that does validate an OpenRouter key.
+
+### Kernel: tool calls recorded on the assistant message
+
+`agent-loop.ts` now records each turn's tool calls on the assistant message that
+made them, as `meta.toolCalls: ToolCallRecord[]` (`{ id, name, arguments }`, new
+export from `src/types/message.ts`). The loop's buffer is per-iteration, so
+without this the calls were unrecoverable from history — the OpenAI driver could
+rebuild the `tool_call_id` pairing its provider demands, but not the arguments,
+which degraded to `{}` after a snapshot restore. Plain JSON, so it round-trips
+through `snapshot.ts`. The driver prefers the record, falls back to its own
+streamed-call memory, then to `{}`.
 
 ## Recently completed (LM Studio driver plugin)
 

@@ -11,6 +11,7 @@ export type {
 	BHZAIMessage,
 	BHZAIMessageExtensions,
 	ConversationStatus,
+	ToolCallRecord,
 } from "./message.js"
 export type {
 	DriverCapabilities,

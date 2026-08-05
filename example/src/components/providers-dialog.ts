@@ -267,6 +267,7 @@ export class BhzaiProvidersDialog extends LitElement {
 				</button>
 			</header>
 			<form class="provider-form" @submit=${this._onEditSubmit} novalidate>
+				${this._renderStatus(existing?.status)}
 				${this._renderFields(kind, apiUrl, apiToken)}
 				<p class="provider-form-error" role="alert" ?hidden=${!this._error}>${this._error}</p>
 				<div class="provider-actions">
@@ -286,6 +287,37 @@ export class BhzaiProvidersDialog extends LitElement {
 					</button>
 				</div>
 			</form>
+		`
+	}
+
+	/**
+	 * The connection-status line shown at the top of the edit form.
+	 *
+	 * A successful Connect leaves the user on THIS view, not the list — so
+	 * without a status here the form is indistinguishable before and after a
+	 * successful connection, and the only signal is a green dot on a list row
+	 * they have to navigate back to. Reuses `.provider-dot`, so the edit view and
+	 * the list rows report state the same way.
+	 *
+	 * `role="status"` rather than `role="alert"`: this is a polite state
+	 * announcement, and the form already has an assertive `role="alert"` line for
+	 * validation errors.
+	 *
+	 * @param status - The row's current status, if the row is still known
+	 */
+	private _renderStatus(status: ProviderStatus | undefined) {
+		if (!status) return ""
+		const label =
+			status === "connected"
+				? "Connected"
+				: status === "error"
+					? "Connection failed"
+					: "Connecting…"
+		return html`
+			<p class="provider-status" role="status" data-state=${status}>
+				<span class="provider-dot" data-state=${status}></span>
+				<span>${label}</span>
+			</p>
 		`
 	}
 

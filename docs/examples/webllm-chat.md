@@ -16,7 +16,7 @@ client-side parsing of reasoning blocks.
 5. **Model selection & cold-start feedback** — Download progress as weights are loaded from the cloud.
 6. **Context usage** — Visual bar showing how much of the available context window is being used.
 7. **Thermal design** — Visual metaphor where the app is cold/dim when idle, warming up as the model loads and runs (status dot, decode gauge, and download progress bar all interpolate from cold cyan → warm coral).
-8. **Local providers** — Ollama and LM Studio servers can be attached at runtime from the providers panel; their models join the same picker as the in-browser WebLLM ones.
+8. **Extra providers** — Ollama, LM Studio, vLLM and OpenAI can be attached at runtime from the providers panel; their models join the same picker as the in-browser WebLLM ones.
 
 ## Running it
 
@@ -71,7 +71,7 @@ app/ (orchestration — no DOM)
 ├─ webllm-engine.ts — WebGPU guard, model allowlist, MLCEngine creation
 ├─ chat-controller.ts — conversation lifecycle, send/abort, TTFT, stats pipeline
 ├─ mcp-controller.ts — McpManager subscription, add-server form, persistence
-├─ provider-controller.ts — Ollama/LM Studio driver lifecycle, dialog wiring
+├─ provider-controller.ts — Ollama/LM Studio/vLLM/OpenAI driver lifecycle, dialog wiring
 └─ fatal-error.ts — the one path spanning telemetry + composer
 
 components/ (DOM — one Lit custom element per region)
@@ -90,7 +90,7 @@ lib/ (pure functions, testable)
 ├─ stats.ts — extract tok/s from engine.runtimeStatsText()
 ├─ thermal.ts — map decode tok/s to colors
 ├─ format.ts — pretty-print numbers for display
-├─ models.ts — hide LM Studio's downloaded-but-idle models from the picker
+├─ models.ts — hide idle LM Studio models and non-chat OpenAI/vLLM models from the picker
 ├─ provider-store.ts — persist providers, normalize/validate addresses
 └─ mcp-store.ts — persist servers, parse headers, interpret errors
 ```
@@ -176,17 +176,19 @@ which the demo's Thought panel is built to surface; otherwise it falls back to
 the first available model. Selecting a model creates a fresh conversation
 (simplest correct behavior).
 
-### Local providers (Ollama, LM Studio)
+### Extra providers (Ollama, LM Studio, vLLM, OpenAI)
 
 The cog beside the model picker opens the **Providers** dialog. It lists the
 always-on *WebLLM (built-in)* row plus every provider you have added, each
 badged with its kind and given a status dot (green connected, red failed, pulsing
-while connecting). *Add provider* offers two kinds:
+while connecting). *Add provider* offers four kinds:
 
-| Kind | Driver subpath | Default address |
-| --- | --- | --- |
-| Ollama | `@bhzai/core/plugins/ollama` | `http://localhost:11434/api` |
-| LM Studio | `@bhzai/core/plugins/lmstudio` | `http://localhost:1234` |
+| Kind | Driver subpath | Default address | Token |
+| --- | --- | --- | --- |
+| Ollama | `@bhzai/core/plugins/ollama` | `http://localhost:11434/api` | optional |
+| LM Studio | `@bhzai/core/plugins/lmstudio` | `http://localhost:1234` | optional |
+| vLLM | `@bhzai/core/plugins/vllm` | `http://localhost:8000/v1` | optional |
+| OpenAI | `@bhzai/core/plugins/openai` | `https://api.openai.com/v1` | **required** |
 
 The Type field is a typeahead, backed by a native `<input list>` + `<datalist>`.
 The browser filters its suggestions by what the input currently holds, and the
@@ -196,14 +198,21 @@ pick LM Studio. Choosing a kind re-labels the address field and its placeholder.
 Whatever you type is normalized to the server ROOT before it reaches the driver
 — a trailing
 `/api/v0`, `/v1`, or `/api` is stripped, since each driver appends its own API
-path. An optional bearer token is forwarded as an `Authorization` header.
+path. The bearer token is forwarded as an `Authorization` header.
+
+For **OpenAI** that token is your API key, and it is not optional despite the
+field's label: api.openai.com rejects every unauthenticated request with 401, so
+an OpenAI row added without one goes straight to red. ⚠️ It is stored in
+`localStorage` in plaintext and readable by any script on this origin — use a
+throwaway, spend-limited project key here, and in a real app put a server-side
+proxy in front of OpenAI instead of shipping a key to the browser.
 
 `provider-controller.ts` probes the connection with `driver.listModels()` and
 only calls `bh.addDriver()` once it succeeds, so a dead endpoint never enters the
 catalogue — it stays as a red row you can edit and retry. A successful add fires
 `models.changed`, and the picker refreshes through the same subscription the
-WebLLM catalogue uses; LM Studio and Ollama models then appear alongside the
-in-browser ones as `lmstudio/…` and `ollama/…` refs.
+WebLLM catalogue uses; the added provider's models then appear alongside the
+in-browser ones as `lmstudio/…`, `ollama/…`, `vllm/…` or `openai/…` refs.
 
 **Only loaded LM Studio models are listed.** LM Studio reports every model it
 has downloaded, and the picker would otherwise fill with a dozen idle entries
@@ -212,6 +221,28 @@ filters entries whose `meta.state` is `'not-loaded'`; load a model in LM Studio
 and the next refresh picks it up. Ollama and WebLLM models report no `state` and
 are never filtered.
 
+**Only chat models are listed from OpenAI.** `GET /v1/models` returns the whole
+multi-modal catalogue — `dall-e-3`, `whisper-1`, `text-embedding-3-small` and
+friends sit alongside the chat models. The OpenAI driver tags each entry's
+modality as `meta.type`, and `lib/models.ts` keeps only the conversational ones.
+An id the driver does not recognize is treated as a chat model, so a
+newly-released model appears rather than being hidden.
+
+**vLLM needs CORS enabled explicitly.** Unlike the other providers, a stock vLLM
+server sends no CORS headers at all, so the probe fails with the opaque
+`TypeError: Failed to fetch` even though `curl` against the same address works.
+Start it with the page's origin allowed:
+
+```bash
+vllm serve <model> --allowed-origins '["http://localhost:5173"]'
+```
+
+vLLM also reports a real `max_model_len` per model, so its catalogue entries
+carry a true `contextWindow` — which is what keeps auto-compaction enabled for
+them. Tool calling additionally requires the server to be started with
+`--enable-auto-tool-choice --tool-call-parser <parser>`; without those flags a
+request carrying tools fails with a 400 naming the missing flag.
+
 Providers are persisted to `localStorage` (key `bhzai.providers`) and
 re-connected on load. ⚠️ The bearer token is stored in plaintext under the page
 origin — a deliberate demo trade-off for one-click reconnect; a production host
@@ -219,8 +250,10 @@ should re-prompt instead.
 
 Two documented limits, both consequences of the kernel API rather than the UI:
 `bh.addDriver` shadows by `driver.id`, so only the last-added provider **of each
-kind** contributes models to the catalogue (an Ollama and an LM Studio provider
-do not shadow each other); and there is no `removeDriver`, so removing a row
+kind** contributes models to the catalogue (an Ollama, an LM Studio, a vLLM and
+an OpenAI provider do not shadow each other — which is a large part of why the
+vLLM driver is separate from the OpenAI one rather than an `OpenAI` instance
+pointed at a vLLM `baseUrl`); and there is no `removeDriver`, so removing a row
 disconnects the example's driver reference without unregistering the kernel's
 entry.
 
@@ -360,6 +393,9 @@ On mobile (<861px), it stacks into a single column.
   - **LM Studio**: enable CORS in the Developer tab's server settings, and make
     sure the server is actually started (`lms server start`).
   - Confirm the port: Ollama defaults to `11434`, LM Studio to `1234`.
+  - **OpenAI**: api.openai.com sends permissive CORS headers, so this is not a
+    CORS problem there. A red OpenAI row is almost always a bad or missing API
+    key (401, visible in the console) or no network route to the host.
   - Check the Network tab, which shows the CORS reason even though JavaScript
     cannot.
 
@@ -375,6 +411,32 @@ On mobile (<861px), it stacks into a single column.
   `lms`), then reopen the picker — `models.changed` refreshes it. Otherwise
   download a model, or remove the competing LM Studio row so only one is
   registered.
+
+### A provider shows connected, but every message fails with 401
+
+- **Cause**: "Connected" means *the provider's model-list endpoint answered*, not
+  that your credentials are good. On some gateways that endpoint is **public** —
+  `https://openrouter.ai/api/v1/models` returns its full catalogue with no key at
+  all — so the probe succeeds with a wrong, expired or empty token, and the row
+  goes green. The key is only exercised on the first real completion.
+- **Solution**: Validate the key against an endpoint that requires it. For
+  OpenRouter that is `GET /api/v1/key`:
+  ```bash
+  curl -s -H "Authorization: Bearer $KEY" https://openrouter.ai/api/v1/key
+  ```
+  A valid key returns its usage/limit block; an invalid one returns
+  `{"error":{"message":"User not found.","code":401}}`. Note that this differs
+  from the *no key at all* response (`No cookie auth credentials found`), so the
+  two failure modes are distinguishable.
+
+### I connected a provider but the dialog gives no sign it worked
+
+- **Cause**: a successful *Connect* leaves you on the edit form, not the list.
+  The form now carries a status line ("Connected" / "Connection failed") at the
+  top; before that it looked identical before and after connecting, and the only
+  signal was a green dot on a list row behind the Back button.
+- **Solution**: Check the status line at the top of the form, or press Back for
+  the full list.
 
 ### An MCP server fails with "TypeError: Failed to fetch"
 
