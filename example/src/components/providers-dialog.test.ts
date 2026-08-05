@@ -111,7 +111,7 @@ describe("BhzaiProvidersDialog", () => {
 		await dialog.updateComplete
 
 		const typeahead = dialog.querySelector("lit-typeahead") as HTMLElement & { items: string[] }
-		expect(typeahead.items).toEqual(["Ollama", "LM Studio", "OpenAI"])
+		expect(typeahead.items).toEqual(["Ollama", "LM Studio", "vLLM", "OpenAI"])
 		expect(dialog.querySelector(".provider-field > span")?.textContent).toBe("Type")
 	})
 

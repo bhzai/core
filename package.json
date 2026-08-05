@@ -36,6 +36,10 @@
 			"types": "./dist/plugins/openai/index.d.ts",
 			"import": "./dist/plugins/openai/index.js"
 		},
+		"./plugins/vllm": {
+			"types": "./dist/plugins/vllm/index.d.ts",
+			"import": "./dist/plugins/vllm/index.js"
+		},
 		"./plugins/mcp": {
 			"types": "./dist/plugins/mcp/index.d.ts",
 			"import": "./dist/plugins/mcp/index.js"

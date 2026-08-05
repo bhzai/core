@@ -7,9 +7,10 @@ ARCHITECTURE.md § 10.1.
 
 The `DriverRegistry` stores `BHZAIDriver` instances keyed by `id`. It is
 the kernel-side store of model-provider drivers (WebLLM, Ollama, LM Studio,
-OpenAI, or any future provider). It does **not** implement any actual driver —
-those are TASK_0019 (WebLLM), TASK_0020 (Ollama), and the post-v0.1 LM Studio
-and OpenAI plugins (`src/plugins/lmstudio/`, `src/plugins/openai/`). It
+OpenAI, vLLM, or any future provider). It does **not** implement any actual
+driver — those are TASK_0019 (WebLLM), TASK_0020 (Ollama), and the post-v0.1 LM
+Studio, OpenAI and vLLM plugins (`src/plugins/lmstudio/`,
+`src/plugins/openai/`, `src/plugins/vllm/`). It
 implements the registry
 that drivers plug into and the merge logic that aggregates their model
 catalogues.
@@ -36,7 +37,7 @@ const models = await bh.listModels(); // ModelInfo[] — merged across all drive
 
 ```typescript
 interface BHZAIDriver {
-  id: string; // 'webllm', 'ollama', 'lmstudio', 'openai', ...
+  id: string; // 'webllm', 'ollama', 'lmstudio', 'openai', 'vllm', ...
   listModels(): Promise<ModelInfo[]>;
   capabilities(model: string): DriverCapabilities;
   chat(request: ChatRequest): AsyncIterable<DriverEvent>;
@@ -109,7 +110,8 @@ A host does not need to debounce its own refreshes to stay safe.
 `drivers.ts` uses only web-standard APIs. No driver is imported here —
 the registry stores instances it's handed; concrete drivers live in
 `src/plugins/webllm/` and `src/plugins/ollama/` (TASK_0019/0020), plus
-`src/plugins/lmstudio/` and `src/plugins/openai/` (added post-v0.1).
+`src/plugins/lmstudio/`, `src/plugins/openai/` and `src/plugins/vllm/` (added
+post-v0.1).
 
 ## Test coverage
 

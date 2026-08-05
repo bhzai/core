@@ -17,8 +17,8 @@ const NOT_LOADED = "not-loaded"
 /**
  * The `meta.type` values that name a model the chat UI can actually talk to.
  *
- * `'chat'` is what the OpenAI driver reports; `'llm'` and `'vlm'` are LM
- * Studio's. Every other value — `'embeddings'`, `'audio'`, `'image'`,
+ * `'chat'` is what the OpenAI and vLLM drivers report; `'llm'` and `'vlm'` are
+ * LM Studio's. Every other value — `'embeddings'`, `'audio'`, `'image'`,
  * `'moderation'`, `'completion'` — names a model that cannot hold a
  * conversation.
  */

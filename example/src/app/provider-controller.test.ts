@@ -182,3 +182,115 @@ describe("provider controller — connecting an OpenAI-compatible provider", () 
 		}
 	})
 })
+
+describe("provider controller — connecting a vLLM provider", () => {
+	let bh: BHZAI
+	let dialog: FakeDialog
+	let cog: EventTarget
+	let originalFetch: typeof fetch
+
+	beforeEach(() => {
+		bh = new BHZAI()
+		dialog = new FakeDialog()
+		cog = new EventTarget()
+		originalFetch = globalThis.fetch
+	})
+
+	/** A vLLM `/v1/models` payload, trimmed to what the driver reads. */
+	function vllmModels() {
+		return {
+			object: "list",
+			data: [
+				{
+					id: "meta-llama/Llama-3.1-8B-Instruct",
+					object: "model",
+					owned_by: "vllm",
+					root: "meta-llama/Llama-3.1-8B-Instruct",
+					parent: null,
+					max_model_len: 131072,
+				},
+			],
+		}
+	}
+
+	/** Start a controller wired to the fakes. */
+	async function start() {
+		const controller = createProviderController({
+			bh,
+			cog: cog as unknown as BhzaiProviderCog,
+			dialog: dialog as unknown as BhzaiProvidersDialog,
+		})
+		await controller.start()
+		return controller
+	}
+
+	/** Submit the add form the way the dialog's event does. */
+	function addProvider(type: string, baseUrl: string, token = "") {
+		dialog.dispatchEvent(
+			new CustomEvent("bhzai-add-provider", { detail: { type, baseUrl, token } }),
+		)
+	}
+
+	it("probes the vLLM root and registers its models under the vllm/ ref", async () => {
+		const fetchMock = fakeFetch(() => ({ json: vllmModels() }))
+		;(globalThis as { fetch: typeof fetch }).fetch = fetchMock as unknown as typeof fetch
+		try {
+			await start()
+			// The address a user pastes out of vLLM's docs carries the /v1 suffix.
+			addProvider("vllm", "http://localhost:8000/v1")
+			await new Promise((resolve) => setTimeout(resolve, 20))
+
+			expect(dialog.providers).toHaveLength(1)
+			expect(dialog.providers[0]?.status).toBe("connected")
+			expect(dialog.providers[0]?.kind).toBe("vllm")
+			// Normalized back to the server root, then re-appended by the driver.
+			expect(dialog.providers[0]?.label).toBe("http://localhost:8000")
+			expect(fetchMock.urls[0]).toBe("http://localhost:8000/v1/models")
+
+			const models = await bh.listModels()
+			expect(models.map((m) => m.ref)).toContain("vllm/meta-llama/Llama-3.1-8B-Instruct")
+			// max_model_len reaches the catalogue, which is what keeps
+			// auto-compaction enabled for this model.
+			expect(models.find((m) => m.driver === "vllm")?.capabilities.contextWindow).toBe(131072)
+		} finally {
+			;(globalThis as { fetch: typeof fetch }).fetch = originalFetch
+		}
+	})
+
+	it("marks a dead vLLM endpoint as errored rather than registering it", async () => {
+		const fetchMock = fakeFetch(() => ({ status: 500, json: { error: "down" } }))
+		;(globalThis as { fetch: typeof fetch }).fetch = fetchMock as unknown as typeof fetch
+		try {
+			await start()
+			addProvider("vllm", "http://localhost:8000")
+			await new Promise((resolve) => setTimeout(resolve, 20))
+
+			expect(dialog.providers[0]?.status).toBe("error")
+			expect((await bh.listModels()).some((m) => m.driver === "vllm")).toBe(false)
+		} finally {
+			;(globalThis as { fetch: typeof fetch }).fetch = originalFetch
+		}
+	})
+
+	// vLLM and OpenAI drivers have distinct ids, so they do NOT shadow each
+	// other in the kernel's catalogue — both providers stay live at once.
+	it("coexists with an OpenAI provider without shadowing it", async () => {
+		const fetchMock = fakeFetch((url) =>
+			url.startsWith("http://localhost:8000")
+				? { json: vllmModels() }
+				: { json: openRouterModels() },
+		)
+		;(globalThis as { fetch: typeof fetch }).fetch = fetchMock as unknown as typeof fetch
+		try {
+			await start()
+			addProvider("vllm", "http://localhost:8000")
+			addProvider("openai", "https://openrouter.ai/api", "sk-or-v1-test")
+			await new Promise((resolve) => setTimeout(resolve, 30))
+
+			const drivers = new Set((await bh.listModels()).map((m) => m.driver))
+			expect(drivers).toEqual(new Set(["vllm", "openai"]))
+		} finally {
+			;(globalThis as { fetch: typeof fetch }).fetch = originalFetch
+		}
+	})
+})

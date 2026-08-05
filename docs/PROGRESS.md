@@ -110,6 +110,75 @@ All 44 tasks (TASK_0001–TASK_0044) are now complete. See "Recently completed
 | Open message-field contract + `parseThink`    | [x]    |
 | LM Studio driver plugin + example provider    | [x]    |
 | OpenAI driver plugin + example provider       | [x]    |
+| vLLM driver plugin + example provider         | [x]    |
+
+## Recently completed (vLLM driver plugin)
+
+Post-v0.1. Adds a fifth bundled driver and a fourth kind to the example's
+providers panel.
+
+- **`src/plugins/vllm/index.ts`** (new) — `VLLM` class implementing
+  `BHZAIDriver` over a self-hosted vLLM server's OpenAI-compatible `/v1` REST
+  API. `fetch`-only, no peer dependency. Covers `chat()` (SSE with
+  fragment-accumulated tool calls), `listModels()`, a synchronous cache-backed
+  `capabilities()`, and `embed()`.
+
+  Wire format verified against the current vLLM docs rather than from memory,
+  which surfaced the field-name difference in point 3 below.
+
+  **Why not just `new OpenAI({ baseUrl })`**, which already works against vLLM —
+  three reasons, documented in the source and in `docs/plugins/vllm-driver.md`:
+
+  1. **`driver.id`.** `addDriver` shadows by id, so an `OpenAI` instance aimed at
+     vLLM and one aimed at api.openai.com cannot both be live. `'vllm'` lets a
+     host run both.
+  2. **`max_model_len`.** vLLM reports a real per-model context window; the
+     OpenAI driver's family table has no entry for an arbitrary HuggingFace repo
+     id, and a model reporting no `contextWindow` has auto-compaction disabled
+     outright. Behavioral, not cosmetic.
+  3. **`delta.reasoning`.** Current vLLM names the separated-thinking channel
+     `reasoning`, not `reasoning_content`; the OpenAI driver would drop it
+     silently. Both names are read.
+
+  Three further vLLM-specific decisions:
+
+  - **Tool-call and reasoning support are server-launch flags**
+    (`--enable-auto-tool-choice --tool-call-parser`, `--reasoning-parser`) that
+    are invisible on the wire, so both are overridable via `VLLMOptions`.
+    `toolCalls` still defaults to `true` for non-embedding models — the same
+    deviation the LM Studio and OpenAI drivers document, because `false`
+    silently strips every tool while `true` produces a loud, actionable 400.
+  - **Reasoning is a chat-template kwarg, not an effort enum.** vLLM has no
+    `reasoning_effort`, so the six-level scale collapses to a boolean sent as
+    `chat_template_kwargs: { enable_thinking, thinking }` — and is gated on the
+    host explicitly setting `params.reasoning`, NOT on `capabilities().reasoning`
+    (which is undetectable and defaults `false`, so gating there would make the
+    control dead everywhere).
+  - **LoRA adapters** appear as their own entries carrying `root`/`parent`, and
+    inherit their parent's context window when they report none.
+
+- **Packaging** — new `./plugins/vllm` export, `tsup` entry, and root-barrel
+  re-export, updated together per `.claude/rules/packaging.md`.
+
+- **Example** — `vllm` added to `ProviderKind`/`PROVIDER_KINDS`/
+  `PROVIDER_LABELS`/`DEFAULT_PROVIDER_API` plus one `case` in `createDriver()`;
+  nothing else in the panel touched. `normalizeBaseUrl` already stripped the
+  `/v1` suffix vLLM's docs print. Three pre-existing example tests used `"vllm"`
+  as their stand-in for an *unknown* provider kind and were switched to a
+  genuinely unknown slug.
+
+- **Docs** — `docs/plugins/vllm-driver.md`, `src/plugins/vllm/README.md` and
+  `src/plugins/vllm/AGENTS.md` (new); `README.md`, `AGENTS.md`,
+  `src/plugins/AGENTS.md`, `docs/core/drivers.md`, `example/AGENTS.md` and
+  `docs/examples/webllm-chat.md` updated.
+
+- 51 tests in `src/plugins/vllm/index.test.ts`, plus 3 new example
+  provider-controller tests (including one asserting a vLLM and an OpenAI
+  provider coexist without shadowing) and expanded provider-store coverage.
+
+- **Not smoke-tested against a live server** — no vLLM instance was reachable in
+  this environment. Every assertion is against the documented wire format via a
+  fake `fetch`.
 
 ## Recently completed (OpenAI driver plugin)
 

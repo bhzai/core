@@ -16,7 +16,7 @@ client-side parsing of reasoning blocks.
 5. **Model selection & cold-start feedback** — Download progress as weights are loaded from the cloud.
 6. **Context usage** — Visual bar showing how much of the available context window is being used.
 7. **Thermal design** — Visual metaphor where the app is cold/dim when idle, warming up as the model loads and runs (status dot, decode gauge, and download progress bar all interpolate from cold cyan → warm coral).
-8. **Extra providers** — Ollama, LM Studio and OpenAI can be attached at runtime from the providers panel; their models join the same picker as the in-browser WebLLM ones.
+8. **Extra providers** — Ollama, LM Studio, vLLM and OpenAI can be attached at runtime from the providers panel; their models join the same picker as the in-browser WebLLM ones.
 
 ## Running it
 
@@ -71,7 +71,7 @@ app/ (orchestration — no DOM)
 ├─ webllm-engine.ts — WebGPU guard, model allowlist, MLCEngine creation
 ├─ chat-controller.ts — conversation lifecycle, send/abort, TTFT, stats pipeline
 ├─ mcp-controller.ts — McpManager subscription, add-server form, persistence
-├─ provider-controller.ts — Ollama/LM Studio/OpenAI driver lifecycle, dialog wiring
+├─ provider-controller.ts — Ollama/LM Studio/vLLM/OpenAI driver lifecycle, dialog wiring
 └─ fatal-error.ts — the one path spanning telemetry + composer
 
 components/ (DOM — one Lit custom element per region)
@@ -90,7 +90,7 @@ lib/ (pure functions, testable)
 ├─ stats.ts — extract tok/s from engine.runtimeStatsText()
 ├─ thermal.ts — map decode tok/s to colors
 ├─ format.ts — pretty-print numbers for display
-├─ models.ts — hide idle LM Studio models and non-chat OpenAI models from the picker
+├─ models.ts — hide idle LM Studio models and non-chat OpenAI/vLLM models from the picker
 ├─ provider-store.ts — persist providers, normalize/validate addresses
 └─ mcp-store.ts — persist servers, parse headers, interpret errors
 ```
@@ -176,17 +176,18 @@ which the demo's Thought panel is built to surface; otherwise it falls back to
 the first available model. Selecting a model creates a fresh conversation
 (simplest correct behavior).
 
-### Extra providers (Ollama, LM Studio, OpenAI)
+### Extra providers (Ollama, LM Studio, vLLM, OpenAI)
 
 The cog beside the model picker opens the **Providers** dialog. It lists the
 always-on *WebLLM (built-in)* row plus every provider you have added, each
 badged with its kind and given a status dot (green connected, red failed, pulsing
-while connecting). *Add provider* offers three kinds:
+while connecting). *Add provider* offers four kinds:
 
 | Kind | Driver subpath | Default address | Token |
 | --- | --- | --- | --- |
 | Ollama | `@bhzai/core/plugins/ollama` | `http://localhost:11434/api` | optional |
 | LM Studio | `@bhzai/core/plugins/lmstudio` | `http://localhost:1234` | optional |
+| vLLM | `@bhzai/core/plugins/vllm` | `http://localhost:8000/v1` | optional |
 | OpenAI | `@bhzai/core/plugins/openai` | `https://api.openai.com/v1` | **required** |
 
 The Type field is a typeahead, backed by a native `<input list>` + `<datalist>`.
@@ -211,7 +212,7 @@ only calls `bh.addDriver()` once it succeeds, so a dead endpoint never enters th
 catalogue — it stays as a red row you can edit and retry. A successful add fires
 `models.changed`, and the picker refreshes through the same subscription the
 WebLLM catalogue uses; the added provider's models then appear alongside the
-in-browser ones as `lmstudio/…`, `ollama/…` or `openai/…` refs.
+in-browser ones as `lmstudio/…`, `ollama/…`, `vllm/…` or `openai/…` refs.
 
 **Only loaded LM Studio models are listed.** LM Studio reports every model it
 has downloaded, and the picker would otherwise fill with a dozen idle entries
@@ -227,6 +228,21 @@ modality as `meta.type`, and `lib/models.ts` keeps only the conversational ones.
 An id the driver does not recognize is treated as a chat model, so a
 newly-released model appears rather than being hidden.
 
+**vLLM needs CORS enabled explicitly.** Unlike the other providers, a stock vLLM
+server sends no CORS headers at all, so the probe fails with the opaque
+`TypeError: Failed to fetch` even though `curl` against the same address works.
+Start it with the page's origin allowed:
+
+```bash
+vllm serve <model> --allowed-origins '["http://localhost:5173"]'
+```
+
+vLLM also reports a real `max_model_len` per model, so its catalogue entries
+carry a true `contextWindow` — which is what keeps auto-compaction enabled for
+them. Tool calling additionally requires the server to be started with
+`--enable-auto-tool-choice --tool-call-parser <parser>`; without those flags a
+request carrying tools fails with a 400 naming the missing flag.
+
 Providers are persisted to `localStorage` (key `bhzai.providers`) and
 re-connected on load. ⚠️ The bearer token is stored in plaintext under the page
 origin — a deliberate demo trade-off for one-click reconnect; a production host
@@ -234,8 +250,10 @@ should re-prompt instead.
 
 Two documented limits, both consequences of the kernel API rather than the UI:
 `bh.addDriver` shadows by `driver.id`, so only the last-added provider **of each
-kind** contributes models to the catalogue (an Ollama, an LM Studio and an
-OpenAI provider do not shadow each other); and there is no `removeDriver`, so removing a row
+kind** contributes models to the catalogue (an Ollama, an LM Studio, a vLLM and
+an OpenAI provider do not shadow each other — which is a large part of why the
+vLLM driver is separate from the OpenAI one rather than an `OpenAI` instance
+pointed at a vLLM `baseUrl`); and there is no `removeDriver`, so removing a row
 disconnects the example's driver reference without unregistering the kernel's
 entry.
 

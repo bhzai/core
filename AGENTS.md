@@ -59,6 +59,18 @@ Implemented:
   catalogue, an overridable context-window family table, and assistant
   `tool_calls` reconstruction so multi-iteration tool loops pass the API's
   structural validation. Serves any OpenAI-compatible gateway via `baseUrl`.
+- **vLLM driver** (`src/plugins/vllm/`) — `bhzaiDriver` implementation over a
+  self-hosted vLLM server's OpenAI-compatible `/v1` REST API, `fetch`-only. Same
+  SSE shape as the LM Studio and OpenAI drivers. Distinct from the OpenAI driver
+  on three counts that all matter: its own `driver.id` (so a vLLM and an OpenAI
+  provider can be live at once — `addDriver` shadows by id), a REAL
+  `contextWindow` read from `max_model_len` rather than guessed from a family
+  table (a model reporting none has auto-compaction disabled), and support for
+  vLLM's `delta.reasoning` field, which the OpenAI driver would drop. Tool-call
+  and reasoning support are server-launch flags invisible on the wire, so both
+  are overridable via `VLLMOptions`. Also handles LoRA-adapter lineage
+  (`root`/`parent`) and assistant `tool_calls` reconstruction for chat-template
+  rendering.
 - **Credential resolution** (`src/core/credentials.ts`) —
   `resolveCredentials()` three-tier chain (runtime value → `auth` hooks →
   unauthenticated). `bh.getAuthHooks()` exposes registered resolvers.

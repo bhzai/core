@@ -40,6 +40,7 @@ import type { BHZAI, BHZAIDriver } from "@bhzai/core"
 import { LMStudio } from "@bhzai/core/plugins/lmstudio"
 import { Ollama } from "@bhzai/core/plugins/ollama"
 import { OpenAI } from "@bhzai/core/plugins/openai"
+import { VLLM } from "@bhzai/core/plugins/vllm"
 
 import type { BhzaiProviderCog } from "../components/provider-cog.js"
 import type { BhzaiProvidersDialog, ProviderViewState } from "../components/providers-dialog.js"
@@ -109,6 +110,13 @@ function createDriver(kind: ProviderKind, baseUrl: string, token: string): Provi
 	switch (kind) {
 		case "lmstudio":
 			return new LMStudio({ baseUrl, headers })
+		case "vllm":
+			// The token is optional: a vLLM server only expects one when it was
+			// started with `--api-key`. Tool-call and reasoning support are
+			// server-launch flags invisible on the wire, so the driver's defaults
+			// (tools on, reasoning off) are left in place here — see the plugin
+			// README for when to override them.
+			return new VLLM({ baseUrl, headers })
 		case "openai":
 			// The token is the API key here, not an optional extra: an OpenAI
 			// provider added without one fails its probe with 401 and shows red,

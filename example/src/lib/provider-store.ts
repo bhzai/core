@@ -27,19 +27,21 @@ const STORAGE_VERSION = 2
  * The HTTP providers the panel can add. WebLLM is the built-in, not one of
  * these.
  *
- * `ollama` and `lmstudio` are local servers; `openai` is the hosted platform,
- * which differs only in that its API token is required rather than optional —
- * every request to api.openai.com without one is rejected with 401.
+ * `ollama`, `lmstudio` and `vllm` are self-hosted servers; `openai` is the
+ * hosted platform, which differs only in that its API token is required rather
+ * than optional — every request to api.openai.com without one is rejected with
+ * 401. A vLLM server takes a token only when it was started with `--api-key`.
  */
-export type ProviderKind = "ollama" | "lmstudio" | "openai"
+export type ProviderKind = "ollama" | "lmstudio" | "vllm" | "openai"
 
 /** Every addable provider kind, in the order the add form offers them. */
-export const PROVIDER_KINDS: ProviderKind[] = ["ollama", "lmstudio", "openai"]
+export const PROVIDER_KINDS: ProviderKind[] = ["ollama", "lmstudio", "vllm", "openai"]
 
 /** Human-readable name per kind, used in form labels and error messages. */
 export const PROVIDER_LABELS: Record<ProviderKind, string> = {
 	ollama: "Ollama",
 	lmstudio: "LM Studio",
+	vllm: "vLLM",
 	openai: "OpenAI",
 }
 
@@ -52,6 +54,7 @@ export const PROVIDER_LABELS: Record<ProviderKind, string> = {
 export const DEFAULT_PROVIDER_API: Record<ProviderKind, string> = {
 	ollama: "http://localhost:11434/api",
 	lmstudio: "http://localhost:1234",
+	vllm: "http://localhost:8000/v1",
 	openai: "https://api.openai.com/v1",
 }
 

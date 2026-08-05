@@ -12,6 +12,10 @@ Holds the plugin subpath entry points shipped from the same package (ARCHITECTUR
   `/api/v0` REST API, OpenAI-shaped SSE streaming).
 - `openai/` — OpenAI driver plugin (plain `fetch`, the hosted `/v1` REST API,
   OpenAI-shaped SSE streaming). Also serves any OpenAI-compatible gateway.
+- `vllm/` — vLLM driver plugin (plain `fetch`, a self-hosted vLLM server's
+  OpenAI-compatible `/v1` REST API, OpenAI-shaped SSE streaming). Separate from
+  `openai/` for its own `driver.id`, the real `max_model_len` context window,
+  and vLLM's `delta.reasoning` field.
 - `mcp/` — MCP streamable-HTTP client plugin (spec rev 2025-11-25). TASK_0011-0016.
 - `interop/pi/` — adapter for a subset of pi coding-agent extensions. Future task.
 - `interop/opencode/` — adapter for a subset of OpenCode plugins. Future task.

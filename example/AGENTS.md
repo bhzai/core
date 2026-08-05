@@ -4,7 +4,7 @@
 
 A Lit 3 + TypeScript browser example demonstrating bhzai's core capabilities:
 streaming responses, in-browser model execution via WebLLM, runtime attachment
-of HTTP providers (Ollama, LM Studio and OpenAI) through the providers panel, live
+of HTTP providers (Ollama, LM Studio, vLLM and OpenAI) through the providers panel, live
 telemetry (decode/prefill tokens per second, time-to-first-token, context
 usage), framework-side parsing of reasoning blocks (`` regions, via
 `parseThink: true`), and runtime attachment of HTTP MCP servers with live
@@ -177,15 +177,16 @@ badged with its kind. Three kinds are addable, all plain-`fetch` drivers:
 | --- | --- | --- |
 | `ollama` | `Ollama` from `@bhzai/core/plugins/ollama` | `http://localhost:11434/api` |
 | `lmstudio` | `LMStudio` from `@bhzai/core/plugins/lmstudio` | `http://localhost:1234` |
+| `vllm` | `VLLM` from `@bhzai/core/plugins/vllm` | `http://localhost:8000/v1` |
 | `openai` | `OpenAI` from `@bhzai/core/plugins/openai` | `https://api.openai.com/v1` |
 
-The first two are local servers; `openai` is the hosted platform and is the only
+The first three are self-hosted servers; `openai` is the hosted platform and is the only
 kind whose **API token is required** — the form's token field is labelled
 optional because the local kinds do not need one, but api.openai.com 401s
 without it, so an OpenAI row added without a key shows red.
 
 The add form's Type field is a `<lit-typeahead>` showing display labels
-("Ollama", "LM Studio", "OpenAI"), mapped back to kind slugs by
+("Ollama", "LM Studio", "vLLM", "OpenAI"), mapped back to kind slugs by
 `providerKindFromLabel()`.
 Because the typeahead is a native `<input list>` + `<datalist>`, the browser
 filters suggestions by the input's current value — pre-filled with "Ollama", the
@@ -217,9 +218,11 @@ feeds back into another `'connect'`. `connectEntry()` refreshes after
 `switch` in `provider-controller.ts`'s `createDriver()`. The dialog and the
 controller are otherwise kind-agnostic.
 
-The two local providers need CORS permitted on the server side to be reachable
-from the browser (`OLLAMA_ORIGINS` for Ollama; the CORS toggle in LM Studio's
-Developer settings). Without it the probe fails with the same opaque
+The three self-hosted providers need CORS permitted on the server side to be
+reachable from the browser (`OLLAMA_ORIGINS` for Ollama; the CORS toggle in LM
+Studio's Developer settings; `--allowed-origins '["http://localhost:5173"]'` for
+vLLM, which sends no CORS headers at all by default). Without it the probe fails
+with the same opaque
 `TypeError: Failed to fetch` the MCP panel maps to a CORS hint. api.openai.com
 sends permissive CORS headers, so an OpenAI row failing that way is a network or
 proxy problem, not a server setting.
