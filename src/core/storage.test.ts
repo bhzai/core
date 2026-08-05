@@ -334,4 +334,69 @@ describe("TASK_0029: Storage interfaces and auto-save wiring", () => {
 		// Verify store.save was called (and it threw, but we caught it)
 		expect(mockStore.save).toHaveBeenCalled()
 	})
+
+	// =========================================================================
+	// Test 10: bh.conversations.load(id) delegates to store.load and returns verbatim
+	// =========================================================================
+	it("Test 10: bh.conversations.load(id) delegates to store.load and returns the snapshot", async () => {
+		const fakeSnapshot = {
+			v: 1 as const,
+			id: "conv-xyz",
+			messages: [],
+			model: "mock-driver/mock-model",
+			usage: { inputTokens: 0, outputTokens: 0 },
+			meta: {},
+		}
+
+		const mockStore: ConversationStore = {
+			save: vi.fn(async () => {}),
+			load: vi.fn(async (id) => (id === "conv-xyz" ? fakeSnapshot : undefined)),
+			list: vi.fn(async () => []),
+			delete: vi.fn(async () => {}),
+		}
+
+		bh.use({ name: "mock-store", conversationStore: mockStore })
+		await bh.init()
+
+		const result = await bh.conversations.load("conv-xyz")
+		expect(mockStore.load).toHaveBeenCalledWith("conv-xyz")
+		expect(result).toEqual(fakeSnapshot)
+
+		const missing = await bh.conversations.load("no-such-id")
+		expect(missing).toBeUndefined()
+	})
+
+	// =========================================================================
+	// Test 11: bh.conversations.load(id) with no store throws descriptive error
+	// =========================================================================
+	it("Test 11: bh.conversations.load(id) with no store throws descriptive error", async () => {
+		await bh.init()
+		await expect(bh.conversations.load("any")).rejects.toThrow(/no conversationStore/i)
+	})
+
+	// =========================================================================
+	// Test 12: bh.conversations.delete(id) delegates to store.delete
+	// =========================================================================
+	it("Test 12: bh.conversations.delete(id) delegates to store.delete", async () => {
+		const mockStore: ConversationStore = {
+			save: vi.fn(async () => {}),
+			load: vi.fn(async () => undefined),
+			list: vi.fn(async () => []),
+			delete: vi.fn(async () => {}),
+		}
+
+		bh.use({ name: "mock-store", conversationStore: mockStore })
+		await bh.init()
+
+		await bh.conversations.delete("conv-abc")
+		expect(mockStore.delete).toHaveBeenCalledWith("conv-abc")
+	})
+
+	// =========================================================================
+	// Test 13: bh.conversations.delete(id) with no store throws descriptive error
+	// =========================================================================
+	it("Test 13: bh.conversations.delete(id) with no store throws descriptive error", async () => {
+		await bh.init()
+		await expect(bh.conversations.delete("any")).rejects.toThrow(/no conversationStore/i)
+	})
 })

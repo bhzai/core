@@ -72,6 +72,14 @@ export interface ChatController {
 	send(text: string): Promise<void>
 	/** Abort the in-flight turn, if any. */
 	stop(): void
+	/** Adopt an externally-loaded conversation (e.g., from the sidebar). */
+	setConversation(conv: BHZAIConversation): void
+	/** Start a fresh conversation with the current model (sidebar "New"). */
+	newConversation(): Promise<void>
+	/** The active conversation's id, or null if none. */
+	readonly activeConversationId: string | null
+	/** The currently selected qualified model ref, or null if none. */
+	readonly currentModelRef: string | null
 }
 
 /**
@@ -83,6 +91,8 @@ export function createChatController(deps: ChatControllerDeps): ChatController {
 	const { bh, engine, driver, ui } = deps
 
 	let conversation: BHZAIConversation | null = null
+	/** The qualified model ref of the current/last-created conversation. */
+	let currentModelRef: string | null = null
 	/** Whether the selected model's weights have been downloaded this session. */
 	let modelLoaded = false
 	/** The turn currently streaming, or null between turns. */
@@ -164,6 +174,13 @@ export function createChatController(deps: ChatControllerDeps): ChatController {
 	}
 
 	return {
+		get activeConversationId(): string | null {
+			return conversation?.id ?? null
+		},
+		get currentModelRef(): string | null {
+			return currentModelRef
+		},
+
 		async selectModel(modelRef) {
 			if (!modelRef) return
 
@@ -172,6 +189,13 @@ export function createChatController(deps: ChatControllerDeps): ChatController {
 				modelLoaded = false
 				ui.status.set("cold", "cold")
 				ui.coldStart.hide()
+
+				currentModelRef = modelRef
+
+				// Clear the conversation view: a new conversation means a
+				// blank slate. Without this, old messages from the previous
+				// conversation linger in the DOM.
+				ui.conversation.clear()
 
 				// A fresh conversation per model selection, rather than swapping the
 				// model mid-conversation: the simplest correct behavior.
@@ -268,6 +292,25 @@ export function createChatController(deps: ChatControllerDeps): ChatController {
 				conversation?.abort("user stopped")
 			} catch (error) {
 				console.error("Abort failed:", error)
+			}
+		},
+
+		setConversation(conv) {
+			conversation = conv
+			turn = null
+			firstTokenTime = null
+			wireConversationEvents()
+
+			// Replay the loaded conversation's message history into the view.
+			// The view is purely imperative — it only shows what was streamed
+			// into it — so without this, loading a past conversation would
+			// leave the old (or empty) view in place.
+			ui.conversation.loadMessages(conv.toJSON().messages)
+		},
+
+		async newConversation() {
+			if (currentModelRef) {
+				await this.selectModel(currentModelRef)
 			}
 		},
 	}

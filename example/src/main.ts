@@ -12,10 +12,12 @@
 
 import type { ModelInfo } from "@bhzai/core"
 import { BHZAI } from "@bhzai/core"
+import { createIdbConversationStorePlugin } from "@bhzai/core/plugins/idb-conversations"
 import { createMcpPlugin } from "@bhzai/core/plugins/mcp"
 import { type MLCEngineInstance, WebLLM } from "@bhzai/core/plugins/webllm"
 
 import { createChatController } from "./app/chat-controller.js"
+import { createConversationsController } from "./app/conversations-controller.js"
 import { showFatalError } from "./app/fatal-error.js"
 import { createMcpController } from "./app/mcp-controller.js"
 import { createProviderController } from "./app/provider-controller.js"
@@ -23,6 +25,7 @@ import { createEngine, hasWebGpu, prebuiltAppConfig } from "./app/webllm-engine.
 // Importing the component modules registers their custom elements.
 import "./components/cold-start-panel.js"
 import "./components/composer.js"
+import "./components/conversation-list.js"
 import "./components/conversation-view.js"
 import "./components/mcp-add-form.js"
 import "./components/mcp-error-dialog.js"
@@ -48,6 +51,7 @@ function buildUi() {
 		providersDialog: byId<BhzaiProvidersDialog>("providers-dialog"),
 		composer: byId<BhzaiComposer>("composer"),
 		conversation: byId<BhzaiConversation>("conversation"),
+		conversationList: byId<BhzaiConversationList>("conversation-list"),
 		telemetry: byId<BhzaiTelemetry>("telemetry-stats"),
 		coldStart: byId<BhzaiColdStart>("cold-start"),
 		mcpForm: byId<BhzaiMcpAddForm>("mcp-add"),
@@ -59,6 +63,7 @@ function buildUi() {
 // The imports above only register classes; type-only imports keep the file honest.
 import type { BhzaiColdStart } from "./components/cold-start-panel.js"
 import type { BhzaiComposer } from "./components/composer.js"
+import type { BhzaiConversationList } from "./components/conversation-list.js"
 import type { BhzaiConversation } from "./components/conversation-view.js"
 import type { BhzaiMcpAddForm } from "./components/mcp-add-form.js"
 import type { BhzaiMcpErrorDialog } from "./components/mcp-error-dialog.js"
@@ -117,6 +122,13 @@ async function initialize(): Promise<void> {
 		// `init()`; the manager is only usable after.
 		const mcp = createMcpPlugin()
 		bh.use(mcp.plugin)
+
+		// The IndexedDB conversation-store plugin: registers a
+		// `conversationStore` capability so the kernel auto-saves on every
+		// `conversation.message(sent)` and exposes `bh.conversations.list()`
+		// / `load(id)` / `delete(id)`. The example's sidebar uses these
+		// exclusively — it never touches IndexedDB directly.
+		bh.use(createIdbConversationStorePlugin())
 
 		await bh.init()
 
@@ -191,6 +203,21 @@ async function initialize(): Promise<void> {
 			if (ref) void chat.selectModel(ref)
 			persistSelection()
 		})
+
+		// The conversations sidebar controller: drives the
+		// `<bhzai-conversation-list>` element through the kernel's
+		// `bh.conversations` accessor and the idb-conversations plugin's
+		// events. Started after the first model is selected so a fresh
+		// conversation exists for the sidebar's "New" button to fall back to.
+		const conversationsController = createConversationsController({
+			bh,
+			ui: {
+				conversationList: ui.conversationList,
+				conversation: ui.conversation,
+				composer: ui.composer,
+			},
+			chat,
+		})
 		ui.providerSelect.addEventListener("bhzai-change", () => {
 			ui.modelSelect.models = filterByProvider(catalogue)
 
@@ -232,6 +259,10 @@ async function initialize(): Promise<void> {
 		// never fires a `bhzai-change` event — so bootstrap that conversation here,
 		// and the very first message works without touching the picker.
 		await chat.selectModel(defaultModel.ref)
+
+		// Start the conversations sidebar: request the first page of past
+		// conversations from the idb-conversations plugin.
+		void conversationsController.start()
 	} catch (error) {
 		console.error("Initialization failed:", error)
 		showFatalError("Failed to initialize — check the console for details.", ui)

@@ -7,8 +7,10 @@ streaming responses, in-browser model execution via WebLLM, runtime attachment
 of HTTP providers (Ollama, LM Studio, vLLM and OpenAI) through the providers panel, live
 telemetry (decode/prefill tokens per second, time-to-first-token, context
 usage), framework-side parsing of reasoning blocks (`` regions, via
-`parseThink: true`), and runtime attachment of HTTP MCP servers with live
-connection status, searchable tool discovery, and error inspection.
+`parseThink: true`), runtime attachment of HTTP MCP servers with live
+connection status, searchable tool discovery, and error inspection, and
+durable conversation persistence via the IndexedDB conversation-store plugin
+with a sidebar for browsing, loading, and deleting past conversations.
 
 Consumes the WORKSPACE-LINKED, BUILT `dist/` output of `@bhzai/core` (via
 `workspace:*` dependency + `pnpm run build` running first), never source imports
@@ -48,10 +50,13 @@ single model-selection typeahead (`@lucasschirm/litjs-typeahead`).
   `variables.css` via `var(--*)`.
 - **`index.html`** — Semantic HTML5 structure plus the custom element tags:
   `<bhzai-status-indicator>`, `<bhzai-model-select id="model-select">`,
+  `<bhzai-conversation-list id="conversation-list">` (left sidebar),
   `<bhzai-conversation>`, `<bhzai-cold-start>`, `<bhzai-telemetry>`,
   `<bhzai-mcp-add-form>`, `<bhzai-mcp-error-dialog>`,
   `<bhzai-mcp-server-list>`, and `<bhzai-composer>`. Loads `variables.css` and
-  `/src/main.ts`.
+  `/src/main.ts`. The layout is a 3-column grid on desktop (conversation
+  sidebar + conversation + telemetry rail), collapsing to a single column on
+  mobile.
   - The telemetry rail is split into `#cold-start-host`, `#telemetry-stats`,
     and `<section id="mcp-panel">`. **This split is load-bearing**: the
     telemetry panel replaces `#telemetry-stats`'s children wholesale after every
@@ -92,6 +97,13 @@ the elements to the two orchestrators.
   reference without unregistering the kernel's entry.
 - **`fatal-error.ts`** — The one path that spans two components (telemetry +
   composer), so it belongs to neither.
+- **`conversations-controller.ts`** — Orchestrates the conversation sidebar:
+  subscribes to `idb-conversations.*` plugin events (load.success/error,
+  conversation.deleted) and kernel events (conversation.created/loaded,
+  conversation.message(sent)) to keep `<bhzai-conversation-list>` in sync.
+  Wires the sidebar's New/Load/Delete/Load-more button events to
+  `bh.conversations` and `chat-controller`. Never touches IndexedDB directly
+  — all persistence goes through the kernel accessor and the plugin's events.
 
 ### `src/components/` — one Lit custom element per DOM region
 
@@ -107,6 +119,7 @@ CSS variables continue to drive their appearance.
 | `model-select.ts` | `<bhzai-model-select>` | reactive model picker, consumes `bh.listModels()` and `models.changed` |
 | `composer.ts` | `<bhzai-composer>` | Send/Stop state, text, keyboard |
 | `conversation-view.ts` | `<bhzai-conversation>` | user bubbles, assistant turns, inline errors |
+| `conversation-list.ts` | `<bhzai-conversation-list>` | left-rail sidebar: past conversations, New/Load/Delete buttons, Load more |
 | `cold-start-panel.ts` | `<bhzai-cold-start>` | download gauge |
 | `telemetry-panel.ts` | `<bhzai-telemetry>` | per-turn readouts |
 | `mcp-server-list.ts` | `<bhzai-mcp-server-list>` | server cards, reactive filter + sort |
@@ -130,7 +143,8 @@ look back up on every delta.
 - **`stats.ts`** — `parseRuntimeStats()` → `{ prefillTps, decodeTps }`.
 - **`thermal.ts`** — `thermalRatio(decodeTps)` → 0..1, `thermalColor(ratio)` →
   CSS color.
-- **`format.ts`** — `formatTps`, `formatTokens`, `formatBytes`, `formatSeconds`.
+- **`format.ts`** — `formatTps`, `formatTokens`, `formatBytes`, `formatSeconds`,
+  `formatRelativeTime` (used by the conversation sidebar for "2m", "3h", etc.).
 - **`models.ts`** — `selectableModels()`: two narrow drops, both keyed on an
   **explicit** `meta` field. (1) `meta.state === 'not-loaded'` (LM Studio's
   downloaded-but-idle models), so the picker lists only warm models. (2) a

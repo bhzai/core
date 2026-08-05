@@ -96,6 +96,68 @@ export class BhzaiConversation extends LitElement {
 		this.requestUpdate()
 	}
 
+	/**
+	 * Clear all displayed messages and reset to the empty state.
+	 *
+	 * Called when starting a new conversation or loading a past one — the
+	 * old messages must not linger in the DOM.
+	 */
+	clear(): void {
+		this._messages = []
+		this._emptyRemoved = false
+		this.requestUpdate()
+	}
+
+	/**
+	 * Replay a snapshot's message history into the view.
+	 *
+	 * Used when loading a past conversation: the kernel's
+	 * `loadConversation()` restores the conversation object, but the view is
+	 * purely imperative — it only shows what was streamed into it. This
+	 * method rebuilds the visible message list from the snapshot's
+	 * `PlainMessage[]`, mapping `role` to the view's `UserMessage` /
+	 * `AssistantMessage` shapes. System and tool messages are skipped (they
+	 * are not part of the chat UI).
+	 *
+	 * @param messages - The snapshot's `messages` array (plain JSON objects).
+	 */
+	loadMessages(
+		messages: Array<{
+			role: "user" | "assistant" | "system" | "tool"
+			content: string
+			blocks: Array<{ type: string; text?: string; thought?: string }>
+		}>,
+	): void {
+		this.clear()
+		for (const msg of messages) {
+			if (msg.role === "user") {
+				this._messages = [...this._messages, { kind: "user", text: msg.content }]
+			} else if (msg.role === "assistant") {
+				// Extract thought (reasoning) and answer from content blocks.
+				// The snapshot stores `content` as the full text; blocks carry
+				// the structured split. Fall back to `content` if no blocks.
+				let thought = ""
+				let answer = msg.content
+				let hasThought = false
+				if (msg.blocks && msg.blocks.length > 0) {
+					const textBlocks = msg.blocks.filter((b) => b.type === "text")
+					const thoughtBlocks = msg.blocks.filter((b) => b.type === "thought")
+					if (thoughtBlocks.length > 0) {
+						thought = thoughtBlocks.map((b) => b.text ?? "").join("")
+						hasThought = true
+					}
+					if (textBlocks.length > 0) {
+						answer = textBlocks.map((b) => b.text ?? "").join("")
+					}
+				}
+				this._messages = [...this._messages, { kind: "assistant", thought, answer, hasThought }]
+			}
+			// Skip "system" and "tool" messages — not shown in the chat UI.
+		}
+		this._emptyRemoved = true
+		this.requestUpdate()
+	}
+
 	override updated() {
 		// Keep the newest content in view after every append.
 		this.scrollTop = this.scrollHeight

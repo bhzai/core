@@ -60,3 +60,26 @@ export function formatBytes(n: number): string {
 export function formatSeconds(s: number): string {
 	return `${s.toFixed(1)}s`
 }
+
+/**
+ * Formats a timestamp as a short relative-time string.
+ *
+ * Returns "just now", "Nm", "Nh", "Nd", or a short date for older entries.
+ *
+ * @param timestamp - Milliseconds since epoch
+ * @returns Human-readable relative time
+ */
+export function formatRelativeTime(timestamp: number): string {
+	const now = Date.now()
+	const diff = now - timestamp
+	const seconds = Math.floor(diff / 1000)
+	const minutes = Math.floor(seconds / 60)
+	const hours = Math.floor(minutes / 60)
+	const days = Math.floor(hours / 24)
+
+	if (seconds < 60) return "just now"
+	if (minutes < 60) return `${minutes}m`
+	if (hours < 24) return `${hours}h`
+	if (days < 7) return `${days}d`
+	return new Date(timestamp).toLocaleDateString("en-US", { month: "short", day: "numeric" })
+}

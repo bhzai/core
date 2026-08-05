@@ -17,6 +17,9 @@ Holds the plugin subpath entry points shipped from the same package (ARCHITECTUR
   `openai/` for its own `driver.id`, the real `max_model_len` context window,
   and vLLM's `delta.reasoning` field.
 - `mcp/` — MCP streamable-HTTP client plugin (spec rev 2025-11-25). TASK_0011-0016.
+- `idb-conversations/` — IndexedDB-backed `ConversationStore` plugin (§ 11.4).
+  Browser-targeted; uses the `indexedDB` global only. Emits
+  `idb-conversations.*` events and supports offset/cursor pagination.
 - `interop/pi/` — adapter for a subset of pi coding-agent extensions. Future task.
 - `interop/opencode/` — adapter for a subset of OpenCode plugins. Future task.
 
