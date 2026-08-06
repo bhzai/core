@@ -105,6 +105,13 @@ vLLM server via `baseUrl` — three concrete differences, in order of weight:
 - **`max_tokens`, not `max_completion_tokens`** — vLLM accepts both on current
   builds but only the former on older ones, and there is no reasoning-model
   exception here the way there is on api.openai.com.
+- **Model name on the wire (`prefixProvider`)**: the kernel passes the BARE
+  model id as `ChatRequest.model` (not the qualified `vllm/<model>` ref). A
+  stock vLLM server expects exactly what `GET /v1/models` published, so the
+  default (`prefixProvider: false`) sends the bare id directly via the
+  `wireModel()` helper. Set `prefixProvider: true` for gateways that key their
+  model registry by the qualified ref — the helper then prepends `'vllm/'`.
+  The same logic applies to `embed()`.
 - **Capabilities cache**: `capabilities(model)` is synchronous per the
   `BHZAIDriver` interface, but `/v1/models` is async. Resolved as in the other
   HTTP drivers — an internal `Map<string, DriverCapabilities>` filled by

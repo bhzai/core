@@ -342,7 +342,11 @@ export async function sendMessage(
 			throw new Error(`sendMessage(): driver "${parsed.driver}" not found`)
 		}
 
-		const driverCapabilities = driver.capabilities(modelRef)
+		// Use the BARE model id (not the qualified ref) for capabilities lookup —
+		// driver caches are keyed by the bare id (`entry.id` from `listModels()`).
+		// Passing the qualified ref here silently missed the cache and returned
+		// conservative defaults (`toolCalls: false`), stripping every tool.
+		const driverCapabilities = driver.capabilities(parsed.id)
 
 		// Construct base context payload.
 		const systemPrompt = computePreContextSystemPrompt(conversation)
@@ -399,9 +403,12 @@ export async function sendMessage(
 			inputSchema: tool.inputSchema,
 		}))
 
-		// Build ChatRequest.
+		// Build ChatRequest. The model is the BARE model id (not the qualified
+		// `'<driver>/<model>'` ref) — the driver knows its own id via `this.id`
+		// and decides how to format the model name on the wire. See
+		// `ChatRequest.model` JSDoc in `src/types/driver.ts`.
 		const chatRequest: ChatRequest = {
-			model: modelRef,
+			model: parsed.id,
 			messages: effectiveMessages,
 			systemPrompt: effectiveSystemPrompt,
 			tools: toolWireDefinitions.length > 0 ? toolWireDefinitions : undefined,
@@ -580,19 +587,26 @@ export async function sendMessage(
 			const modelRef = conversation._getModelRef()
 			if (modelRef) {
 				const bh = conversation._getBh()
-				const [driverId, modelId] = modelRef.split("/")
-				const driver = bh._getDriver(driverId)
-				if (driver) {
-					const caps = driver.capabilities(modelId)
-					if (caps.contextWindow !== undefined) {
-						const remainingTokens =
-							caps.contextWindow -
-							(conversation.usage.inputTokens + conversation.usage.outputTokens)
-						if (remainingTokens < createOpts.compaction.reserveTokens) {
-							// Trigger auto-compaction in background (don't await, so the turn continues)
-							// Use compactAuto wrapper which handles default completeFn resolution
-							const { compactAuto } = await import("./compaction.js")
-							void compactAuto(conversation)
+				// Use `parseModelRef` (first-slash split) instead of `split("/")` —
+				// a model id can itself contain slashes (e.g. HuggingFace repo
+				// paths like `meta-llama/Llama-3.1-8B-Instruct`), so a naive
+				// `split("/")` would over-split and pass the wrong id to
+				// `capabilities()`.
+				const parsedRef = parseModelRef(modelRef)
+				if (parsedRef) {
+					const driver = bh._getDriver(parsedRef.driver)
+					if (driver) {
+						const caps = driver.capabilities(parsedRef.id)
+						if (caps.contextWindow !== undefined) {
+							const remainingTokens =
+								caps.contextWindow -
+								(conversation.usage.inputTokens + conversation.usage.outputTokens)
+							if (remainingTokens < createOpts.compaction.reserveTokens) {
+								// Trigger auto-compaction in background (don't await, so the turn continues)
+								// Use compactAuto wrapper which handles default completeFn resolution
+								const { compactAuto } = await import("./compaction.js")
+								void compactAuto(conversation)
+							}
 						}
 					}
 				}

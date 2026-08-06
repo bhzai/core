@@ -10,7 +10,7 @@ Cross-cutting TypeScript type declarations shared across the kernel, plugins, an
 - `content.ts` — `JSONSchema`, `ContentBlock`, `CallToolResult` (§ 9.1).
 - `message.ts` — `BHZAIMessage`, `ConversationStatus` (§ 11.1).
 - `model.ts` — `DriverCapabilities`, `ModelInfo`, `Usage` (§§ 10.1, 10.5).
-- `driver.ts` — `GenerationParams`, `DriverEvent`, `ChatRequest`, `ToolWireDefinition`, `BHZAIDriver` (§ 10.1). `BHZAIDriver` was added by TASK_0009 on TASK_0002's behalf — see the file-header coordination note.
+- `driver.ts` — `GenerationParams`, `DriverEvent`, `ChatRequest`, `ToolWireDefinition`, `BHZAIDriver` (§ 10.1). `ChatRequest.model` is the **bare model id**, not the qualified `'<driver>/<model>'` ref — the kernel parses the ref before calling `chat()` and the driver decides how to format the model name on the wire. `BHZAIDriver` was added by TASK_0009 on TASK_0002's behalf — see the file-header coordination note.
 - `events.ts` — `EmitResult`, `Unsubscribe` (§§ 6, 8.4).
 - `tool.ts` — `BHZAIToolDefinition`, `ToolInvocation`, `ToolExecute`, `ToolFilter`, `Icon`, `ToolAnnotations`, opaque `BHZAIConversation` placeholder (§ 9.1). Added by TASK_0008 on TASK_0002's behalf — see the file-header coordination note.
 - `command.ts` — `BHZAICommandDefinition`, `BHZAICommandContext` (§ 6). Added by TASK_0010 on TASK_0002's behalf — see the file-header coordination note.

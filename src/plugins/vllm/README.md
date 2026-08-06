@@ -47,6 +47,7 @@ This driver exists because three things differ in ways that matter:
 | `headers`   | `Record<string, string>` | `{}`                      | Forwarded on every request. Only needed with `--api-key`.     |
 | `toolCalls` | `boolean`                | `true` for non-embeddings | Force the tool-call capability. See below.                    |
 | `reasoning` | `boolean`                | `false`                   | Force the reasoning capability. See below.                    |
+| `prefixProvider` | `boolean`           | `false`                   | Prepend `'vllm/'` to the model name on the wire. See below.   |
 
 ### Why `toolCalls` and `reasoning` are overridable
 
@@ -69,6 +70,23 @@ new VLLM({
   baseUrl: "http://localhost:8000",
   toolCalls: false, // server started without --enable-auto-tool-choice
   reasoning: true, // server started with --reasoning-parser deepseek_r1
+});
+```
+
+### Model name on the wire (`prefixProvider`)
+
+The kernel passes the **bare model id** (e.g. `meta-llama/Llama-3.1-8B-Instruct`)
+as `ChatRequest.model` — not the qualified `vllm/<model>` ref. A stock vLLM
+server expects exactly what `GET /v1/models` published (the bare id), so the
+default is `prefixProvider: false` and the bare id is sent directly.
+
+Set `prefixProvider: true` only when pointing at a gateway that keys its model
+registry by the qualified ref:
+
+```ts
+new VLLM({
+  baseUrl: "https://my-gateway.example.com",
+  prefixProvider: true, // send 'vllm/meta-llama/...' instead of 'meta-llama/...'
 });
 ```
 

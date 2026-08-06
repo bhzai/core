@@ -106,9 +106,20 @@ lineage), all of which this driver reads. There is nothing richer to prefer.
 | `headers`   | `Record<string, string>` | `{}`                      | Forwarded on every request; needed only with `--api-key`. |
 | `toolCalls` | `boolean`                | `true` for non-embeddings | Force the tool-call capability.                           |
 | `reasoning` | `boolean`                | `false`                   | Force the reasoning capability.                           |
+| `prefixProvider` | `boolean`           | `false`                   | Prepend `'vllm/'` to the model name on the wire.          |
 
 `VLLMInternalOptions` adds a `fetchOverride` test seam; it is not part of the
 public API.
+
+### Model name on the wire (`prefixProvider`)
+
+The kernel passes the **bare model id** (e.g. `meta-llama/Llama-3.1-8B-Instruct`)
+as `ChatRequest.model` — not the qualified `vllm/<model>` ref. The driver knows
+its own id via `this.id` and decides how to format the model name on the wire.
+A stock vLLM server expects exactly what `GET /v1/models` published (the bare
+id), so the default is `prefixProvider: false` and the bare id is sent directly
+on both `chat()` and `embed()`. Set `prefixProvider: true` only when pointing at
+a gateway that keys its model registry by the qualified ref.
 
 ## Capabilities cache
 

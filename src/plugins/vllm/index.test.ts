@@ -697,6 +697,22 @@ describe("VLLM — chat request mapping", () => {
 		await drain(makeDriver(fetch).chat(makeRequest()))
 		expect(chatBody(fetch).chat_template_kwargs).toBeUndefined()
 	})
+
+	it("sends the bare model id on the wire by default (no 'vllm/' prefix)", async () => {
+		const fetch = fakeFetch([chatRoute(sse([]))])
+		await drain(makeDriver(fetch).chat(makeRequest({ model: "meta-llama/Llama-3.1-8B-Instruct" })))
+		expect(chatBody(fetch).model).toBe("meta-llama/Llama-3.1-8B-Instruct")
+	})
+
+	it("prepends 'vllm/' to the model id when prefixProvider is true", async () => {
+		const fetch = fakeFetch([chatRoute(sse([]))])
+		await drain(
+			makeDriver(fetch, { prefixProvider: true }).chat(
+				makeRequest({ model: "meta-llama/Llama-3.1-8B-Instruct" }),
+			),
+		)
+		expect(chatBody(fetch).model).toBe("vllm/meta-llama/Llama-3.1-8B-Instruct")
+	})
 })
 
 // ---------------------------------------------------------------------------
@@ -872,6 +888,39 @@ describe("VLLM — embed", () => {
 		await expect(makeDriver(fetch).embed({ model: "chat", input: ["a"] })).rejects.toMatchObject({
 			status: 400,
 		})
+	})
+
+	it("sends the bare model id by default, no 'vllm/' prefix", async () => {
+		const fetch = fakeFetch([
+			{
+				url: `${BASE}/v1/embeddings`,
+				method: "POST",
+				response: mockResponse({ json: { data: [{ embedding: [1], index: 0 }] } }),
+			},
+		])
+		await makeDriver(fetch).embed({ model: "BAAI/bge-large-en-v1.5", input: ["a"] })
+		const body = JSON.parse(
+			(fetch as unknown as { calls: Array<{ body?: string }> }).calls[0]?.body ?? "{}",
+		)
+		expect(body.model).toBe("BAAI/bge-large-en-v1.5")
+	})
+
+	it("prepends 'vllm/' when prefixProvider is true", async () => {
+		const fetch = fakeFetch([
+			{
+				url: `${BASE}/v1/embeddings`,
+				method: "POST",
+				response: mockResponse({ json: { data: [{ embedding: [1], index: 0 }] } }),
+			},
+		])
+		await makeDriver(fetch, { prefixProvider: true }).embed({
+			model: "BAAI/bge-large-en-v1.5",
+			input: ["a"],
+		})
+		const body = JSON.parse(
+			(fetch as unknown as { calls: Array<{ body?: string }> }).calls[0]?.body ?? "{}",
+		)
+		expect(body.model).toBe("vllm/BAAI/bge-large-en-v1.5")
 	})
 })
 

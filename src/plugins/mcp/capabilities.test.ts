@@ -336,7 +336,7 @@ describe("handleSampling", () => {
 		expect(result.result).toMatchObject({
 			role: "assistant",
 			content: { type: "text", text: "hello-from-driver" },
-			model: "d/m1",
+			model: "m1",
 		})
 	})
 
@@ -392,7 +392,7 @@ describe("handleSampling", () => {
 			drivers,
 			"srv",
 		)
-		expect(result.result).toMatchObject({ content: { text: "from-d2" }, model: "d2/m1" })
+		expect(result.result).toMatchObject({ content: { text: "from-d2" }, model: "m1" })
 	})
 
 	it("returns invalid-params when the preferred driver is not registered", async () => {

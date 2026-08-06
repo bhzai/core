@@ -34,6 +34,7 @@
 // approval gate / event bus — no `fetch` directly (it uses the
 // `McpClient`'s transport methods), no Node built-ins.
 
+import { parseModelRef } from "../../core/models.js"
 import type { BHZAIDriver, ChatRequest } from "../../types/index.js"
 import type { ApprovalCall, ApprovalGate, McpApprovalOptions } from "./approval.js"
 
@@ -521,6 +522,15 @@ async function selectSamplingDriver(
 				},
 			}
 		}
+	}
+	// `ChatRequest.model` is the BARE model id, not the qualified
+	// `'<driver>/<model>'` ref — the driver knows its own id via `this.id` and
+	// decides how to format the model name on the wire. If the resolved model
+	// is a qualified ref (e.g. `models[0].ref` or a host-supplied ref), parse
+	// out the bare id; if it is already bare, pass it through unchanged.
+	const parsedModel = parseModelRef(model)
+	if (parsedModel) {
+		model = parsedModel.id
 	}
 	return { driver, model }
 }
