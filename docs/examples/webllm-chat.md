@@ -301,6 +301,30 @@ pointed at a vLLM `baseUrl`); and there is no `removeDriver`, so removing a row
 disconnects the example's driver reference without unregistering the kernel's
 entry.
 
+### Provider filter
+
+When more than one provider contributes models to the catalogue, a
+`<bhzai-provider-select>` typeahead appears to the left of the model picker.
+Selecting a provider narrows the model list to that provider's entries; "All"
+shows every model.
+
+The filter relies on two event paths from the underlying `<lit-typeahead>`:
+
+- **`input` event (primary, immediate):** The native `input` event fires the
+  instant the user selects from the datalist or types — it does not wait for
+  blur. It has `composed: true` by default, so it crosses `lit-typeahead`'s
+  shadow DOM boundary. `composedPath()[0]` retrieves the actual `<input>`
+  element (since `event.target` is retargeted to the shadow host), and its
+  live `value` is read directly — `lit-typeahead` only syncs its own `value`
+  property on `change` (blur), not on `input`. The filter is applied
+  immediately when the value matches a known provider label; partial matches
+  leave the current filter in place so the model list doesn't flicker while
+  the user types.
+- **`change` event (fallback, on blur):** `lit-typeahead` re-dispatches this
+  as a custom event with `detail.value` when the user tabs away. An
+  unrecognized value falls back to "All" so a stale partial entry doesn't
+  lock the user out.
+
 ### Cold-start feedback
 
 When the user sends their first message, `engine.reload()` is called lazily (by the WebLLM driver), triggering downloads of model weights. The example displays a download progress panel:

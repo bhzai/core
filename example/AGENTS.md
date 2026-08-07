@@ -123,7 +123,7 @@ CSS variables continue to drive their appearance.
 | Module | Custom element | Owns |
 | --- | --- | --- |
 | `status-indicator.ts` | `<bhzai-status-indicator>` | statusbar dot + label |
-| `provider-select.ts` | `<bhzai-provider-select>` | provider filter, to the left of the model picker; hidden unless more than one driver contributes models |
+| `provider-select.ts` | `<bhzai-provider-select>` | provider filter, to the left of the model picker; hidden unless more than one driver contributes models. Listens to both `input` (immediate, on datalist selection) and `change` (on blur) events from the underlying `lit-typeahead` so the model list filters without waiting for the user to tab away |
 | `model-select.ts` | `<bhzai-model-select>` | reactive model picker, consumes `bh.listModels()` and `models.changed` |
 | `composer.ts` | `<bhzai-composer>` | Send/Stop state, text, keyboard |
 | `conversation-view.ts` | `<bhzai-conversation>` | user bubbles, assistant turns, inline errors, compaction markers |
