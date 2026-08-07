@@ -1385,7 +1385,14 @@ describe("executeSingleToolCall", () => {
 		const call: ToolCallEvent = { toolCallId: "1", name: "unknown", input: {} }
 		const counter = { count: 0 }
 		const result = await executeSingleToolCall(
-			conversation, bh, call, undefined, new Set(["known"]), ajv, 2, counter,
+			conversation,
+			bh,
+			call,
+			undefined,
+			new Set(["known"]),
+			ajv,
+			2,
+			counter,
 		)
 		expect(result.result?.isError).toBe(true)
 		expect(counter.count).toBe(1)
@@ -1405,7 +1412,14 @@ describe("executeSingleToolCall", () => {
 		const call: ToolCallEvent = { toolCallId: "1", name: "known", input: {} }
 		const counter = { count: 0 }
 		const result = await executeSingleToolCall(
-			conversation, bh, call, toolDef, new Set(["known"]), ajv, 2, counter,
+			conversation,
+			bh,
+			call,
+			toolDef,
+			new Set(["known"]),
+			ajv,
+			2,
+			counter,
 		)
 		expect(result.result?.content[0]).toMatchObject({ type: "text", text: "done" })
 		expect(counter.count).toBe(0)
@@ -1429,7 +1443,14 @@ describe("executeSingleToolCall", () => {
 		const call: ToolCallEvent = { toolCallId: "1", name: "known", input: {} }
 		const counter = { count: 0 }
 		const result = await executeSingleToolCall(
-			conversation, bh, call, toolDef, new Set(["known"]), ajv, 2, counter,
+			conversation,
+			bh,
+			call,
+			toolDef,
+			new Set(["known"]),
+			ajv,
+			2,
+			counter,
 		)
 		expect(result.result?.isError).toBe(true)
 		expect((result.result?.content[0] as { text: string }).text).toBe("policy denied")
