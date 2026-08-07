@@ -127,10 +127,34 @@ export async function complete(
 	// Step 3: Normalize messages.
 	const normalizedMessages = normalizeCoreMessages(req.messages)
 
+	// Step 3b: Pre-flight context-window check (heuristic only — no conversation
+	// state, so no `lastInputTokens` baseline). If the driver reports a
+	// contextWindow and the estimated tokens + output reserve exceed it, trim
+	// oldest messages from the front (preserving the system prompt + last
+	// message). No prompt compaction here — one-shot calls are caller-controlled.
+	const driverCaps = driver.capabilities(modelId)
+	let finalMessages = normalizedMessages
+	if (driverCaps.contextWindow !== undefined) {
+		const outputReserve = req.params?.maxTokens ?? 1024
+		const { fitContextToWindow } = await import("../conversation/context-budget.js")
+		const fitResult = fitContextToWindow({
+			messages: finalMessages,
+			systemPrompt: req.systemPrompt ?? "",
+			tools: [],
+			contextWindow: driverCaps.contextWindow,
+			outputReserve,
+			lastInputTokens: undefined, // No conversation state for one-shot calls
+		})
+		if (fitResult.trimmed) {
+			finalMessages = fitResult.messages
+		}
+		// If overLimit, send as-is — the driver error surfaces to the caller.
+	}
+
 	// Step 4: Build ChatRequest.
 	const chatRequest: ChatRequest = {
 		model: modelId,
-		messages: normalizedMessages,
+		messages: finalMessages,
 		systemPrompt: req.systemPrompt,
 		params: req.params,
 		signal: req.signal ?? new AbortController().signal,
@@ -149,7 +173,10 @@ export async function complete(
 		if (event.type === "delta") {
 			text += event.text
 		} else if (event.type === "usage") {
-			usage = { inputTokens: event.inputTokens, outputTokens: event.outputTokens }
+			usage = {
+				inputTokens: event.inputTokens ?? 0,
+				outputTokens: event.outputTokens ?? 0,
+			}
 		} else if (event.type === "done") {
 			// Terminal event — check for error.
 			if (event.stopReason === "error" && event.error) {

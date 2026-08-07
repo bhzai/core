@@ -42,8 +42,12 @@ const DEFAULT_KEEP_COUNT = 4
  * Matches the interface documented for `bh.complete()` (TASK_0032).
  * This is injectable so tests can mock it, and so the real implementation
  * (once TASK_0032 lands) drops in with zero changes to this file.
+ *
+ * The optional `model` field lets compaction use a cheaper/faster model
+ * for summarization when `compaction.model` is set on the conversation.
  */
 export type CompleteFn = (req: {
+	model?: string
 	systemPrompt?: string
 	messages: BHZAIMessage[]
 }) => Promise<{ text: string; usage?: { inputTokens: number; outputTokens: number } }>
@@ -187,8 +191,14 @@ export async function runCompactionPipeline(
 			state: "compacting",
 		} as CompactEventPayload)
 
-		// Call the complete function (mocked in tests, real TASK_0032 later)
-		const defaultComplete = async (req: { systemPrompt?: string; messages: BHZAIMessage[] }) => {
+		// Call the complete function (mocked in tests, real bh.complete() in production).
+		// Pass `compaction.model` if set, so a cheaper/faster model can be used for summarization.
+		const compactionModel = conversation._getCreateOptions().compaction?.model
+		const defaultComplete = async (req: {
+			model?: string
+			systemPrompt?: string
+			messages: BHZAIMessage[]
+		}) => {
 			// Stub: if no real complete() is injected, throw
 			// In real usage, this is replaced by the genuine bh.complete()
 			throw new Error(
@@ -196,7 +206,11 @@ export async function runCompactionPipeline(
 			)
 		}
 		const realComplete = completeFn || defaultComplete
-		const result = await realComplete({ systemPrompt: prompt, messages: foldedMessages })
+		const result = await realComplete({
+			model: compactionModel,
+			systemPrompt: prompt,
+			messages: foldedMessages,
+		})
 		summary = result.text
 
 		// Revert status to its prior value

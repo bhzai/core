@@ -158,6 +158,10 @@ export function createChatController(deps: ChatControllerDeps): ChatController {
 
 		const { inputTokens = 0, outputTokens = 0 } = conversation.usage
 		const contextWindow = ui.modelSelect.selectedModel?.capabilities?.contextWindow
+		// Use the last turn's real input tokens (the actual context size the
+		// provider processed) for the context usage percentage — not the
+		// cumulative output tokens, which don't represent context fill.
+		const lastInputTokens = conversation.contextUsage.lastInputTokens
 		const ttftMs = firstTokenTime === null ? null : firstTokenTime - sendStartTime
 
 		ui.telemetry.updateStats({
@@ -167,7 +171,10 @@ export function createChatController(deps: ChatControllerDeps): ChatController {
 			inputTokens: formatTokens(inputTokens),
 			outputTokens: formatTokens(outputTokens),
 			contextWindow,
-			contextUsagePercent: contextWindow ? Math.round((outputTokens / contextWindow) * 100) : null,
+			contextUsagePercent:
+				contextWindow && lastInputTokens !== undefined
+					? Math.round((lastInputTokens / contextWindow) * 100)
+					: null,
 			decodeColor: thermalColor(decodeRatio),
 			decodeRatio,
 		})

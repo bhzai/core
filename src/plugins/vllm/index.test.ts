@@ -390,6 +390,45 @@ describe("VLLM — chat streaming", () => {
 		])
 	})
 
+	it("reports totalTokens when the server provides total_tokens", async () => {
+		const fetch = fakeFetch([
+			modelsRoute([LLAMA_ENTRY]),
+			chatRoute(
+				sse([
+					{ choices: [{ delta: { content: "hi" } }] },
+					{ choices: [], usage: { prompt_tokens: 10, completion_tokens: 5, total_tokens: 15 } },
+				]),
+			),
+		])
+		const events = await drain(makeDriver(fetch).chat(makeRequest()))
+		expect(events).toContainEqual({
+			type: "usage",
+			inputTokens: 10,
+			outputTokens: 5,
+			totalTokens: 15,
+		})
+	})
+
+	it("omits usage fields the server does not report", async () => {
+		const fetch = fakeFetch([
+			modelsRoute([LLAMA_ENTRY]),
+			chatRoute(
+				sse([
+					{ choices: [{ delta: { content: "hi" } }] },
+					// Server reports only prompt_tokens, no completion_tokens or total_tokens
+					{ choices: [], usage: { prompt_tokens: 10 } },
+				]),
+			),
+		])
+		const events = await drain(makeDriver(fetch).chat(makeRequest()))
+		const usageEvent = events.find((e) => e.type === "usage")
+		expect(usageEvent).toBeDefined()
+		expect(usageEvent).toMatchObject({ type: "usage", inputTokens: 10 })
+		// Fields the server didn't report should be undefined (not 0)
+		expect((usageEvent as { outputTokens?: number }).outputTokens).toBeUndefined()
+		expect((usageEvent as { totalTokens?: number }).totalTokens).toBeUndefined()
+	})
+
 	// The field vLLM's current stable docs document.
 	it("maps delta.reasoning onto reasoning-delta", async () => {
 		const fetch = fakeFetch([

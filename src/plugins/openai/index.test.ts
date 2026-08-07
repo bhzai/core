@@ -555,9 +555,24 @@ describe("OpenAI — chat", () => {
 		expect(events).toEqual([
 			{ type: "delta", text: "Hello" },
 			{ type: "delta", text: " world" },
-			{ type: "usage", inputTokens: 10, outputTokens: 5 },
+			{ type: "usage", inputTokens: 10, outputTokens: 5, totalTokens: 15 },
 			{ type: "done", stopReason: "stop" },
 		])
+	})
+
+	it("omits usage fields the server does not report", async () => {
+		const body = sse([
+			{ choices: [{ delta: { content: "hi" }, finish_reason: "stop" }] },
+			// Server reports only prompt_tokens, no completion_tokens or total_tokens
+			{ choices: [], usage: { prompt_tokens: 10 } },
+		])
+		const fetch = fakeFetch([modelsRoute([CHAT_MODEL]), chatRoute(body)])
+		const events = await drain(makeOpenAI(fetch).chat(makeRequest()))
+		const usageEvent = events.find((e) => e.type === "usage")
+		expect(usageEvent).toBeDefined()
+		expect(usageEvent).toMatchObject({ type: "usage", inputTokens: 10 })
+		expect((usageEvent as { outputTokens?: number }).outputTokens).toBeUndefined()
+		expect((usageEvent as { totalTokens?: number }).totalTokens).toBeUndefined()
 	})
 
 	it("skips the usage event when no chunk carries usage", async () => {

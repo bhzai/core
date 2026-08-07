@@ -24,7 +24,8 @@ in ARCHITECTURE.md § 8.1 and implemented once, in
 | ------------------------ | ------------ | ------------------------------------------------------------------------------------------------ |
 | `conversation.ts`        | 0023–0031    | `BHZAIConversationImpl`, the mirrored event-bus mechanic, all `@internal` accessors other conversation modules use, `CreateConversationOptions`. |
 | `system-prompt.ts`       | 0024         | Four-layer system-prompt assembly (host default → per-conversation override → `start` patches → `context` patches), `ensureStarted()`, `prepend` message handling. |
-| `agent-loop.ts`          | 0025, 0026, 0027, 0030 | `sendMessage()`/`addMessage()`, the `context` event, tool-call execution (`beforeCall→call→processing*→complete\|error`, concurrency/serial batching, validate-and-repair), the bounded, multi-turn loop and its four termination conditions, `deliverAs` steering (`immediate`/`steer`/`followUp`), `waitForIdle()`, the `idle` event. |
+| `agent-loop.ts`          | 0025, 0026, 0027, 0030 | `sendMessage()` (20-line thin entry point), `runAgentLoop()` (bounded while-loop orchestrator), `executeToolBatch()` (31-line thin orchestrator for tool-call batches), `addMessage()`, the `context` event, `deliverAs` steering, `waitForIdle()`, the `idle` event. All orchestration delegates to `src/tools/agent-loop-helpers.ts`. |
+| `agent-loop-helpers.ts` (in `src/tools/`) | —    | 25 extracted, unit-testable helpers: `handleBusyEntry`, `prepareUserMessage`, `resolveDriverForTurn`, `drainSteerQueue`, `fireTurnStart`, `buildContextForTurn`, `applyContextBudget`, `executeDriverTurn`, `consumeDriverStream`, `recordToolCallsOnMessage`, `maybeAutoCompact`, `resolvePendingSteers`, `checkTurnTermination`, `handleTurnVeto`, `handleLoopExit`, `checkMaxIterations`, `isAllTerminate`, `filterToolCalls`, `partitionToolCalls`, `validateToolCall`, `executeToolWithAbortRace`, `applyCompleteEventPatch`, `executeSingleToolCall`, `runToolBatchExecution`, `appendToolResultMessages`, plus shared `constructMessage` utility. |
 | `snapshot.ts`            | 0028         | `toJSON()`/`toSnapshot()`, `fromSnapshot()` (the full, versioned `loadConversation()` contract), truncated-prefix support for host-side forking. |
 | `compaction.ts`          | 0031         | `conversation.compact()`, auto-compaction, `conversation.emit('compact', ...)` interception, the `compact` event's `before`/`compacting`/`complete` states. |
 
@@ -37,35 +38,43 @@ parsing/resolution consumed by the loop to find a driver), `retry.ts`
 
 ## The agent loop, in order
 
-`sendMessage(content, options?)`:
+`sendMessage(content, options?)` is a 20-line thin entry point that delegates
+to extracted helpers in `src/tools/agent-loop-helpers.ts` (each unit-tested in
+isolation). The internal `runAgentLoop()` function owns the bounded while-loop:
 
-1. Busy-check: if `conversation.status !== 'idle'`, branch on
-   `options.deliverAs` (`'immediate'` default rejects with
+1. **`handleBusyEntry()`** — busy-check: if `conversation.status !== 'idle'`,
+   branch on `options.deliverAs` (`'immediate'` default rejects with
    `ConversationBusyError`; `'steer'`/`'followUp'` queue and return a promise
    that resolves once delivered).
-2. `ensureStarted()` (TASK_0024) — fires `start` once, lazily, applying
-   system-prompt patches and `prepend` messages.
-3. `loop(start)`.
-4. `message(before)` (blockable) → `message(waiting)` → `status: 'streaming'`.
-5. Bounded loop (`maxIterations`, default 8), each iteration:
-   - Drain the steer queue (delivered before this iteration's `context`).
-   - `turn(start)`.
-   - `context` (deep-copied payload; patches replace wholesale) → resolve
-     driver/tools → `ChatRequest` → `callDriverWithRetry` (`request`
-     `before`/`retry*`/`after`) → stream consumption (`message.delta`,
-     `usage` accumulation, tool-call buffering).
-   - `message(sent)` for the assistant message.
-   - If `stopReason === 'tool-calls'`: run the tool-execution pipeline
-     (concurrent-by-default, `serial`/`serialTools` opt-outs, original-order
-     result reordering, validate-and-repair up to `maxToolRepairs`).
-   - Auto-compaction check (if `compaction.auto` is set and the driver
-     reports a `contextWindow`).
-   - `turn(end)` (veto via `{ continueWith }` — still counts toward
-     `maxIterations`).
-   - Termination check: natural stop, universal `_meta['BHZAI/terminate']`
-     hint, `maxIterations`, or `abort()`.
-6. `loop(end)` → `status: 'idle'` → deliver one queued `followUp` (starts a
-   new run) or fire `idle` if both queues are empty.
+2. **`prepareUserMessage()`** — `ensureStarted()`, fire `loop(start)`, fire
+   `message(before)` (blockable), handle blocked result, apply patches, fire
+   `message(waiting)`, set `status: 'streaming'`.
+3. **`runAgentLoop()`** — bounded loop (`maxIterations`, default 8), each iteration:
+   - **`drainSteerQueue()`** — drain steer queue, fire `message(before)` per entry.
+   - **`fireTurnStart()`** — fire `turn(start)`.
+   - **`resolveDriverForTurn()`** — resolve model ref, look up driver, read capabilities.
+   - **`buildContextForTurn()`** — `context` event → apply patches → resolve tools.
+   - **`applyContextBudget()`** — pre-flight context-window check, compaction, prompt compaction.
+   - **`executeDriverTurn()`** — build `ChatRequest`, call driver via retry wrapper,
+     **`consumeDriverStream()`** (deltas, reasoning, usage, tool-call buffering, done,
+     with think-splitting and timeout), **`recordToolCallsOnMessage()`**, push message,
+     fire `message(sent)`.
+   - **`maybeAutoCompact()`** — check context window, trigger background compaction.
+   - **`resolvePendingSteers()`** — settle steer promises with the assistant message.
+   - Execute tool batch (if `stopReason === 'tool-calls'`) via `executeToolBatch()`,
+     which delegates to: `filterToolCalls`, `partitionToolCalls`,
+     `executeSingleToolCall` (validate → beforeCall → call → `executeToolWithAbortRace`
+     → complete with `applyCompleteEventPatch`), `runToolBatchExecution` (concurrency),
+     `appendToolResultMessages` (push results to history).
+   - **`checkTurnTermination()`** — fire `turn(end)`, check veto (`continueWith`),
+     check natural stop / all-terminate.
+   - **`handleTurnVeto()`** — inject synthetic continuation if vetoed.
+   - **`checkMaxIterations()`** — check iteration bound, flag `truncatedBy`.
+4. **`handleLoopExit()`** — abort check, fire `loop(end)`, transition to idle or
+   kick off queued followUp.
+
+Pure-logic helpers: **`isAllTerminate()`** (check if all tool results carry
+`BHZAI/terminate: true`).
 
 `addMessage(content, role, options?)` inserts a message directly
 (`message(sent)` only, no loop).
@@ -141,9 +150,11 @@ fields from the message that lands in history.
 ## Guardrails (`CreateConversationOptions`)
 
 `maxIterations` (8), `maxToolRepairs` (2), `serialTools`, `turnTimeoutMs`
-(no default), `retryPolicy`, `compaction: { auto, reserveTokens }`,
-`parseThink` (`false`), `systemPrompt`, `model`. All optional, all documented
-with their defaults on the interface in `conversation.ts`.
+(no default), `retryPolicy`, `compaction: { auto, reserveTokens, model? }`,
+`outputReserve` (default: `compaction?.reserveTokens ?? 1024`),
+`promptCompaction` (default: `true`), `parseThink` (`false`), `systemPrompt`,
+`model`. All optional, all documented with their defaults on the interface in
+`conversation.ts`.
 
 `parseThink: true` makes the loop split `<think>...</think>` out of the driver's
 text stream as it arrives (`think-stream.ts`, one splitter per assistant turn):
@@ -153,6 +164,71 @@ split across chunk boundaries are handled, and empty deltas are never
 dispatched. It exists because some reasoning models have no native reasoning
 channel and inline their chain of thought into ordinary text; without it every
 consumer reimplements the same parser.
+
+## Context budget and pre-flight context management
+
+The kernel tracks context-window usage to prevent sending requests that exceed
+the model's context length (which would cause a provider 400 error).
+
+### `contextUsage` — last turn's real token counts
+
+`conversation.contextUsage` exposes the token counts the driver reported for
+the **most recent** LLM call:
+
+- `lastInputTokens` — the actual context size the provider processed (not a
+  cumulative sum). This is the precise basis for context-window management.
+- `lastOutputTokens` — the completion tokens for the last turn.
+- `lastTotalTokens` — the total (`input + output`) when the provider reports it.
+
+Each field is `undefined` until the driver reports it (first turn, or a driver
+that doesn't report usage). This is distinct from `conversation.usage`, which
+is **cumulative** across the conversation's lifetime (used for billing/usage
+tracking, not context management).
+
+### Pre-flight context check (`context-budget.ts`)
+
+Before each turn, the agent loop calls `fitContextToWindow()` to check whether
+the request fits within the driver's `contextWindow`:
+
+1. If `lastInputTokens` is available, use it as the precise base context size
+   and heuristically estimate only the delta (new messages since the last turn).
+2. For the first turn, estimate all messages heuristically (~4 chars/token).
+3. If `estimatedTotal + outputReserve <= contextWindow`, send all messages.
+4. If over, trigger compaction first (if `compaction.auto` is set), then re-check.
+5. If still over, trim oldest messages from the front (preserving the system
+   prompt and the most recent user message).
+6. If even the system prompt + most recent user message don't fit, trigger
+   prompt compaction (if `promptCompaction` is not `false`).
+
+### `outputReserve`
+
+Number of tokens reserved for the model's output within the context window.
+The pre-flight check ensures `estimatedInputTokens + outputReserve <=
+contextWindow`. Defaults to `compaction?.reserveTokens ?? 1024`.
+
+### `compaction.model`
+
+Optional qualified `'<driver>/<model>'` ref for a cheaper/faster model to use
+for summarization in compaction and prompt compaction. Defaults to the
+conversation's active model. The model must be in the merged catalogue
+(`bh.listModels()`); if not found, compaction falls back to the default
+resolution path.
+
+### Prompt compaction (`prompt-compaction.ts`)
+
+When a single user message exceeds the context window (after all history has
+been compacted/trimmed), the core splits it into chunks, summarizes each via
+`bh.complete()`, and replaces the message with the concatenated summary. A
+`prompt_compactation` event is fired so plugins can intercept and provide a
+custom strategy. Set `promptCompaction: false` to disable — the request is sent
+as-is and the driver's error surfaces to the caller.
+
+### Auto-compaction fix
+
+The auto-compaction check now uses `contextUsage.lastInputTokens` (the real
+context size) instead of the cumulative `usage.inputTokens + usage.outputTokens`.
+The cumulative sum over-counted because each turn's input tokens already include
+prior messages, triggering compaction far too early.
 
 ## Storage (no implementations in v1)
 

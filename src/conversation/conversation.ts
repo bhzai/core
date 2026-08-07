@@ -83,12 +83,53 @@ export interface CreateConversationOptions {
 	 * context-window compaction based on driver-reported window size and usage.
 	 * - `auto`: true to enable auto-compaction.
 	 * - `reserveTokens`: minimum free tokens to maintain; compaction triggers when
-	 *   `contextWindow - (inputTokens + outputTokens) < reserveTokens`.
+	 *   `contextWindow - lastInputTokens < reserveTokens`.
+	 * - `model`: optional qualified `'<driver>/<model>'` ref for a cheaper/faster
+	 *   model to use for summarization. Defaults to the conversation's active
+	 *   model. The model must be in the merged catalogue (`bh.listModels()`);
+	 *   if not found, compaction falls back to the default resolution path.
 	 * If `auto` is false or undefined, auto-compaction is disabled.
 	 * If the active driver does not report a `contextWindow` capability, auto-compaction
 	 * never triggers for this conversation (per ARCHITECTURE.md § 11.5).
 	 */
-	compaction?: { auto: boolean; reserveTokens: number }
+	compaction?: {
+		auto: boolean
+		reserveTokens: number
+		/**
+		 * Qualified `'<driver>/<model>'` ref to use for the summarization LLM call
+		 * in compaction and prompt compaction. By default, compaction uses the
+		 * conversation's active model (via `bh.complete()` with no explicit model,
+		 * which falls back to the host `defaultModel` or fires `model.resolve`).
+		 *
+		 * Set this to a cheaper/faster model (e.g. `'openai/gpt-4o-mini'`) to
+		 * reduce the cost of summarization.
+		 */
+		model?: string
+	}
+
+	/**
+	 * Number of tokens to reserve for the model's output within the context
+	 * window. The pre-flight context check ensures
+	 * `estimatedInputTokens + outputReserve <= contextWindow`.
+	 *
+	 * Defaults to `compaction?.reserveTokens ?? 1024` if not set.
+	 * If the active driver does not report `contextWindow`, the check is skipped.
+	 */
+	outputReserve?: number
+
+	/**
+	 * Whether to enable prompt compaction when a single user message exceeds
+	 * the context window (after all history has been compacted/trimmed).
+	 *
+	 * When `true` (default), the core splits the user message into chunks,
+	 * summarizes each via `bh.complete()`, and replaces the message with the
+	 * concatenated summary. A `prompt_compactation` event is fired so plugins
+	 * can intercept and provide a custom strategy.
+	 *
+	 * Set to `false` to disable — the request is sent as-is and the driver's
+	 * error surfaces to the caller.
+	 */
+	promptCompaction?: boolean
 }
 
 // ConversationSnapshot is now defined and versioned in snapshot.ts (TASK_0028).
@@ -139,6 +180,19 @@ export interface BHZAIConversation {
 
 	/** Token usage tracking — initialized to `{ inputTokens: 0, outputTokens: 0 }`. */
 	readonly usage: { inputTokens: number; outputTokens: number }
+
+	/**
+	 * Last turn's context usage — the real token counts the driver reported for
+	 * the most recent LLM call. `lastInputTokens` is the actual context size the
+	 * provider processed (not a cumulative sum), making it the precise basis for
+	 * context-window management. Each field is `undefined` until the driver
+	 * reports it.
+	 */
+	readonly contextUsage: {
+		lastInputTokens: number | undefined
+		lastOutputTokens: number | undefined
+		lastTotalTokens: number | undefined
+	}
 
 	/**
 	 * Register a handler for conversation-scoped event.
@@ -256,6 +310,21 @@ export class BHZAIConversationImpl implements BHZAIConversation {
 		inputTokens: 0,
 		outputTokens: 0,
 	}
+
+	/**
+	 * Last turn's token usage — the actual context size reported by the driver
+	 * for the most recent LLM call. Unlike `_usage` (which is cumulative across
+	 * the conversation's lifetime), this reflects the real input-token count
+	 * the provider saw on its last request, making it the precise basis for
+	 * context-window management.
+	 *
+	 * `undefined` means "no usage data yet" (first turn, or the driver does not
+	 * report usage). Each field is independently optional: a driver may report
+	 * `inputTokens` without `outputTokens` or `totalTokens`.
+	 */
+	private _lastInputTokens: number | undefined
+	private _lastOutputTokens: number | undefined
+	private _lastTotalTokens: number | undefined
 
 	/** Active model reference, if set. */
 	private _model: string | undefined
@@ -380,6 +449,27 @@ export class BHZAIConversationImpl implements BHZAIConversation {
 		return {
 			inputTokens: this._usage.inputTokens,
 			outputTokens: this._usage.outputTokens,
+		}
+	}
+
+	/**
+	 * Last turn's context usage — the real token counts the driver reported for
+	 * the most recent LLM call. This is the precise basis for context-window
+	 * management: `lastInputTokens` is the actual size of the context the
+	 * provider processed, not a cumulative sum.
+	 *
+	 * Each field is `undefined` when the driver has not yet reported it (first
+	 * turn, or the driver does not report usage for that field).
+	 */
+	get contextUsage(): {
+		lastInputTokens: number | undefined
+		lastOutputTokens: number | undefined
+		lastTotalTokens: number | undefined
+	} {
+		return {
+			lastInputTokens: this._lastInputTokens,
+			lastOutputTokens: this._lastOutputTokens,
+			lastTotalTokens: this._lastTotalTokens,
 		}
 	}
 
@@ -708,11 +798,17 @@ export class BHZAIConversationImpl implements BHZAIConversation {
 		messages: BHZAIMessage[]
 		meta: Record<string, unknown>
 		usage: { inputTokens: number; outputTokens: number }
+		lastInputTokens?: number
+		lastOutputTokens?: number
+		lastTotalTokens?: number
 	}): void {
 		this._id = params.id
 		this._messages = params.messages
 		this._meta = params.meta
 		this._usage = params.usage
+		this._lastInputTokens = params.lastInputTokens
+		this._lastOutputTokens = params.lastOutputTokens
+		this._lastTotalTokens = params.lastTotalTokens
 	}
 
 	/**
@@ -910,6 +1006,33 @@ export class BHZAIConversationImpl implements BHZAIConversation {
 	_accumulateUsage(inputTokens: number, outputTokens: number): void {
 		this._usage.inputTokens += inputTokens
 		this._usage.outputTokens += outputTokens
+	}
+
+	/**
+	 * Internal: record the last turn's token usage from the driver's `usage` event.
+	 *
+	 * Stores the **last turn's** values (not cumulative) as the precise context
+	 * size for context-window management. Each field is only updated when the
+	 * driver provides it (`undefined` means "not available from this provider").
+	 * Also delegates to `_accumulateUsage` for backward-compatible cumulative
+	 * tracking.
+	 *
+	 * @param inputTokens Prompt tokens for this turn, or `undefined` if unavailable
+	 * @param outputTokens Completion tokens for this turn, or `undefined` if unavailable
+	 * @param totalTokens Total tokens for this turn, or `undefined` if unavailable
+	 *
+	 * @internal
+	 */
+	_recordTurnUsage(
+		inputTokens: number | undefined,
+		outputTokens: number | undefined,
+		totalTokens: number | undefined,
+	): void {
+		if (inputTokens !== undefined) this._lastInputTokens = inputTokens
+		if (outputTokens !== undefined) this._lastOutputTokens = outputTokens
+		if (totalTokens !== undefined) this._lastTotalTokens = totalTokens
+		// Maintain cumulative tracking for backward compatibility.
+		this._accumulateUsage(inputTokens ?? 0, outputTokens ?? 0)
 	}
 
 	/**

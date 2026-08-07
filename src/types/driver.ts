@@ -48,7 +48,15 @@ export type DriverEvent =
 	| { type: "reasoning-delta"; text: string }
 	| { type: "tool-call-delta"; toolCallId: string; argsDelta: string }
 	| { type: "tool-call"; toolCallId: string; name: string; input: unknown }
-	| { type: "usage"; inputTokens: number; outputTokens: number }
+	| {
+			type: "usage"
+			/** Prompt tokens for this turn, or `undefined` when the provider does not report them. */
+			inputTokens?: number
+			/** Completion tokens for this turn, or `undefined` when the provider does not report them. */
+			outputTokens?: number
+			/** Total tokens (`input + output`) when the provider reports it, else `undefined`. */
+			totalTokens?: number
+	  }
 	| {
 			type: "done"
 			stopReason: "stop" | "tool-calls" | "length" | "abort" | "error"

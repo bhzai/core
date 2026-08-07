@@ -70,7 +70,7 @@ export interface MLCEngineInstance {
 							}
 							finish_reason?: "stop" | "tool_calls" | "length" | null
 						}>
-						usage?: { prompt_tokens: number; completion_tokens: number }
+						usage?: { prompt_tokens: number; completion_tokens: number; total_tokens?: number }
 				  }>
 				| Promise<
 						AsyncIterable<{
@@ -84,7 +84,7 @@ export interface MLCEngineInstance {
 								}
 								finish_reason?: "stop" | "tool_calls" | "length" | null
 							}>
-							usage?: { prompt_tokens: number; completion_tokens: number }
+							usage?: { prompt_tokens: number; completion_tokens: number; total_tokens?: number }
 						}>
 				  >
 		}
@@ -417,11 +417,15 @@ export class WebLLM implements BHZAIDriver {
 			}
 			// Always surface usage — MLC sends the usage chunk after the
 			// finish_reason chunk (when enabled), i.e. once `terminal` is already set.
+			// Each field is optional: MLC may not report all of them on every
+			// build, so omitted fields pass through as `undefined` rather than
+			// being coerced to zero.
 			if (chunk.usage) {
 				yield {
 					type: "usage",
 					inputTokens: chunk.usage.prompt_tokens,
 					outputTokens: chunk.usage.completion_tokens,
+					totalTokens: chunk.usage.total_tokens,
 				}
 			}
 			// Past a terminal condition: keep draining but emit nothing else.
