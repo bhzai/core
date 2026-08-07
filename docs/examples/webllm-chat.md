@@ -77,7 +77,7 @@ app/ (orchestration — no DOM)
 components/ (DOM — one Lit custom element per region)
 ├─ status-indicator.ts → <bhzai-status-indicator>
 ├─ composer.ts → <bhzai-composer>
-├─ conversation-view.ts → <bhzai-conversation> (user/assistant bubbles, streaming)
+├─ conversation-view.ts → <bhzai-conversation> (user/assistant bubbles, streaming, compaction markers)
 ├─ cold-start-panel.ts → <bhzai-cold-start>
 ├─ telemetry-panel.ts → <bhzai-telemetry>
 ├─ model-select.ts → <bhzai-model-select>
@@ -149,10 +149,54 @@ Results are displayed in real-time as the telemetry panel updates:
 - **Decode tok/s**: Tokens generated per second (the bottom phase of inference). Shown with a thermal-colored gauge whose fill/color update live based on this measurement.
 - **Prefill tok/s**: Tokens processed per second during KV cache population (the first phase).
 - **TTFT**: Time-to-first-token, measured from when `sendMessage()` was called to when the first delta arrived.
-- **Tokens**: Input and output token counts (from `conversation.usage`).
-- **Context**: A visual bar showing context window usage (output tokens ÷ max context size). Hidden if the model's context window is unknown.
+- **Tokens consumed**: Total tokens consumed (cumulative in + out), with a breakdown of cumulative input/output counts and the last turn's input/output counts (from `conversation.usage` and `conversation.contextUsage`).
+- **Context**: A visual bar showing context window usage (last turn's input tokens ÷ max context size). Hidden if the model's context window is unknown.
 
 All numbers are formatted for readability (`formatTps`, `formatTokens`, etc.).
+
+### Compaction markers
+
+When the conversation history grows too large for the context window, the
+kernel automatically compacts it (folding older messages into a summary). When
+a single user message is too large to fit, the kernel prompt-compacts it
+before sending. Both events are surfaced in the conversation view as a slim
+dashed "compacted" divider between messages, so the user knows that older
+context was summarized.
+
+The chat controller subscribes to three conversation events:
+
+- `compact` (with `state: "complete"`) — fires after auto-compaction folds
+  older messages and inserts a summary.
+- `prompt_compactation` — fires when a single user message is summarized
+  before sending because it exceeded the context window.
+- `context.trimmed` — fires when older messages are dropped from the request
+  to fit the context window (via `fitContextToWindow`), even when
+  auto-compaction is not enabled. The messages remain in the conversation
+  history but are excluded from the next request.
+
+When loading a past conversation, `loadMessages()` also renders compaction
+markers for snapshot messages carrying `meta.compactionSummary` (system
+summary messages) or `meta.promptCompactionSummary` (compacted user messages).
+
+### Reasoning (think-tag parsing)
+
+Conversations are created with `parseThink: true`, which makes the framework
+split inline ` IMDONE...IMDONE` tags out of the model's text stream.
+Reasoning text arrives as `message.delta` with `kind: "reasoning"` and is
+routed to the collapsible "Thought" disclosure; the answer arrives as
+`kind: "text"` and is rendered as the message body.
+
+This option must be preserved across conversation reloads. Both
+`refreshConversation()` (called after an abort or non-idle state) and the
+conversations controller (called when loading from the sidebar) pass
+`{ parseThink: true }` to `bh.loadConversation()`. Without this, the agent
+loop would stop splitting think tags and reasoning would bleed into the
+answer text.
+
+When replaying a saved conversation, `loadMessages()` reads the thought
+content from `meta.think` (where the think splitter stores it via the `think`
+message field). There is no `thought` content-block variant — `ContentBlock`
+only defines `text`, `image`, `audio`, `resource_link`, and `resource`.
 
 ### Model selection
 

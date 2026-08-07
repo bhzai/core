@@ -929,6 +929,63 @@ describe("applyContextBudget", () => {
 		)
 		expect(result).toBe(messages)
 	})
+
+	it("fires context.trimmed event when messages are trimmed to fit the window", async () => {
+		const conversation = (await bh.createConversation({
+			model: "mock-driver/mock-model",
+		})) as BHZAIConversationImpl
+
+		// Track context.trimmed events.
+		let trimmedFired = false
+		conversation.on("context.trimmed", () => {
+			trimmedFired = true
+		})
+
+		// Create enough messages to exceed the context window.
+		// Each message is ~100 tokens (400 chars / 4 chars-per-token).
+		// With contextWindow=2000 and default outputReserve=1024,
+		// availableForMessages=976, so 10×100=1000 tokens triggers trimming.
+		const messages: BHZAIMessage[] = []
+		for (let i = 0; i < 10; i++) {
+			messages.push(makeMessage("user", `message-${i}-${"x".repeat(400)}`))
+		}
+		// Add a final user message (the one that must be kept).
+		messages.push(makeMessage("user", "final question"))
+
+		const result = await applyContextBudget(
+			conversation,
+			{ toolCalls: true, streaming: true, reasoning: false, contextWindow: 2000 },
+			messages,
+			"",
+			[],
+		)
+
+		// Should have trimmed some messages.
+		expect(result.length).toBeLessThan(messages.length)
+		expect(trimmedFired).toBe(true)
+	})
+
+	it("does not fire context.trimmed when messages fit", async () => {
+		const conversation = (await bh.createConversation({
+			model: "mock-driver/mock-model",
+		})) as BHZAIConversationImpl
+
+		let trimmedFired = false
+		conversation.on("context.trimmed", () => {
+			trimmedFired = true
+		})
+
+		const messages = [makeMessage("user", "hello")]
+		await applyContextBudget(
+			conversation,
+			{ toolCalls: true, streaming: true, reasoning: false, contextWindow: 100000 },
+			messages,
+			"system",
+			[],
+		)
+
+		expect(trimmedFired).toBe(false)
+	})
 })
 
 // ---------------------------------------------------------------------------

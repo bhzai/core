@@ -123,7 +123,9 @@ export function createConversationsController(deps: ConversationsControllerDeps)
 				console.error("Conversation not found:", id)
 				return
 			}
-			const conv = await bh.loadConversation(snapshot)
+			// `parseThink: true` so the agent loop keeps splitting ` IMDONE`
+			// tags on subsequent turns after loading a past conversation.
+			const conv = await bh.loadConversation(snapshot, { parseThink: true })
 			chat.setConversation(conv)
 		} catch (error) {
 			console.error("Failed to load conversation:", error)

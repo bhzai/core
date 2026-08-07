@@ -430,6 +430,7 @@ body {
 	display: flex;
 	flex-direction: column;
 	gap: 0;
+	margin: 0.5rem 0;
 	padding: 1rem;
 	background: var(--graphite-700);
 	border-radius: 8px;
@@ -462,6 +463,31 @@ body {
 	color: var(--warm);
 	font-family: var(--font-mono, monospace);
 	font-size: 0.85rem;
+}
+
+/* Compaction marker — a slim, muted divider shown between messages when the
+   conversation history was folded or a user message was prompt-compacted. */
+.message.compacted {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 0.5rem 1rem;
+	background: transparent;
+	border: 1px dashed var(--line);
+	border-radius: 6px;
+	color: var(--muted);
+	font-family: var(--font-display);
+	font-size: 11px;
+	font-weight: 500;
+	text-transform: uppercase;
+	letter-spacing: 0.1em;
+	animation: none;
+}
+
+.compacted-icon {
+	font-size: 10px;
+	line-height: 1;
+	color: var(--cold);
 }
 
 .message-thought {

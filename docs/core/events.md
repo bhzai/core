@@ -61,6 +61,7 @@ prefixed with `conversation.`:
 | `tool` | exact | `{ conversation, tool, state }` | When a tool is invoked or completes. |
 | `abort` | exact | `{ conversation }` | When a turn is aborted. |
 | `compact` | exact | `{ conversation }` | After compaction completes. `compact` is the one reserved name a plugin may `emit()`. |
+| `context.trimmed` | exact | `{ conversation, estimatedTokens, contextWindow }` | When older messages are dropped from the request to fit the context window (via `fitContextToWindow`), even without auto-compaction enabled. |
 | `meta.changed` | prefix | `{ conversation, meta }` | When conversation metadata changes. |
 | `idle` | exact | `{ conversation }` | When the conversation returns to idle. |
 

@@ -81,7 +81,13 @@ the elements to the two orchestrators.
   `message.delta` payload at one boundary, because `ConversationEvents` carries
   an index signature and every payload arrives as `unknown`. Accepts a
   qualified model ref and reads `contextWindow` from the selected catalogue
-  entry.
+  entry. Subscribes to `compact` (state `complete`), `prompt_compactation`,
+  and `context.trimmed` conversation events to insert "compacted" markers into
+  the conversation view, so the user can see when older context was summarized
+  or trimmed. Passes `{ parseThink: true }` to `loadConversation()` in
+  `refreshConversation()` so the think splitter stays active across reloads.
+  Reports cumulative token consumption (in, out, total) and last-turn token
+  counts to the telemetry panel.
 - **`mcp-controller.ts`** — Subscribes the server list to `McpManager`, wires
   the add-server form, persists the server list, and owns the card-level event
   listeners (`bhzai-refresh`, `bhzai-retry`, `bhzai-remove`, `bhzai-show-error`).
@@ -102,8 +108,10 @@ the elements to the two orchestrators.
   conversation.deleted) and kernel events (conversation.created/loaded,
   conversation.message(sent)) to keep `<bhzai-conversation-list>` in sync.
   Wires the sidebar's New/Load/Delete/Load-more button events to
-  `bh.conversations` and `chat-controller`. Never touches IndexedDB directly
-  — all persistence goes through the kernel accessor and the plugin's events.
+  `bh.conversations` and `chat-controller`. Passes `{ parseThink: true }` to
+  `bh.loadConversation()` when loading from the sidebar so the think splitter
+  stays active. Never touches IndexedDB directly — all persistence goes
+  through the kernel accessor and the plugin's events.
 
 ### `src/components/` — one Lit custom element per DOM region
 
@@ -118,10 +126,10 @@ CSS variables continue to drive their appearance.
 | `provider-select.ts` | `<bhzai-provider-select>` | provider filter, to the left of the model picker; hidden unless more than one driver contributes models |
 | `model-select.ts` | `<bhzai-model-select>` | reactive model picker, consumes `bh.listModels()` and `models.changed` |
 | `composer.ts` | `<bhzai-composer>` | Send/Stop state, text, keyboard |
-| `conversation-view.ts` | `<bhzai-conversation>` | user bubbles, assistant turns, inline errors |
+| `conversation-view.ts` | `<bhzai-conversation>` | user bubbles, assistant turns, inline errors, compaction markers |
 | `conversation-list.ts` | `<bhzai-conversation-list>` | left-rail sidebar: past conversations, New/Load/Delete buttons, Load more |
 | `cold-start-panel.ts` | `<bhzai-cold-start>` | download gauge |
-| `telemetry-panel.ts` | `<bhzai-telemetry>` | per-turn readouts |
+| `telemetry-panel.ts` | `<bhzai-telemetry>` | per-turn readouts (decode/prefill tok/s, TTFT, token consumption, context usage) |
 | `mcp-server-list.ts` | `<bhzai-mcp-server-list>` | server cards, reactive filter + sort |
 | `mcp-server-card.ts` | `<bhzai-mcp-server-card>` | one server card |
 | `mcp-tool-list.ts` | `<bhzai-mcp-tool-list>` | one server's collapsible, filterable tool list |
@@ -132,7 +140,15 @@ CSS variables continue to drive their appearance.
 
 `conversation-view.ts`'s `beginAssistantTurn()` returns an object whose methods
 close over that message's own nodes, rather than a string id the caller has to
-look back up on every delta.
+look back up on every delta. `appendCompactedMarker(label)` inserts a slim
+dashed divider between messages to signal that the conversation was compacted
+(either auto-compaction folded older messages, or the user's message was
+prompt-compacted before sending). `loadMessages()` also renders compaction
+markers when replaying a snapshot that contains `compactionSummary` system
+messages or `promptCompactionSummary` user messages. For assistant messages,
+`loadMessages()` reads the thought/reasoning content from `meta.think` (where
+the think splitter stores it via the `think` message field), not from content
+blocks — `ContentBlock` has no `thought` variant.
 
 ### `src/lib/` — pure helpers
 
@@ -325,7 +341,7 @@ Requirements:
     add/update/remove event details, and an untrusted-text guard on a
     provider's base URL.
   - `src/components/conversation-view.test.ts` — delta routing, lazy Thought
-    disclosure, independent concurrent turns.
+    disclosure, independent concurrent turns, compaction marker rendering.
   - `src/components/mcp-server-card.test.ts` — **the untrusted-text regression
     guard**: an `<img src=x onerror=…>` payload in the server name, tool names,
     and error message must land as text, with zero `img` elements produced.

@@ -108,4 +108,60 @@ describe("BhzaiConversation", () => {
 
 		expect(() => view.clearEmptyState()).not.toThrow()
 	})
+
+	it("renders a compacted marker with a label", async () => {
+		const view = fixture()
+
+		view.appendUserMessage("hello")
+		view.appendCompactedMarker("conversation compacted")
+		await view.updateComplete
+
+		const marker = view.querySelector(".message.compacted") as HTMLElement
+		expect(marker).not.toBeNull()
+		expect(marker.getAttribute("role")).toBe("status")
+		expect(marker.querySelector(".compacted-label")?.textContent).toBe("conversation compacted")
+	})
+
+	it("loadMessages restores thought from meta.think, not from thought blocks", async () => {
+		const view = fixture()
+
+		view.loadMessages([
+			{
+				role: "user",
+				content: "hello",
+				blocks: [{ type: "text", text: "hello" }],
+			},
+			{
+				role: "assistant",
+				content: "Hi there!",
+				blocks: [{ type: "text", text: "Hi there!" }],
+				meta: { think: "reasoning about the greeting" },
+			},
+		])
+		await view.updateComplete
+
+		const assistant = view.querySelector(".message.assistant") as HTMLElement
+		expect(assistant).not.toBeNull()
+		expect(assistant.querySelector(".message-thought-content")?.textContent).toBe(
+			"reasoning about the greeting",
+		)
+		expect(assistant.querySelector(".message-answer")?.textContent).toBe("Hi there!")
+	})
+
+	it("loadMessages renders assistant without thought when meta.think is absent", async () => {
+		const view = fixture()
+
+		view.loadMessages([
+			{
+				role: "assistant",
+				content: "no reasoning",
+				blocks: [{ type: "text", text: "no reasoning" }],
+				meta: {},
+			},
+		])
+		await view.updateComplete
+
+		expect(view.querySelector(".message-thought")).toBeNull()
+		expect(view.querySelector(".message-answer")?.textContent).toBe("no reasoning")
+	})
 })

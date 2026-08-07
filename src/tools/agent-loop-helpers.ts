@@ -895,6 +895,16 @@ export async function applyContextBudget(
 
 	if (fitResult.trimmed) {
 		finalMessages = fitResult.messages
+		// Fire a `context.trimmed` event so observers (e.g., the UI) know
+		// that older messages were dropped from the request to fit the context
+		// window. Unlike `compact`, this fires even when auto-compaction is
+		// not enabled — the messages are silently excluded from the request
+		// but remain in the conversation history.
+		await conversation._dispatchConversationEvent("context.trimmed", {
+			conversation,
+			estimatedTokens: fitResult.estimatedTokens,
+			contextWindow: driverCapabilities.contextWindow,
+		})
 	}
 
 	// If even a single user message doesn't fit, trigger prompt compaction.
