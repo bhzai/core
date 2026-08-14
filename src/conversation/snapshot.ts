@@ -93,6 +93,17 @@ export interface ConversationSnapshot {
 	/** Token usage tracking accumulated over the conversation's lifetime. */
 	usage: { inputTokens: number; outputTokens: number }
 
+	/**
+	 * Last turn's input token count — the actual context size the provider
+	 * processed on the most recent LLM call. Optional: absent on old snapshots
+	 * and on conversations whose driver has not yet reported usage.
+	 */
+	lastInputTokens?: number
+	/** Last turn's output token count. Optional, same caveats as `lastInputTokens`. */
+	lastOutputTokens?: number
+	/** Last turn's total token count. Optional, same caveats as `lastInputTokens`. */
+	lastTotalTokens?: number
+
 	/** Host-extension metadata (title, task widgets, host flags, etc.). */
 	meta: Record<string, unknown>
 }
@@ -141,7 +152,7 @@ export function toPlainMessage(message: BHZAIMessage): PlainMessage {
  * @internal
  */
 export function toSnapshot(conversation: BHZAIConversationImpl): ConversationSnapshot {
-	return {
+	const snapshot: ConversationSnapshot = {
 		v: 1,
 		id: conversation.id,
 		messages: conversation.messages.map(toPlainMessage),
@@ -150,6 +161,13 @@ export function toSnapshot(conversation: BHZAIConversationImpl): ConversationSna
 		meta: { ...conversation.meta },
 		// params is intentionally omitted if not set (optional field)
 	}
+	// Persist last-turn usage when available (additive — old snapshots
+	// load fine without these fields).
+	const { lastInputTokens, lastOutputTokens, lastTotalTokens } = conversation.contextUsage
+	if (lastInputTokens !== undefined) snapshot.lastInputTokens = lastInputTokens
+	if (lastOutputTokens !== undefined) snapshot.lastOutputTokens = lastOutputTokens
+	if (lastTotalTokens !== undefined) snapshot.lastTotalTokens = lastTotalTokens
+	return snapshot
 }
 
 /**
@@ -276,6 +294,9 @@ export async function fromSnapshot(
 			inputTokens: 0,
 			outputTokens: 0,
 		}) as { inputTokens: number; outputTokens: number },
+		lastInputTokens: snapshotObj.lastInputTokens as number | undefined,
+		lastOutputTokens: snapshotObj.lastOutputTokens as number | undefined,
+		lastTotalTokens: snapshotObj.lastTotalTokens as number | undefined,
 	})
 
 	// Mark as loaded so ensureStarted() doesn't fire 'start' for a reloaded conversation.

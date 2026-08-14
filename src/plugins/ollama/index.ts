@@ -403,11 +403,16 @@ export class Ollama extends EventTarget implements BHZAIDriver {
 					const chunk = JSON.parse(line) as ChatChunk
 					if (chunk.done) {
 						// Final chunk: yield usage (if present) then done.
+						// Ollama reports `prompt_eval_count` and `eval_count`
+						// separately and may omit either on some builds. Each
+						// field is passed through only when present, so the
+						// conversation layer can distinguish "unavailable"
+						// from "zero". Ollama does not report a total.
 						if (chunk.prompt_eval_count !== undefined || chunk.eval_count !== undefined) {
 							yield {
 								type: "usage",
-								inputTokens: chunk.prompt_eval_count ?? 0,
-								outputTokens: chunk.eval_count ?? 0,
+								inputTokens: chunk.prompt_eval_count,
+								outputTokens: chunk.eval_count,
 							}
 						}
 						yield {

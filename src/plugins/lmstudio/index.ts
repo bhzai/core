@@ -411,7 +411,7 @@ export class LMStudio extends EventTarget implements BHZAIDriver {
 		// Step 5: read the SSE stream. Tool calls are assembled across chunks
 		// and emitted once at the end; usage and the terminal `done` follow.
 		const pending = new Map<number, PendingToolCall>()
-		let usage: Usage | undefined
+		let usage: { inputTokens?: number; outputTokens?: number; totalTokens?: number } | undefined
 		let finishReason: string | undefined
 		const reader = stream.getReader()
 		const decoder = new TextDecoder()
@@ -459,11 +459,14 @@ export class LMStudio extends EventTarget implements BHZAIDriver {
 						finishReason = choice.finish_reason
 					}
 					// A usage-bearing chunk may arrive with or without choices;
-					// the last one seen wins.
+					// the last one seen wins. Each field is optional on the wire
+					// — omitted when the server does not report it, so the
+					// conversation layer can distinguish "unavailable" from "zero".
 					if (chunk.usage) {
 						usage = {
-							inputTokens: chunk.usage.prompt_tokens ?? 0,
-							outputTokens: chunk.usage.completion_tokens ?? 0,
+							inputTokens: chunk.usage.prompt_tokens,
+							outputTokens: chunk.usage.completion_tokens,
+							totalTokens: chunk.usage.total_tokens,
 						}
 					}
 				}
@@ -485,7 +488,12 @@ export class LMStudio extends EventTarget implements BHZAIDriver {
 			}
 		}
 		if (usage) {
-			yield { type: "usage", inputTokens: usage.inputTokens, outputTokens: usage.outputTokens }
+			yield {
+				type: "usage",
+				inputTokens: usage.inputTokens,
+				outputTokens: usage.outputTokens,
+				totalTokens: usage.totalTokens,
+			}
 		}
 		yield {
 			type: "done",

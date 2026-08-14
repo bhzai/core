@@ -14,6 +14,7 @@ export * from "./plugins/lmstudio/index.js"
 export * from "./plugins/openai/index.js"
 export * from "./plugins/vllm/index.js"
 export * from "./plugins/mcp/index.js"
+export * from "./plugins/idb-conversations/index.js"
 export * from "./plugins/interop/pi/index.js"
 export * from "./plugins/interop/opencode/index.js"
 

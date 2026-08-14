@@ -16,6 +16,7 @@
 //   `plugins/openai/index`         -> `./plugins/openai`
 //   `plugins/vllm/index`           -> `./plugins/vllm`
 //   `plugins/mcp/index`            -> `./plugins/mcp`
+//   `plugins/idb-conversations/index` -> `./plugins/idb-conversations`
 //   `plugins/interop/pi/index`     -> `./plugins/interop/pi`
 //   `plugins/interop/opencode/index` -> `./plugins/interop/opencode`
 //
@@ -33,6 +34,7 @@ export default defineConfig({
 		"plugins/openai/index": "src/plugins/openai/index.ts",
 		"plugins/vllm/index": "src/plugins/vllm/index.ts",
 		"plugins/mcp/index": "src/plugins/mcp/index.ts",
+		"plugins/idb-conversations/index": "src/plugins/idb-conversations/index.ts",
 		"plugins/interop/pi/index": "src/plugins/interop/pi/index.ts",
 		"plugins/interop/opencode/index": "src/plugins/interop/opencode/index.ts",
 	},

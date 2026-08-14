@@ -715,4 +715,70 @@ describe("TASK_0025: Agent loop core", () => {
 		// Verify it's the SAME instance (identity check)
 		expect(receivedConversationOnStart).toBe(conversation)
 	})
+
+	// =========================================================================
+	// Bare model id contract: the kernel passes the BARE model id (not the
+	// qualified `'<driver>/<model>'` ref) to `driver.chat()` and
+	// `driver.capabilities()`. The driver knows its own id via `this.id` and
+	// decides how to format the model name on the wire.
+	// =========================================================================
+	it("passes the bare model id (not the qualified ref) to driver.chat()", async () => {
+		const conversation = (await bh.createConversation({
+			model: "mock-driver-id/mock-model",
+		})) as BHZAIConversationImpl
+
+		await sendMessage(conversation, "Test")
+
+		// The mock driver's `chat` was called once; inspect the request.
+		const call = mockDriver.chat.mock.calls[0]
+		expect(call).toBeDefined()
+		const request = call?.[0] as ChatRequest
+		// The model is the BARE id, not "mock-driver-id/mock-model".
+		expect(request.model).toBe("mock-model")
+	})
+
+	it("calls driver.capabilities() with the bare model id, not the qualified ref", async () => {
+		// A driver whose capabilities() throws on a qualified ref but returns
+		// valid caps for the bare id — proves the kernel passes the bare id.
+		const capsCalls: string[] = []
+		const driver: BHZAIDriver = {
+			id: "caps-probe",
+			listModels: async () => [
+				{
+					ref: "caps-probe/my-model",
+					id: "my-model",
+					driver: "caps-probe",
+					availability: "ready" as const,
+					capabilities: {
+						toolCalls: false,
+						streaming: true,
+						reasoning: false,
+					},
+				},
+			],
+			capabilities: (model: string) => {
+				capsCalls.push(model)
+				// Return conservative caps regardless — the test asserts the
+				// argument, not the return value.
+				return { toolCalls: false, streaming: true, reasoning: false }
+			},
+			chat: async function* () {
+				yield { type: "delta", text: "ok" }
+				yield { type: "done", stopReason: "stop" }
+			},
+			embed: undefined,
+		}
+		const probeBh = new BHZAI()
+		probeBh.addDriver(driver)
+
+		const conversation = (await probeBh.createConversation({
+			model: "caps-probe/my-model",
+		})) as BHZAIConversationImpl
+
+		await sendMessage(conversation, "Test")
+
+		// capabilities() was called with the bare id, never the qualified ref.
+		expect(capsCalls).toContain("my-model")
+		expect(capsCalls).not.toContain("caps-probe/my-model")
+	})
 })

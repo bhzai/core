@@ -1,5 +1,6 @@
 /** @file Kernel-side storage wiring (TASK_0029) — auto-save on message(sent) and bh.conversations accessor */
 
+import type { ConversationSnapshot } from "../conversation/snapshot.js"
 import type { ConversationStore, ConversationSummary } from "../types/storage.js"
 import type { BHZAI } from "./bhzai.js"
 import type { BHZAIPlugin } from "./bhzai.js"
@@ -101,6 +102,31 @@ export interface ConversationsAccessor {
 	 * @throws If no `ConversationStore` is registered, throws with message matching `/no conversationStore/i`.
 	 */
 	list(query?: { limit?: number; before?: number }): Promise<ConversationSummary[]>
+
+	/**
+	 * Load a stored conversation's full snapshot by id.
+	 *
+	 * Delegates directly to the registered `ConversationStore.load()` if one
+	 * exists. The returned snapshot can be passed to
+	 * {@link BHZAI.loadConversation} to reconstruct a live conversation.
+	 *
+	 * @param id The conversation's unique identifier.
+	 * @returns The snapshot if found, `undefined` if not found.
+	 * @throws If no `ConversationStore` is registered, throws with message matching `/no conversationStore/i`.
+	 */
+	load(id: string): Promise<ConversationSnapshot | undefined>
+
+	/**
+	 * Delete a stored conversation by id.
+	 *
+	 * Delegates directly to the registered `ConversationStore.delete()` if one
+	 * exists. A missing id is treated as a no-op by the store (per the
+	 * {@link ConversationStore.delete} contract).
+	 *
+	 * @param id The conversation's unique identifier.
+	 * @throws If no `ConversationStore` is registered, throws with message matching `/no conversationStore/i`.
+	 */
+	delete(id: string): Promise<void>
 }
 
 /**
@@ -117,16 +143,23 @@ export interface ConversationsAccessor {
 export function createConversationsAccessor(
 	store: ConversationStore | undefined,
 ): ConversationsAccessor {
+	const noStoreError = (op: string) =>
+		new Error(
+			`bh.conversations.${op}(): no conversationStore is registered. Did you forget to pass a plugin with conversationStore capability to bh.use()?`,
+		)
 	return {
 		async list(query?: { limit?: number; before?: number }): Promise<ConversationSummary[]> {
-			if (!store) {
-				throw new Error(
-					"bh.conversations.list(): no conversationStore is registered. " +
-						"Did you forget to pass a plugin with conversationStore capability to bh.use()?",
-				)
-			}
+			if (!store) throw noStoreError("list")
 			// Delegate to the store, forwarding the query unchanged.
 			return store.list(query)
+		},
+		async load(id: string): Promise<ConversationSnapshot | undefined> {
+			if (!store) throw noStoreError("load")
+			return store.load(id)
+		},
+		async delete(id: string): Promise<void> {
+			if (!store) throw noStoreError("delete")
+			return store.delete(id)
 		},
 	}
 }

@@ -103,6 +103,19 @@ export interface VLLMOptions {
 	 * flag will offer it.
 	 */
 	reasoning?: boolean
+	/**
+	 * Whether to prepend the driver id (`'vllm/'`) to the model name sent to
+	 * the server on `chat()` and `embed()` requests. Defaults to `false`.
+	 *
+	 * WHY THIS EXISTS: the kernel's `ChatRequest.model` is the BARE model id
+	 * (e.g. `'meta-llama/Llama-3.1-8B-Instruct'`), not the qualified
+	 * `'<driver>/<model>'` ref — the driver knows its own id via `this.id` and
+	 * decides how to format the model name on the wire. A stock vLLM server
+	 * expects the bare model id as published by `GET /v1/models`, so the
+	 * default is `false` (send the bare id). Set this to `true` only when
+	 * pointing at a gateway that keys its model registry by the qualified ref.
+	 */
+	prefixProvider?: boolean
 }
 
 /**
@@ -375,6 +388,7 @@ export class VLLM extends EventTarget implements BHZAIDriver {
 	private declare readonly headers: Record<string, string>
 	private declare readonly toolCallsOverride: boolean | undefined
 	private declare readonly reasoningOverride: boolean | undefined
+	private declare readonly prefixProvider: boolean
 
 	/**
 	 * Cache of per-model capabilities, populated by `listModels()` and by
@@ -420,6 +434,7 @@ export class VLLM extends EventTarget implements BHZAIDriver {
 		this.headers = options?.headers ?? {}
 		this.toolCallsOverride = options?.toolCalls
 		this.reasoningOverride = options?.reasoning
+		this.prefixProvider = options?.prefixProvider ?? false
 		// Test-injection seam: if the caller passed the internal `fetchOverride`
 		// field, use it; otherwise use the global `fetch`.
 		const internal = options as VLLMInternalOptions | undefined
@@ -583,8 +598,13 @@ export class VLLM extends EventTarget implements BHZAIDriver {
 		// Step 3: assemble the request body. `stream_options.include_usage` asks
 		// for a final usage-only chunk; builds that don't understand the option
 		// simply omit it and the `usage` event is skipped.
+		//
+		// `model` is the BARE model id by default (the kernel sends the bare id,
+		// and a stock vLLM server expects exactly what `GET /v1/models` published).
+		// When `prefixProvider` is `true`, prepend `'vllm/'` for gateways that key
+		// their model registry by the qualified ref.
 		const body: Record<string, unknown> = {
-			model: request.model,
+			model: this.wireModel(request.model),
 			messages,
 			stream: true,
 			stream_options: { include_usage: true },
@@ -622,7 +642,7 @@ export class VLLM extends EventTarget implements BHZAIDriver {
 		// Step 5: read the SSE stream. Tool calls are assembled across chunks and
 		// emitted once at the end; usage and the terminal `done` follow.
 		const pending = new Map<number, PendingToolCall>()
-		let usage: Usage | undefined
+		let usage: { inputTokens?: number; outputTokens?: number; totalTokens?: number } | undefined
 		let finishReason: string | undefined
 		const reader = stream.getReader()
 		const decoder = new TextDecoder()
@@ -674,11 +694,15 @@ export class VLLM extends EventTarget implements BHZAIDriver {
 						finishReason = choice.finish_reason
 					}
 					// A usage-bearing chunk arrives last and carries an empty
-					// `choices` array; the last one seen wins.
+					// `choices` array; the last one seen wins. Each field is
+					// optional on the wire — omitted when the server does not
+					// report it, so the conversation layer can distinguish
+					// "unavailable" from "zero".
 					if (chunk.usage) {
 						usage = {
-							inputTokens: chunk.usage.prompt_tokens ?? 0,
-							outputTokens: chunk.usage.completion_tokens ?? 0,
+							inputTokens: chunk.usage.prompt_tokens,
+							outputTokens: chunk.usage.completion_tokens,
+							totalTokens: chunk.usage.total_tokens,
 						}
 					}
 				}
@@ -701,7 +725,12 @@ export class VLLM extends EventTarget implements BHZAIDriver {
 			}
 		}
 		if (usage) {
-			yield { type: "usage", inputTokens: usage.inputTokens, outputTokens: usage.outputTokens }
+			yield {
+				type: "usage",
+				inputTokens: usage.inputTokens,
+				outputTokens: usage.outputTokens,
+				totalTokens: usage.totalTokens,
+			}
 		}
 		yield {
 			type: "done",
@@ -731,7 +760,7 @@ export class VLLM extends EventTarget implements BHZAIDriver {
 			const response = await this.fetch(`${this.baseUrl}/v1/embeddings`, {
 				method: "POST",
 				headers: { "Content-Type": "application/json", ...this.headers },
-				body: JSON.stringify({ model: request.model, input: request.input }),
+				body: JSON.stringify({ model: this.wireModel(request.model), input: request.input }),
 				signal: request.signal,
 			})
 			if (!response.ok) {
@@ -1031,6 +1060,23 @@ export class VLLM extends EventTarget implements BHZAIDriver {
 			embeddings: isEmbedding,
 			contextWindow: typeof entry.max_model_len === "number" ? entry.max_model_len : inherited,
 		}
+	}
+
+	/**
+	 * Build the model name to send on the wire for `chat()` and `embed()`.
+	 *
+	 * The kernel's `ChatRequest.model` is the BARE model id (e.g.
+	 * `'meta-llama/Llama-3.1-8B-Instruct'`). A stock vLLM server expects exactly
+	 * what `GET /v1/models` published — the bare id — so the default
+	 * (`prefixProvider: false`) returns the input unchanged. When
+	 * `prefixProvider` is `true`, prepend `'vllm/'` for gateways that key their
+	 * model registry by the qualified ref.
+	 *
+	 * @param model The bare model id from `ChatRequest.model`
+	 * @returns The model name to send to the server
+	 */
+	private wireModel(model: string): string {
+		return this.prefixProvider ? `${this.id}/${model}` : model
 	}
 
 	/**

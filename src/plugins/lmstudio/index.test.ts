@@ -350,7 +350,7 @@ describe("LMStudio — chat", () => {
 		expect(events).toEqual([
 			{ type: "delta", text: "Hello" },
 			{ type: "delta", text: " world" },
-			{ type: "usage", inputTokens: 10, outputTokens: 5 },
+			{ type: "usage", inputTokens: 10, outputTokens: 5, totalTokens: 15 },
 			{ type: "done", stopReason: "stop" },
 		])
 	})

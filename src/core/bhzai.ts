@@ -578,11 +578,14 @@ export class BHZAI {
 	 * if no store is present. The error-on-missing-store policy is intentional: a host
 	 * calling `list()` with no store almost certainly has a configuration bug.
 	 *
-	 * Currently exposes only `list(query?)`, which delegates to `store.list()`.
-	 * Future tasks may extend this with `load()`, `delete()`, etc.
+	 * Exposes `list(query?)`, `load(id)`, and `delete(id)`, each delegating to
+	 * the active `ConversationStore` (if registered), or throwing a descriptive
+	 * error if no store is present.
 	 */
 	private conversationsAccessor: ConversationsAccessor = {
 		list: () => Promise.reject(new Error("bh.init() has not completed yet")),
+		load: () => Promise.reject(new Error("bh.init() has not completed yet")),
+		delete: () => Promise.reject(new Error("bh.init() has not completed yet")),
 	}
 
 	/** Public read-only accessor for the conversations API. */

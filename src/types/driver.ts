@@ -48,7 +48,15 @@ export type DriverEvent =
 	| { type: "reasoning-delta"; text: string }
 	| { type: "tool-call-delta"; toolCallId: string; argsDelta: string }
 	| { type: "tool-call"; toolCallId: string; name: string; input: unknown }
-	| { type: "usage"; inputTokens: number; outputTokens: number }
+	| {
+			type: "usage"
+			/** Prompt tokens for this turn, or `undefined` when the provider does not report them. */
+			inputTokens?: number
+			/** Completion tokens for this turn, or `undefined` when the provider does not report them. */
+			outputTokens?: number
+			/** Total tokens (`input + output`) when the provider reports it, else `undefined`. */
+			totalTokens?: number
+	  }
 	| {
 			type: "done"
 			stopReason: "stop" | "tool-calls" | "length" | "abort" | "error"
@@ -76,6 +84,14 @@ export interface ToolWireDefinition {
 /**
  * The request handed to `BHZAIDriver.chat()` (§ 10.1). `messages` use the
  * normalized internal `BHZAIMessage` shape; drivers map to their wire format.
+ *
+ * `model` is the **bare model id** (e.g. `'meta-llama/Llama-3.1-8B-Instruct'`),
+ * NOT the qualified `'<driver>/<model>'` ref. The kernel parses the qualified
+ * ref before calling `chat()` and passes only the model id; the driver already
+ * knows its own id via `this.id` and decides how to format the model name on
+ * the wire (e.g. the vLLM driver's `prefixProvider` option controls whether
+ * `'vllm/'` is prepended). The same contract applies to `embed()`'s `model`
+ * field and to `capabilities(model)`.
  */
 export interface ChatRequest {
 	model: string
@@ -106,7 +122,7 @@ export interface BHZAIDriver {
 	 * (TASK_0015).
 	 */
 	listModels(): Promise<ModelInfo[]>
-	/** Per-model capability flags (§ 10.1, § 10.5). */
+	/** Per-model capability flags (§ 10.1, § 10.5). `model` is the bare model id. */
 	capabilities(model: string): DriverCapabilities
 	/**
 	 * One LLM call. Unified streaming: an async iterable of typed

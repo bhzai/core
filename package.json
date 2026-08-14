@@ -44,6 +44,10 @@
 			"types": "./dist/plugins/mcp/index.d.ts",
 			"import": "./dist/plugins/mcp/index.js"
 		},
+		"./plugins/idb-conversations": {
+			"types": "./dist/plugins/idb-conversations/index.d.ts",
+			"import": "./dist/plugins/idb-conversations/index.js"
+		},
 		"./plugins/interop/pi": {
 			"types": "./dist/plugins/interop/pi/index.d.ts",
 			"import": "./dist/plugins/interop/pi/index.js"
@@ -65,6 +69,7 @@
 	},
 	"devDependencies": {
 		"@biomejs/biome": "1.9.4",
+		"fake-indexeddb": "^6.2.5",
 		"husky": "^9.1.7",
 		"tsup": "8.5.1",
 		"typescript": "5.7.2",

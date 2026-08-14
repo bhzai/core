@@ -12,10 +12,16 @@ export interface TelemetryStats {
 	decodeTps: string
 	/** Formatted time-to-first-token, or an em dash. */
 	ttft: string
-	/** Formatted input token count. */
+	/** Formatted cumulative input token count. */
 	inputTokens: string
-	/** Formatted output token count. */
+	/** Formatted cumulative output token count. */
 	outputTokens: string
+	/** Formatted total tokens consumed (cumulative in + out). */
+	totalTokens: string
+	/** Formatted last-turn input tokens, or an em dash when unavailable. */
+	lastTurnInput: string
+	/** Formatted last-turn output tokens, or an em dash when unavailable. */
+	lastTurnOutput: string
 	/** Model context window, when the driver reports one. */
 	contextWindow?: number
 	/** Percentage of the context window used, when it can be computed. */
@@ -99,9 +105,12 @@ export class BhzaiTelemetry extends LitElement {
 				<div class="telemetry-value">${stats.ttft || "—"}</div>
 			</div>
 			<div class="telemetry-panel">
-				<div class="telemetry-eyebrow">Tokens</div>
-				<div class="telemetry-subtext">in: ${stats.inputTokens}</div>
-				<div class="telemetry-subtext">out: ${stats.outputTokens}</div>
+				<div class="telemetry-eyebrow">Tokens consumed</div>
+				<div class="telemetry-value">${stats.totalTokens}</div>
+				<div class="telemetry-subtext">cumulative in: ${stats.inputTokens}</div>
+				<div class="telemetry-subtext">cumulative out: ${stats.outputTokens}</div>
+				<div class="telemetry-subtext">last turn in: ${stats.lastTurnInput}</div>
+				<div class="telemetry-subtext">last turn out: ${stats.lastTurnOutput}</div>
 			</div>
 			${contextPanel}
 		`

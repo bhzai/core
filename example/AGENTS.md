@@ -7,8 +7,10 @@ streaming responses, in-browser model execution via WebLLM, runtime attachment
 of HTTP providers (Ollama, LM Studio, vLLM and OpenAI) through the providers panel, live
 telemetry (decode/prefill tokens per second, time-to-first-token, context
 usage), framework-side parsing of reasoning blocks (`` regions, via
-`parseThink: true`), and runtime attachment of HTTP MCP servers with live
-connection status, searchable tool discovery, and error inspection.
+`parseThink: true`), runtime attachment of HTTP MCP servers with live
+connection status, searchable tool discovery, and error inspection, and
+durable conversation persistence via the IndexedDB conversation-store plugin
+with a sidebar for browsing, loading, and deleting past conversations.
 
 Consumes the WORKSPACE-LINKED, BUILT `dist/` output of `@bhzai/core` (via
 `workspace:*` dependency + `pnpm run build` running first), never source imports
@@ -48,10 +50,13 @@ single model-selection typeahead (`@lucasschirm/litjs-typeahead`).
   `variables.css` via `var(--*)`.
 - **`index.html`** — Semantic HTML5 structure plus the custom element tags:
   `<bhzai-status-indicator>`, `<bhzai-model-select id="model-select">`,
+  `<bhzai-conversation-list id="conversation-list">` (left sidebar),
   `<bhzai-conversation>`, `<bhzai-cold-start>`, `<bhzai-telemetry>`,
   `<bhzai-mcp-add-form>`, `<bhzai-mcp-error-dialog>`,
   `<bhzai-mcp-server-list>`, and `<bhzai-composer>`. Loads `variables.css` and
-  `/src/main.ts`.
+  `/src/main.ts`. The layout is a 3-column grid on desktop (conversation
+  sidebar + conversation + telemetry rail), collapsing to a single column on
+  mobile.
   - The telemetry rail is split into `#cold-start-host`, `#telemetry-stats`,
     and `<section id="mcp-panel">`. **This split is load-bearing**: the
     telemetry panel replaces `#telemetry-stats`'s children wholesale after every
@@ -76,7 +81,13 @@ the elements to the two orchestrators.
   `message.delta` payload at one boundary, because `ConversationEvents` carries
   an index signature and every payload arrives as `unknown`. Accepts a
   qualified model ref and reads `contextWindow` from the selected catalogue
-  entry.
+  entry. Subscribes to `compact` (state `complete`), `prompt_compactation`,
+  and `context.trimmed` conversation events to insert "compacted" markers into
+  the conversation view, so the user can see when older context was summarized
+  or trimmed. Passes `{ parseThink: true }` to `loadConversation()` in
+  `refreshConversation()` so the think splitter stays active across reloads.
+  Reports cumulative token consumption (in, out, total) and last-turn token
+  counts to the telemetry panel.
 - **`mcp-controller.ts`** — Subscribes the server list to `McpManager`, wires
   the add-server form, persists the server list, and owns the card-level event
   listeners (`bhzai-refresh`, `bhzai-retry`, `bhzai-remove`, `bhzai-show-error`).
@@ -92,6 +103,15 @@ the elements to the two orchestrators.
   reference without unregistering the kernel's entry.
 - **`fatal-error.ts`** — The one path that spans two components (telemetry +
   composer), so it belongs to neither.
+- **`conversations-controller.ts`** — Orchestrates the conversation sidebar:
+  subscribes to `idb-conversations.*` plugin events (load.success/error,
+  conversation.deleted) and kernel events (conversation.created/loaded,
+  conversation.message(sent)) to keep `<bhzai-conversation-list>` in sync.
+  Wires the sidebar's New/Load/Delete/Load-more button events to
+  `bh.conversations` and `chat-controller`. Passes `{ parseThink: true }` to
+  `bh.loadConversation()` when loading from the sidebar so the think splitter
+  stays active. Never touches IndexedDB directly — all persistence goes
+  through the kernel accessor and the plugin's events.
 
 ### `src/components/` — one Lit custom element per DOM region
 
@@ -103,12 +123,13 @@ CSS variables continue to drive their appearance.
 | Module | Custom element | Owns |
 | --- | --- | --- |
 | `status-indicator.ts` | `<bhzai-status-indicator>` | statusbar dot + label |
-| `provider-select.ts` | `<bhzai-provider-select>` | provider filter, to the left of the model picker; hidden unless more than one driver contributes models |
+| `provider-select.ts` | `<bhzai-provider-select>` | provider filter, to the left of the model picker; hidden unless more than one driver contributes models. Listens to both `input` (immediate, on datalist selection) and `change` (on blur) events from the underlying `lit-typeahead` so the model list filters without waiting for the user to tab away |
 | `model-select.ts` | `<bhzai-model-select>` | reactive model picker, consumes `bh.listModels()` and `models.changed` |
 | `composer.ts` | `<bhzai-composer>` | Send/Stop state, text, keyboard |
-| `conversation-view.ts` | `<bhzai-conversation>` | user bubbles, assistant turns, inline errors |
+| `conversation-view.ts` | `<bhzai-conversation>` | user bubbles, assistant turns, inline errors, compaction markers |
+| `conversation-list.ts` | `<bhzai-conversation-list>` | left-rail sidebar: past conversations, New/Load/Delete buttons, Load more |
 | `cold-start-panel.ts` | `<bhzai-cold-start>` | download gauge |
-| `telemetry-panel.ts` | `<bhzai-telemetry>` | per-turn readouts |
+| `telemetry-panel.ts` | `<bhzai-telemetry>` | per-turn readouts (decode/prefill tok/s, TTFT, token consumption, context usage) |
 | `mcp-server-list.ts` | `<bhzai-mcp-server-list>` | server cards, reactive filter + sort |
 | `mcp-server-card.ts` | `<bhzai-mcp-server-card>` | one server card |
 | `mcp-tool-list.ts` | `<bhzai-mcp-tool-list>` | one server's collapsible, filterable tool list |
@@ -119,7 +140,15 @@ CSS variables continue to drive their appearance.
 
 `conversation-view.ts`'s `beginAssistantTurn()` returns an object whose methods
 close over that message's own nodes, rather than a string id the caller has to
-look back up on every delta.
+look back up on every delta. `appendCompactedMarker(label)` inserts a slim
+dashed divider between messages to signal that the conversation was compacted
+(either auto-compaction folded older messages, or the user's message was
+prompt-compacted before sending). `loadMessages()` also renders compaction
+markers when replaying a snapshot that contains `compactionSummary` system
+messages or `promptCompactionSummary` user messages. For assistant messages,
+`loadMessages()` reads the thought/reasoning content from `meta.think` (where
+the think splitter stores it via the `think` message field), not from content
+blocks — `ContentBlock` has no `thought` variant.
 
 ### `src/lib/` — pure helpers
 
@@ -130,7 +159,8 @@ look back up on every delta.
 - **`stats.ts`** — `parseRuntimeStats()` → `{ prefillTps, decodeTps }`.
 - **`thermal.ts`** — `thermalRatio(decodeTps)` → 0..1, `thermalColor(ratio)` →
   CSS color.
-- **`format.ts`** — `formatTps`, `formatTokens`, `formatBytes`, `formatSeconds`.
+- **`format.ts`** — `formatTps`, `formatTokens`, `formatBytes`, `formatSeconds`,
+  `formatRelativeTime` (used by the conversation sidebar for "2m", "3h", etc.).
 - **`models.ts`** — `selectableModels()`: two narrow drops, both keyed on an
   **explicit** `meta` field. (1) `meta.state === 'not-loaded'` (LM Studio's
   downloaded-but-idle models), so the picker lists only warm models. (2) a
@@ -311,7 +341,7 @@ Requirements:
     add/update/remove event details, and an untrusted-text guard on a
     provider's base URL.
   - `src/components/conversation-view.test.ts` — delta routing, lazy Thought
-    disclosure, independent concurrent turns.
+    disclosure, independent concurrent turns, compaction marker rendering.
   - `src/components/mcp-server-card.test.ts` — **the untrusted-text regression
     guard**: an `<img src=x onerror=…>` payload in the server name, tool names,
     and error message must land as text, with zero `img` elements produced.

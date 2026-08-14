@@ -20,7 +20,20 @@ interface ErrorMessage {
 	text: string
 }
 
-type Message = UserMessage | AssistantMessage | ErrorMessage
+/**
+ * A compaction marker inserted between messages.
+ *
+ * Shown when the conversation history was compacted (auto-compaction) or when
+ * the user's message was prompt-compacted before sending. Gives the user a
+ * visible signal that older context was summarized.
+ */
+interface CompactedMessage {
+	kind: "compacted"
+	/** Short label describing which compaction type fired. */
+	label: string
+}
+
+type Message = UserMessage | AssistantMessage | ErrorMessage | CompactedMessage
 
 /**
  * A handle on one in-flight assistant message.
@@ -90,8 +103,90 @@ export class BhzaiConversation extends LitElement {
 		this._messages = [...this._messages, { kind: "error", text }]
 	}
 
+	/**
+	 * Insert a compaction marker between messages.
+	 *
+	 * Called by the chat controller when a `compact` (conversation compaction)
+	 * or `prompt_compactation` (single-message compaction) event fires, so the
+	 * user can see that older context was summarized before the next turn.
+	 *
+	 * @param label - Short description of the compaction type
+	 */
+	appendCompactedMarker(label: string): void {
+		this._messages = [...this._messages, { kind: "compacted", label }]
+	}
+
 	/** Remove the intro placeholder once the first turn begins. */
 	clearEmptyState(): void {
+		this._emptyRemoved = true
+		this.requestUpdate()
+	}
+
+	/**
+	 * Clear all displayed messages and reset to the empty state.
+	 *
+	 * Called when starting a new conversation or loading a past one — the
+	 * old messages must not linger in the DOM.
+	 */
+	clear(): void {
+		this._messages = []
+		this._emptyRemoved = false
+		this.requestUpdate()
+	}
+
+	/**
+	 * Replay a snapshot's message history into the view.
+	 *
+	 * Used when loading a past conversation: the kernel's
+	 * `loadConversation()` restores the conversation object, but the view is
+	 * purely imperative — it only shows what was streamed into it. This
+	 * method rebuilds the visible message list from the snapshot's
+	 * `PlainMessage[]`, mapping `role` to the view's `UserMessage` /
+	 * `AssistantMessage` shapes. System and tool messages are skipped (they
+	 * are not part of the chat UI), except compaction-summary system messages
+	 * which are rendered as compacted markers.
+	 *
+	 * @param messages - The snapshot's `messages` array (plain JSON objects).
+	 */
+	loadMessages(
+		messages: Array<{
+			role: "user" | "assistant" | "system" | "tool"
+			content: string
+			blocks: Array<{ type: string; text?: string; thought?: string }>
+			meta?: Record<string, unknown>
+		}>,
+	): void {
+		this.clear()
+		for (const msg of messages) {
+			if (msg.role === "user") {
+				// Prompt-compacted user messages carry a `promptCompactionSummary` meta
+				// flag — render them as a compacted marker instead of a normal bubble.
+				if (msg.meta?.promptCompactionSummary) {
+					this._messages = [...this._messages, { kind: "compacted", label: "prompt compacted" }]
+				} else {
+					this._messages = [...this._messages, { kind: "user", text: msg.content }]
+				}
+			} else if (msg.role === "assistant") {
+				// The think splitter stores reasoning in `meta.think` (via the
+				// `think` message field), not in a separate content block —
+				// `ContentBlock` has no `thought` variant. The answer text lives
+				// in `content` / `text` blocks as usual.
+				const thought = typeof msg.meta?.think === "string" ? msg.meta.think : ""
+				const hasThought = thought.length > 0
+				let answer = msg.content
+				if (msg.blocks && msg.blocks.length > 0) {
+					const textBlocks = msg.blocks.filter((b) => b.type === "text")
+					if (textBlocks.length > 0) {
+						answer = textBlocks.map((b) => b.text ?? "").join("")
+					}
+				}
+				this._messages = [...this._messages, { kind: "assistant", thought, answer, hasThought }]
+			} else if (msg.role === "system" && msg.meta?.compactionSummary) {
+				// Compaction-summary system messages are rendered as compacted markers.
+				this._messages = [...this._messages, { kind: "compacted", label: "conversation compacted" }]
+			}
+			// Skip plain "system" and "tool" messages — not shown in the chat UI.
+		}
 		this._emptyRemoved = true
 		this.requestUpdate()
 	}
@@ -124,6 +219,13 @@ export class BhzaiConversation extends LitElement {
 				`
 			case "error":
 				return html`<div class="message error" role="alert">${message.text}</div>`
+			case "compacted":
+				return html`
+					<div class="message compacted" role="status">
+						<span class="compacted-icon">⏷</span>
+						<span class="compacted-label">${message.label}</span>
+					</div>
+				`
 			case "assistant":
 				return html`
 					<div class="message assistant">

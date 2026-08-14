@@ -33,11 +33,12 @@ html {
 	scroll-behavior: smooth;
 }
 
-/* Layout: responsive grid. On desktop (≥861px): conversation + right telemetry rail.
-   On mobile (<861px): single column stacked (conversation, telemetry, composer). */
+/* Layout: responsive grid. On desktop (≥861px): conversation sidebar +
+   conversation + right telemetry rail. On mobile (<861px): single column
+   stacked (sidebar, conversation, telemetry, composer). */
 .layout {
 	display: grid;
-	grid-template-columns: 1fr 280px;
+	grid-template-columns: 240px 1fr 280px;
 	gap: 1.5rem;
 	flex: 1;
 	min-height: 0;
@@ -45,11 +46,23 @@ html {
 	overflow: hidden;
 }
 
+@media (max-width: 1100px) {
+	.layout {
+		grid-template-columns: 200px 1fr 260px;
+		gap: 1rem;
+	}
+}
+
 @media (max-width: 860px) {
 	.layout {
 		grid-template-columns: 1fr;
 		gap: 1rem;
 		padding: 1rem;
+	}
+
+	.conversation-sidebar {
+		order: 0;
+		max-height: 200px;
 	}
 
 	.telemetry {
@@ -62,6 +75,149 @@ body {
 	flex-direction: column;
 	height: 100vh;
 	overflow: hidden;
+}
+
+/* ─── Conversation sidebar ───────────────────────────────────────────────── */
+.conversation-sidebar {
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+	overflow: hidden;
+	border-right: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
+}
+
+.conversation-list-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 0.75rem 1rem;
+	border-bottom: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
+}
+
+.conversation-list-title {
+	font-family: "Space Grotesk", sans-serif;
+	font-size: 0.8rem;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.08em;
+	color: var(--text-secondary, rgba(255, 255, 255, 0.6));
+}
+
+.conversation-list-new-btn {
+	background: var(--accent-color, #4a9eff);
+	color: #fff;
+	border: none;
+	border-radius: 6px;
+	padding: 0.3rem 0.7rem;
+	font-size: 0.8rem;
+	font-weight: 500;
+	cursor: pointer;
+	transition: background 0.15s ease;
+}
+
+.conversation-list-new-btn:hover {
+	background: var(--accent-color-hover, #6bb0ff);
+}
+
+.conversation-list-items {
+	list-style: none;
+	margin: 0;
+	padding: 0.5rem 0;
+	overflow-y: auto;
+	flex: 1;
+	min-height: 0;
+}
+
+.conversation-list-item {
+	display: flex;
+	align-items: stretch;
+	position: relative;
+	transition: background 0.12s ease;
+}
+
+.conversation-list-item:hover {
+	background: var(--hover-bg, rgba(255, 255, 255, 0.04));
+}
+
+.conversation-list-item.active {
+	background: var(--active-bg, rgba(74, 158, 255, 0.12));
+}
+
+.conversation-list-item.active::before {
+	content: "";
+	position: absolute;
+	left: 0;
+	top: 0;
+	bottom: 0;
+	width: 3px;
+	background: var(--accent-color, #4a9eff);
+}
+
+.conversation-list-item-btn {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	gap: 0.15rem;
+	padding: 0.6rem 1rem;
+	background: none;
+	border: none;
+	text-align: left;
+	cursor: pointer;
+	color: inherit;
+	min-width: 0;
+}
+
+.conversation-list-item-title {
+	font-size: 0.85rem;
+	font-weight: 500;
+	color: var(--text-primary, rgba(255, 255, 255, 0.9));
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.conversation-list-item-meta {
+	font-size: 0.72rem;
+	color: var(--text-tertiary, rgba(255, 255, 255, 0.4));
+	font-family: "IBM Plex Mono", monospace;
+}
+
+.conversation-list-item-delete {
+	background: none;
+	border: none;
+	color: var(--text-tertiary, rgba(255, 255, 255, 0.3));
+	font-size: 1.1rem;
+	line-height: 1;
+	padding: 0 0.75rem;
+	cursor: pointer;
+	opacity: 0;
+	transition: opacity 0.12s ease, color 0.12s ease;
+	align-self: center;
+}
+
+.conversation-list-item:hover .conversation-list-item-delete {
+	opacity: 1;
+}
+
+.conversation-list-item-delete:hover {
+	color: var(--danger-color, #ff6b6b);
+}
+
+.conversation-list-load-more {
+	display: block;
+	width: 100%;
+	padding: 0.6rem;
+	background: none;
+	border: none;
+	border-top: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
+	color: var(--text-secondary, rgba(255, 255, 255, 0.6));
+	font-size: 0.8rem;
+	cursor: pointer;
+	transition: background 0.12s ease;
+}
+
+.conversation-list-load-more:hover {
+	background: var(--hover-bg, rgba(255, 255, 255, 0.04));
 }
 
 /* ─── Status bar ─────────────────────────────────────────────────────────── */
@@ -274,6 +430,7 @@ body {
 	display: flex;
 	flex-direction: column;
 	gap: 0;
+	margin: 0.5rem 0;
 	padding: 1rem;
 	background: var(--graphite-700);
 	border-radius: 8px;
@@ -306,6 +463,31 @@ body {
 	color: var(--warm);
 	font-family: var(--font-mono, monospace);
 	font-size: 0.85rem;
+}
+
+/* Compaction marker — a slim, muted divider shown between messages when the
+   conversation history was folded or a user message was prompt-compacted. */
+.message.compacted {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 0.5rem 1rem;
+	background: transparent;
+	border: 1px dashed var(--line);
+	border-radius: 6px;
+	color: var(--muted);
+	font-family: var(--font-display);
+	font-size: 11px;
+	font-weight: 500;
+	text-transform: uppercase;
+	letter-spacing: 0.1em;
+	animation: none;
+}
+
+.compacted-icon {
+	font-size: 10px;
+	line-height: 1;
+	color: var(--cold);
 }
 
 .message-thought {

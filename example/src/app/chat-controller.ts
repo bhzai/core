@@ -72,6 +72,14 @@ export interface ChatController {
 	send(text: string): Promise<void>
 	/** Abort the in-flight turn, if any. */
 	stop(): void
+	/** Adopt an externally-loaded conversation (e.g., from the sidebar). */
+	setConversation(conv: BHZAIConversation): void
+	/** Start a fresh conversation with the current model (sidebar "New"). */
+	newConversation(): Promise<void>
+	/** The active conversation's id, or null if none. */
+	readonly activeConversationId: string | null
+	/** The currently selected qualified model ref, or null if none. */
+	readonly currentModelRef: string | null
 }
 
 /**
@@ -83,6 +91,8 @@ export function createChatController(deps: ChatControllerDeps): ChatController {
 	const { bh, engine, driver, ui } = deps
 
 	let conversation: BHZAIConversation | null = null
+	/** The qualified model ref of the current/last-created conversation. */
+	let currentModelRef: string | null = null
 	/** Whether the selected model's weights have been downloaded this session. */
 	let modelLoaded = false
 	/** The turn currently streaming, or null between turns. */
@@ -117,6 +127,32 @@ export function createChatController(deps: ChatControllerDeps): ChatController {
 			if (kind === "reasoning") turn.appendThought(delta)
 			else if (kind === "text") turn.appendAnswer(delta)
 		})
+
+		// Show a "compacted" marker when the conversation history is folded
+		// (auto-compaction). The `compact` event fires with `state: "complete"`
+		// after the summary message has been inserted and older messages marked
+		// `contextIncluded: false`.
+		conversation?.on("compact", (payload) => {
+			const state = (payload as { state?: string })?.state
+			if (state === "complete") {
+				ui.conversation.appendCompactedMarker("conversation compacted")
+			}
+		})
+
+		// Show a "compacted" marker when a single user message is prompt-compacted
+		// before sending (the message was too large for the context window and was
+		// summarized into a shorter form).
+		conversation?.on("prompt_compactation", () => {
+			ui.conversation.appendCompactedMarker("prompt compacted")
+		})
+
+		// Show a "compacted" marker when older messages are trimmed from the
+		// request to fit the context window, even when auto-compaction is not
+		// enabled. The `context.trimmed` event fires from `applyContextBudget`
+		// after `fitContextToWindow` drops oldest messages from the request.
+		conversation?.on("context.trimmed", () => {
+			ui.conversation.appendCompactedMarker("context trimmed")
+		})
 	}
 
 	/**
@@ -132,7 +168,10 @@ export function createChatController(deps: ChatControllerDeps): ChatController {
 	async function refreshConversation(): Promise<void> {
 		if (!conversation) return
 		try {
-			conversation = await bh.loadConversation(conversation.toJSON())
+			// Preserve `parseThink: true` across reloads — without this, the
+			// agent loop would stop splitting ` IMDONE` tags and reasoning
+			// would bleed into the answer text.
+			conversation = await bh.loadConversation(conversation.toJSON(), { parseThink: true })
 			wireConversationEvents()
 		} catch (error) {
 			console.error("Failed to refresh conversation:", error)
@@ -143,11 +182,30 @@ export function createChatController(deps: ChatControllerDeps): ChatController {
 	async function updateTelemetry(): Promise<void> {
 		if (!conversation) return
 
-		const { prefillTps, decodeTps } = parseRuntimeStats(await engine.runtimeStatsText())
+		// The WebLLM engine's `runtimeStatsText()` is only meaningful for
+		// in-browser inference. Remote providers (vLLM, Ollama, LM Studio,
+		// OpenAI) don't run on the MLCEngine, so the call throws or returns
+		// empty stats. Make it best-effort so the rest of the telemetry —
+		// token counts, TTFT, context usage — still renders for those
+		// providers; only prefill/decode tok/s are WebLLM-specific.
+		let prefillTps: number | null = null
+		let decodeTps: number | null = null
+		try {
+			const stats = parseRuntimeStats(await engine.runtimeStatsText())
+			prefillTps = stats.prefillTps
+			decodeTps = stats.decodeTps
+		} catch {
+			// Not a WebLLM-backed turn — leave tok/s as em dashes.
+		}
 		const decodeRatio = thermalRatio(decodeTps ?? 0)
 
 		const { inputTokens = 0, outputTokens = 0 } = conversation.usage
 		const contextWindow = ui.modelSelect.selectedModel?.capabilities?.contextWindow
+		// Use the last turn's real input tokens (the actual context size the
+		// provider processed) for the context usage percentage — not the
+		// cumulative output tokens, which don't represent context fill.
+		const lastInputTokens = conversation.contextUsage.lastInputTokens
+		const lastOutputTokens = conversation.contextUsage.lastOutputTokens
 		const ttftMs = firstTokenTime === null ? null : firstTokenTime - sendStartTime
 
 		ui.telemetry.updateStats({
@@ -156,14 +214,27 @@ export function createChatController(deps: ChatControllerDeps): ChatController {
 			ttft: ttftMs === null ? "—" : formatSeconds(ttftMs / 1000),
 			inputTokens: formatTokens(inputTokens),
 			outputTokens: formatTokens(outputTokens),
+			totalTokens: formatTokens(inputTokens + outputTokens),
+			lastTurnInput: lastInputTokens !== undefined ? formatTokens(lastInputTokens) : "—",
+			lastTurnOutput: lastOutputTokens !== undefined ? formatTokens(lastOutputTokens) : "—",
 			contextWindow,
-			contextUsagePercent: contextWindow ? Math.round((outputTokens / contextWindow) * 100) : null,
+			contextUsagePercent:
+				contextWindow && lastInputTokens !== undefined
+					? Math.round((lastInputTokens / contextWindow) * 100)
+					: null,
 			decodeColor: thermalColor(decodeRatio),
 			decodeRatio,
 		})
 	}
 
 	return {
+		get activeConversationId(): string | null {
+			return conversation?.id ?? null
+		},
+		get currentModelRef(): string | null {
+			return currentModelRef
+		},
+
 		async selectModel(modelRef) {
 			if (!modelRef) return
 
@@ -172,6 +243,13 @@ export function createChatController(deps: ChatControllerDeps): ChatController {
 				modelLoaded = false
 				ui.status.set("cold", "cold")
 				ui.coldStart.hide()
+
+				currentModelRef = modelRef
+
+				// Clear the conversation view: a new conversation means a
+				// blank slate. Without this, old messages from the previous
+				// conversation linger in the DOM.
+				ui.conversation.clear()
 
 				// A fresh conversation per model selection, rather than swapping the
 				// model mid-conversation: the simplest correct behavior.
@@ -268,6 +346,25 @@ export function createChatController(deps: ChatControllerDeps): ChatController {
 				conversation?.abort("user stopped")
 			} catch (error) {
 				console.error("Abort failed:", error)
+			}
+		},
+
+		setConversation(conv) {
+			conversation = conv
+			turn = null
+			firstTokenTime = null
+			wireConversationEvents()
+
+			// Replay the loaded conversation's message history into the view.
+			// The view is purely imperative — it only shows what was streamed
+			// into it — so without this, loading a past conversation would
+			// leave the old (or empty) view in place.
+			ui.conversation.loadMessages(conv.toJSON().messages)
+		},
+
+		async newConversation() {
+			if (currentModelRef) {
+				await this.selectModel(currentModelRef)
 			}
 		},
 	}

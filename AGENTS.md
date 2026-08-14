@@ -102,6 +102,12 @@ Implemented:
   the same primitives, including zod-like→JSON-Schema conversion and
   `permission.ask` composing with the shared `tool(beforeCall)` approval
   seam.
+- **IndexedDB conversation-store plugin** (`src/plugins/idb-conversations/`) —
+  browser-targeted `ConversationStore` implementation over IndexedDB. Registers
+  a `conversationStore` capability so the kernel auto-saves on every
+  `conversation.message(sent)` and exposes `bh.conversations.list()` /
+  `load(id)` / `delete(id)`. Emits `idb-conversations.*` events and supports
+  offset-based and cursor-based pagination.
 - **Security audit** (`docs/security-review.md`) — verifies all 5
   ARCHITECTURE.md § 13 security commitments against real tests; adds a
   static no-eval regression guardrail (`src/tools/no-eval.test.ts`).

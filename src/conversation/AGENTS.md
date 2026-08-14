@@ -122,6 +122,22 @@ Per ARCHITECTURE.md § 11.1, a conversation encapsulates:
   - Never-delete-history invariant (message count + by-id presence)
   - 9 test cases covering TASK_0031 acceptance criteria
 
+- **`context-budget.ts`** — Pre-flight context-window budget check and message trimming:
+  - `estimateMessageTokens()`, `estimateSystemPromptTokens()`, `estimateToolTokens()` — heuristic token estimation (~4 chars/token)
+  - `fitContextToWindow()` — pre-flight check using `lastInputTokens` as the precise base + heuristic for new-message delta; trims oldest messages from the front when over budget
+  - `FitContextResult` — result shape with `messages`, `trimmed`, `overLimit`, `estimatedTokens`
+  - Preserves system prompt and most recent user message when trimming
+
+- **`context-budget.test.ts`** — 17 tests covering estimation, trimming, over-limit detection, and edge cases
+
+- **`prompt-compaction.ts`** — Prompt compaction for oversized user messages:
+  - `compactPrompt()` — orchestrates the `prompt_compactation` event and core default
+  - `runPromptCompaction()` — splits message into chunks (paragraphs → sentences → fixed chars), summarizes each via `bh.complete()`, concatenates, recursively summarizes if still too large
+  - `PromptCompactationPayload` — event payload for plugin interception
+  - Uses `compaction.model` if set for cheaper summarization
+
+- **`prompt-compaction.test.ts`** — 8 tests covering chunking, summarization, plugin interception, and error handling
+
 - **`AGENTS.md`** (this file) — Documentation and agent guidance
 
 ## Core Concepts

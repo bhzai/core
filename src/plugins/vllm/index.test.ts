@@ -390,6 +390,45 @@ describe("VLLM — chat streaming", () => {
 		])
 	})
 
+	it("reports totalTokens when the server provides total_tokens", async () => {
+		const fetch = fakeFetch([
+			modelsRoute([LLAMA_ENTRY]),
+			chatRoute(
+				sse([
+					{ choices: [{ delta: { content: "hi" } }] },
+					{ choices: [], usage: { prompt_tokens: 10, completion_tokens: 5, total_tokens: 15 } },
+				]),
+			),
+		])
+		const events = await drain(makeDriver(fetch).chat(makeRequest()))
+		expect(events).toContainEqual({
+			type: "usage",
+			inputTokens: 10,
+			outputTokens: 5,
+			totalTokens: 15,
+		})
+	})
+
+	it("omits usage fields the server does not report", async () => {
+		const fetch = fakeFetch([
+			modelsRoute([LLAMA_ENTRY]),
+			chatRoute(
+				sse([
+					{ choices: [{ delta: { content: "hi" } }] },
+					// Server reports only prompt_tokens, no completion_tokens or total_tokens
+					{ choices: [], usage: { prompt_tokens: 10 } },
+				]),
+			),
+		])
+		const events = await drain(makeDriver(fetch).chat(makeRequest()))
+		const usageEvent = events.find((e) => e.type === "usage")
+		expect(usageEvent).toBeDefined()
+		expect(usageEvent).toMatchObject({ type: "usage", inputTokens: 10 })
+		// Fields the server didn't report should be undefined (not 0)
+		expect((usageEvent as { outputTokens?: number }).outputTokens).toBeUndefined()
+		expect((usageEvent as { totalTokens?: number }).totalTokens).toBeUndefined()
+	})
+
 	// The field vLLM's current stable docs document.
 	it("maps delta.reasoning onto reasoning-delta", async () => {
 		const fetch = fakeFetch([
@@ -697,6 +736,22 @@ describe("VLLM — chat request mapping", () => {
 		await drain(makeDriver(fetch).chat(makeRequest()))
 		expect(chatBody(fetch).chat_template_kwargs).toBeUndefined()
 	})
+
+	it("sends the bare model id on the wire by default (no 'vllm/' prefix)", async () => {
+		const fetch = fakeFetch([chatRoute(sse([]))])
+		await drain(makeDriver(fetch).chat(makeRequest({ model: "meta-llama/Llama-3.1-8B-Instruct" })))
+		expect(chatBody(fetch).model).toBe("meta-llama/Llama-3.1-8B-Instruct")
+	})
+
+	it("prepends 'vllm/' to the model id when prefixProvider is true", async () => {
+		const fetch = fakeFetch([chatRoute(sse([]))])
+		await drain(
+			makeDriver(fetch, { prefixProvider: true }).chat(
+				makeRequest({ model: "meta-llama/Llama-3.1-8B-Instruct" }),
+			),
+		)
+		expect(chatBody(fetch).model).toBe("vllm/meta-llama/Llama-3.1-8B-Instruct")
+	})
 })
 
 // ---------------------------------------------------------------------------
@@ -872,6 +927,39 @@ describe("VLLM — embed", () => {
 		await expect(makeDriver(fetch).embed({ model: "chat", input: ["a"] })).rejects.toMatchObject({
 			status: 400,
 		})
+	})
+
+	it("sends the bare model id by default, no 'vllm/' prefix", async () => {
+		const fetch = fakeFetch([
+			{
+				url: `${BASE}/v1/embeddings`,
+				method: "POST",
+				response: mockResponse({ json: { data: [{ embedding: [1], index: 0 }] } }),
+			},
+		])
+		await makeDriver(fetch).embed({ model: "BAAI/bge-large-en-v1.5", input: ["a"] })
+		const body = JSON.parse(
+			(fetch as unknown as { calls: Array<{ body?: string }> }).calls[0]?.body ?? "{}",
+		)
+		expect(body.model).toBe("BAAI/bge-large-en-v1.5")
+	})
+
+	it("prepends 'vllm/' when prefixProvider is true", async () => {
+		const fetch = fakeFetch([
+			{
+				url: `${BASE}/v1/embeddings`,
+				method: "POST",
+				response: mockResponse({ json: { data: [{ embedding: [1], index: 0 }] } }),
+			},
+		])
+		await makeDriver(fetch, { prefixProvider: true }).embed({
+			model: "BAAI/bge-large-en-v1.5",
+			input: ["a"],
+		})
+		const body = JSON.parse(
+			(fetch as unknown as { calls: Array<{ body?: string }> }).calls[0]?.body ?? "{}",
+		)
+		expect(body.model).toBe("vllm/BAAI/bge-large-en-v1.5")
 	})
 })
 
