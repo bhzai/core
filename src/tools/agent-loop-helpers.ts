@@ -27,7 +27,7 @@ import { computePreContextSystemPrompt, ensureStarted } from "../conversation/sy
 import { createThinkSplitter } from "../conversation/think-stream.js"
 import type { BHZAI } from "../core/bhzai.js"
 import { parseModelRef } from "../core/models.js"
-import { DEFAULT_RETRY_POLICY, callDriverWithRetry } from "../core/retry.js"
+import { callDriverWithRetry } from "../core/retry.js"
 import type { RequestDispatch, RequestEventPayload, RetryPolicy } from "../core/retry.js"
 import type { CallToolResult, ContentBlock } from "../types/content.js"
 import type { BHZAIDriver, ChatRequest, DriverEvent, ToolWireDefinition } from "../types/driver.js"

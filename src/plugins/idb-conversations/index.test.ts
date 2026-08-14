@@ -9,7 +9,6 @@ import fakeIndexedDB from "fake-indexeddb"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { sendMessage } from "../../conversation/agent-loop.js"
 import type { BHZAIConversationImpl } from "../../conversation/conversation.js"
-import type { ConversationSnapshot } from "../../conversation/snapshot.js"
 import { BHZAI } from "../../core/bhzai.js"
 import type { BHZAIDriver, ChatRequest, DriverEvent } from "../../types/driver.js"
 import { IdbConversationEvents, createIdbConversationStorePlugin } from "./index.js"
@@ -89,26 +88,6 @@ function makeMockDriver(
 	}
 }
 
-/** Build a minimal valid snapshot for testing. */
-function makeSnapshot(id: string, updatedAt: number, messageCount = 1): ConversationSnapshot {
-	const messages = Array.from({ length: messageCount }, (_, i) => ({
-		id: `${id}-msg-${i}`,
-		role: "user" as const,
-		content: `Message ${i}`,
-		blocks: [],
-		time: updatedAt,
-		meta: {},
-	}))
-	return {
-		v: 1,
-		id,
-		messages,
-		model: "mock-driver/mock-model",
-		usage: { inputTokens: 0, outputTokens: 0 },
-		meta: {},
-	}
-}
-
 describe("idb-conversations plugin: store CRUD", () => {
 	let bh: BHZAI
 
@@ -127,14 +106,9 @@ describe("idb-conversations plugin: store CRUD", () => {
 		bh.use(plugin())
 		await bh.init()
 
-		const snap = makeSnapshot("conv-1", 5000, 3)
-		await bh.conversations.load // touch to ensure accessor is live
-		// Save directly through the store via a real conversation's toJSON():
-		// simplest path is to call the store's save through the kernel's
-		// auto-save, but for a direct unit test we grab the store from the
-		// plugin. Instead, use the accessor's list after a manual save via
-		// the plugin's store. The kernel does not expose store.save()
-		// directly, so we test via a real conversation + sendMessage.
+		// The kernel does not expose store.save() directly, so we exercise
+		// persistence end-to-end via a real conversation + sendMessage and
+		// rely on the plugin's auto-save wiring.
 		const mockDriver = makeMockDriver([
 			{ type: "delta", text: "Hello" },
 			{ type: "done", stopReason: "stop" },
