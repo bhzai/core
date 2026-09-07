@@ -1,5 +1,10 @@
-files="$(git diff --cached --name-only --diff-filter=ACMR | grep -E '\.(js|jsx|ts|tsx|json|jsonc|mjs|cjs)$' || true)"
+biome_files="$(git diff --cached --name-only --diff-filter=ACMR | grep -E '\.(js|jsx|ts|tsx|json|jsonc|mjs|cjs)$' || true)"
+gate_files="$(git diff --cached --name-only --diff-filter=ACMR | grep -E '\.(js|jsx|ts|tsx|mjs|cjs|md)$' || true)"
 
-if [ -n "$files" ]; then
-	pnpm exec biome check $files
+if [ -n "$biome_files" ]; then
+	pnpm exec biome check $biome_files
+fi
+
+if [ -n "$gate_files" ]; then
+	node scripts/check-quality-gates.mjs $gate_files
 fi

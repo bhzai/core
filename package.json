@@ -60,15 +60,18 @@
 	"scripts": {
 		"build": "tsup",
 		"typecheck": "tsc --noEmit && tsc --noEmit -p example",
-		"lint": "biome check .",
+		"lint": "biome check . && node scripts/check-quality-gates.mjs",
+		"lint:gates": "node scripts/check-quality-gates.mjs",
 		"format": "biome format --write .",
 		"test": "vitest run",
+		"test:coverage": "vitest run --coverage",
 		"test:watch": "vitest",
 		"preview": "pnpm run build && pnpm --filter bhzai-example run preview",
 		"prepare": "husky"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "1.9.4",
+		"@vitest/coverage-v8": "3.2.6",
 		"fake-indexeddb": "^6.2.5",
 		"husky": "^9.1.7",
 		"tsup": "8.5.1",

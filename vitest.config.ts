@@ -26,7 +26,41 @@ export default defineConfig({
 		// Kernel-level tests need no DOM. Driver/plugin tests that require browser
 		// globals are that driver's task's concern and override `environment` locally.
 		environment: "node",
-		// Tests are colocated with source under src/, examples/, and example/ as *.test.ts.
-		include: ["src/**/*.test.ts", "examples/**/*.test.ts", "example/**/*.test.ts"],
+		// Tests are colocated with source under src/, examples/, example/, and scripts/ as *.test.ts.
+		include: [
+			"src/**/*.test.ts",
+			"examples/**/*.test.ts",
+			"example/**/*.test.ts",
+			"scripts/**/*.test.ts",
+		],
+		coverage: {
+			provider: "v8",
+			reporter: ["text", "json-summary", "html"],
+			include: ["src/v2/**/*.ts"],
+			exclude: [
+				"src/v2/**/*.test.ts",
+				"src/v2/**/index.ts",
+				"src/v2/**/types.ts",
+				"src/v2/**/types/**",
+			],
+			thresholds: {
+				lines: 80,
+				branches: 80,
+				functions: 80,
+				statements: 80,
+				"src/v2/kernel/**": {
+					lines: 90,
+					branches: 90,
+					functions: 90,
+					statements: 90,
+				},
+				"src/v2/loop/**": {
+					lines: 90,
+					branches: 90,
+					functions: 90,
+					statements: 90,
+				},
+			},
+		},
 	},
 })
