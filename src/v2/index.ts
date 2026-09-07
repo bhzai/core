@@ -1,4 +1,5 @@
 export * from "./commands"
+export * from "./context"
 export * from "./kernel"
 export * from "./llm"
 export * from "./loop"
