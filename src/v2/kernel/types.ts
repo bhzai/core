@@ -102,9 +102,15 @@ export interface EventBus {
 }
 
 /**
+ * Services registry interface extended via TypeScript module augmentation.
+ */
+// biome-ignore lint/suspicious/noEmptyInterface: Augmented via module declaration merging across service plugins.
+export interface HarnessServices {}
+
+/**
  * Shared runtime context accessible across all plugins.
  */
-export interface HarnessContext {
+export interface HarnessContext extends HarnessServices {
 	/** The single unified event bus. */
 	readonly events: EventBus
 

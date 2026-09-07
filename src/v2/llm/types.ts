@@ -167,6 +167,12 @@ export interface LlmService {
 	complete(request: LlmCompleteRequest): Promise<LlmCompleteResult>
 }
 
+declare module "../kernel/types" {
+	interface HarnessServices {
+		llm?: LlmService
+	}
+}
+
 export type {
 	BHZAIDriver,
 	BHZAIMessage,

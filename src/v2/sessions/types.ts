@@ -308,3 +308,9 @@ export interface SessionService {
 	 */
 	deriveMessages(events: SessionEvent[]): BHZAIMessage[]
 }
+
+declare module "../kernel/types" {
+	interface HarnessServices {
+		sessions?: SessionService
+	}
+}
