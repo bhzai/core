@@ -1,5 +1,6 @@
 export * from "./commands"
 export * from "./kernel"
 export * from "./llm"
+export * from "./loop"
 export * from "./sessions"
 export * from "./tools"
