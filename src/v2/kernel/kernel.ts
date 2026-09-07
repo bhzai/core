@@ -1,0 +1,240 @@
+import { validatePluginConfig } from "./config"
+import { getDependentsCascade, sortPluginsTopologically } from "./dependency"
+import { PluginNotFoundError, ServiceAlreadyClaimedError } from "./errors"
+import { createEventBus } from "./event-bus"
+import type {
+	BailHandler,
+	Disposable,
+	EventBus,
+	Harness,
+	HarnessContext,
+	HarnessOptions,
+	NotificationHandler,
+	PluginContext,
+	PluginDefinition,
+	PluginTeardown,
+	WaterfallHandler,
+} from "./types"
+
+interface LoadedPluginState {
+	definition: PluginDefinition<unknown>
+	config?: unknown
+	teardown?: PluginTeardown
+	disposables: Disposable[]
+}
+
+/**
+ * Runs the optional teardown hook of a plugin safely.
+ * @param state The loaded plugin state.
+ * @param name The plugin name.
+ */
+async function runTeardown(state: LoadedPluginState, name: string): Promise<void> {
+	if (!state.teardown) return
+	try {
+		await state.teardown()
+	} catch (err: unknown) {
+		console.error(`[Kernel] Error during teardown of plugin "${name}":`, err)
+	}
+}
+
+/**
+ * Executes all tracked effect disposables of a plugin in reverse order.
+ * @param state The loaded plugin state.
+ * @param name The plugin name.
+ */
+async function runDisposables(state: LoadedPluginState, name: string): Promise<void> {
+	while (state.disposables.length > 0) {
+		const dispose = state.disposables.pop()
+		if (!dispose) continue
+		try {
+			await dispose()
+		} catch (err: unknown) {
+			console.error(`[Kernel] Error during effect disposal of plugin "${name}":`, err)
+		}
+	}
+}
+
+/**
+ * Unloads a single loaded plugin by executing its teardown and effect disposables.
+ * @param state The loaded plugin state.
+ * @param name The plugin name.
+ */
+async function unloadSinglePlugin(state: LoadedPluginState, name: string): Promise<void> {
+	await runTeardown(state, name)
+	await runDisposables(state, name)
+}
+
+/**
+ * Creates a scoped plugin context tracking all claimed services and event listeners for rollback.
+ * @param baseCtx The root harness context.
+ * @param pluginDisposables Array accumulating disposables registered by the plugin.
+ * @param rootClaim Function to claim a service on the root context.
+ * @returns A Scoped PluginContext instance.
+ */
+function createScopedPluginContext(
+	baseCtx: HarnessContext,
+	pluginDisposables: Disposable[],
+	rootClaim: <TService>(name: string, service: TService) => Disposable,
+): PluginContext {
+	const scopedEvents: EventBus = {
+		...baseCtx.events,
+		on<T = unknown>(event: string, handler: NotificationHandler<T>): Disposable {
+			const unsubscribe = baseCtx.events.on(event, handler)
+			pluginDisposables.push(unsubscribe)
+			return unsubscribe
+		},
+		waterfall<T = unknown, TCtx = unknown>(
+			event: string,
+			handler: WaterfallHandler<T, TCtx>,
+		): Disposable {
+			const unsubscribe = baseCtx.events.waterfall(event, handler)
+			pluginDisposables.push(unsubscribe)
+			return unsubscribe
+		},
+		bail<T = unknown, TResult = unknown>(
+			event: string,
+			handler: BailHandler<T, TResult>,
+		): Disposable {
+			const unsubscribe = baseCtx.events.bail(event, handler)
+			pluginDisposables.push(unsubscribe)
+			return unsubscribe
+		},
+	}
+
+	return new Proxy(baseCtx as PluginContext, {
+		get(target, prop, receiver) {
+			if (prop === "events") return scopedEvents
+			if (prop === "claim") {
+				return <TService>(name: string, service: TService): Disposable => {
+					const unclaim = rootClaim(name, service)
+					pluginDisposables.push(unclaim)
+					return unclaim
+				}
+			}
+			return Reflect.get(target, prop, receiver)
+		},
+	})
+}
+
+/**
+ * Core Harness implementation managing the context and plugin lifecycle.
+ */
+class HarnessImpl implements Harness {
+	readonly ctx: HarnessContext
+	private readonly events: EventBus
+	private readonly services = new Map<string, unknown>()
+	private readonly loadedPlugins = new Map<string, LoadedPluginState>()
+
+	constructor() {
+		this.events = createEventBus()
+		const rawContext: HarnessContext = { events: this.events }
+
+		this.ctx = new Proxy(rawContext, {
+			get: (target, prop, receiver) => {
+				if (prop === "events") return this.events
+				if (typeof prop === "string" && this.services.has(prop)) {
+					return this.services.get(prop)
+				}
+				return Reflect.get(target, prop, receiver)
+			},
+		})
+	}
+
+	claim<TService>(name: string, service: TService): Disposable {
+		if (name === "events" || this.services.has(name)) {
+			throw new ServiceAlreadyClaimedError(name)
+		}
+		this.services.set(name, service)
+		return () => {
+			if (this.services.get(name) === service) {
+				this.services.delete(name)
+			}
+		}
+	}
+
+	async load<TConfig = Record<string, unknown>>(
+		plugin: PluginDefinition<TConfig>,
+		config?: TConfig,
+	): Promise<void> {
+		if (this.loadedPlugins.has(plugin.name)) {
+			await this.unload(plugin.name)
+		}
+
+		sortPluginsTopologically([plugin as PluginDefinition], new Set(this.loadedPlugins.keys()))
+		validatePluginConfig(plugin.name, plugin.configSchema, config)
+
+		const disposables: Disposable[] = []
+		const scopedCtx = createScopedPluginContext(this.ctx, disposables, this.claim.bind(this))
+
+		const teardownResult = await plugin.setup(scopedCtx, config)
+		const teardown = typeof teardownResult === "function" ? teardownResult : undefined
+
+		this.loadedPlugins.set(plugin.name, {
+			definition: plugin as PluginDefinition<unknown>,
+			config,
+			teardown,
+			disposables,
+		})
+	}
+
+	async unload(pluginName: string): Promise<void> {
+		if (!this.loadedPlugins.has(pluginName)) {
+			throw new PluginNotFoundError(pluginName)
+		}
+
+		const cascade = getDependentsCascade(pluginName, this.loadedPlugins)
+		for (const name of cascade) {
+			const state = this.loadedPlugins.get(name)
+			if (state) {
+				await unloadSinglePlugin(state, name)
+				this.loadedPlugins.delete(name)
+			}
+		}
+	}
+
+	async reload<TConfig = Record<string, unknown>>(
+		plugin: PluginDefinition<TConfig>,
+		config?: TConfig,
+	): Promise<void> {
+		await this.unload(plugin.name)
+		await this.load(plugin, config)
+	}
+
+	hasPlugin(pluginName: string): boolean {
+		return this.loadedPlugins.has(pluginName)
+	}
+
+	getLoadedPlugins(): string[] {
+		return Array.from(this.loadedPlugins.keys())
+	}
+
+	async dispose(): Promise<void> {
+		const pluginNames = Array.from(this.loadedPlugins.keys()).reverse()
+		for (const name of pluginNames) {
+			if (this.loadedPlugins.has(name)) {
+				await this.unload(name)
+			}
+		}
+		this.events.clear()
+		this.services.clear()
+	}
+}
+
+/**
+ * Creates an empty v0.2 kernel harness and optionally loads configured plugins.
+ * @param options Initialization options specifying plugins and configurations.
+ * @returns A Promise resolving to the initialized Harness instance.
+ */
+export async function createHarness(options: HarnessOptions = {}): Promise<Harness> {
+	const harness = new HarnessImpl()
+
+	if (options.plugins && options.plugins.length > 0) {
+		const sorted = sortPluginsTopologically(options.plugins)
+		for (const plugin of sorted) {
+			const pluginConfig = options.config?.[plugin.name]
+			await harness.load(plugin, pluginConfig)
+		}
+	}
+
+	return harness
+}
