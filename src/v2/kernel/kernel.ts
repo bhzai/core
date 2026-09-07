@@ -76,30 +76,39 @@ function createScopedPluginContext(
 	pluginDisposables: Disposable[],
 	rootClaim: <TService>(name: string, service: TService) => Disposable,
 ): PluginContext {
-	const scopedEvents: EventBus = {
-		...baseCtx.events,
-		on<T = unknown>(event: string, handler: NotificationHandler<T>): Disposable {
-			const unsubscribe = baseCtx.events.on(event, handler)
-			pluginDisposables.push(unsubscribe)
-			return unsubscribe
+	const scopedEvents = new Proxy(baseCtx.events, {
+		get(target, prop, receiver) {
+			if (prop === "on") {
+				return <T = unknown>(event: string, handler: NotificationHandler<T>): Disposable => {
+					const unsubscribe = target.on(event, handler)
+					pluginDisposables.push(unsubscribe)
+					return unsubscribe
+				}
+			}
+			if (prop === "waterfall") {
+				return <T = unknown, TCtx = unknown>(
+					event: string,
+					handler: WaterfallHandler<T, TCtx>,
+				): Disposable => {
+					const unsubscribe = target.waterfall(event, handler)
+					pluginDisposables.push(unsubscribe)
+					return unsubscribe
+				}
+			}
+			if (prop === "bail") {
+				return <T = unknown, TResult = unknown>(
+					event: string,
+					handler: BailHandler<T, TResult>,
+				): Disposable => {
+					const unsubscribe = target.bail(event, handler)
+					pluginDisposables.push(unsubscribe)
+					return unsubscribe
+				}
+			}
+			const val = Reflect.get(target, prop, receiver)
+			return typeof val === "function" ? val.bind(target) : val
 		},
-		waterfall<T = unknown, TCtx = unknown>(
-			event: string,
-			handler: WaterfallHandler<T, TCtx>,
-		): Disposable {
-			const unsubscribe = baseCtx.events.waterfall(event, handler)
-			pluginDisposables.push(unsubscribe)
-			return unsubscribe
-		},
-		bail<T = unknown, TResult = unknown>(
-			event: string,
-			handler: BailHandler<T, TResult>,
-		): Disposable {
-			const unsubscribe = baseCtx.events.bail(event, handler)
-			pluginDisposables.push(unsubscribe)
-			return unsubscribe
-		},
-	}
+	})
 
 	return new Proxy(baseCtx as PluginContext, {
 		get(target, prop, receiver) {
