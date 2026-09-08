@@ -1,14 +1,21 @@
+import type { BHZAIDriver } from "../../types/driver"
+import type { ModelInfo } from "../../types/model"
+import "../llm/types"
 import { validatePluginConfig } from "./config"
 import { getDependentsCascade, sortPluginsTopologically } from "./dependency"
 import { PluginNotFoundError, ServiceAlreadyClaimedError } from "./errors"
 import { createEventBus } from "./event-bus"
+import { HarnessSessionImpl } from "./harness-session"
 import type {
 	BailHandler,
 	Disposable,
 	EventBus,
 	Harness,
 	HarnessContext,
+	HarnessCreateSessionOptions,
+	HarnessOpenSessionOptions,
 	HarnessOptions,
+	HarnessSession,
 	NotificationHandler,
 	PluginContext,
 	PluginDefinition,
@@ -215,6 +222,99 @@ class HarnessImpl implements Harness {
 
 	getLoadedPlugins(): string[] {
 		return Array.from(this.loadedPlugins.keys())
+	}
+
+	async createSession(options?: HarnessCreateSessionOptions): Promise<HarnessSession> {
+		const sessions = this.ctx.sessions
+		if (!sessions) {
+			throw new Error(
+				"Harness.createSession requires the sessions service. Ensure sessionPlugin is loaded.",
+			)
+		}
+		const metadata = {
+			...options?.metadata,
+			...(options?.model ? { model: options.model } : {}),
+		}
+		const session = await sessions.create({ ...options, metadata })
+		const modelRef =
+			(metadata.model as string | undefined) ??
+			this.ctx.llm?.getDefaultModel() ??
+			(await this.ctx.llm?.listModels())?.[0]?.ref
+		return new HarnessSessionImpl(session, this.ctx, modelRef)
+	}
+
+	async openSession(id: string, options?: HarnessOpenSessionOptions): Promise<HarnessSession> {
+		const sessions = this.ctx.sessions
+		if (!sessions) {
+			throw new Error(
+				"Harness.openSession requires the sessions service. Ensure sessionPlugin is loaded.",
+			)
+		}
+		const session = await sessions.open(id, options)
+		const modelRef =
+			(options?.model as string | undefined) ??
+			(session.metadata?.model as string | undefined) ??
+			this.ctx.llm?.getDefaultModel() ??
+			(await this.ctx.llm?.listModels())?.[0]?.ref
+		return new HarnessSessionImpl(session, this.ctx, modelRef)
+	}
+
+	async createConversation(options?: HarnessCreateSessionOptions): Promise<HarnessSession> {
+		return await this.createSession(options)
+	}
+
+	async loadConversation(
+		snapshot: { id?: string; sessionId?: string } | string,
+		options?: HarnessOpenSessionOptions,
+	): Promise<HarnessSession> {
+		const id = typeof snapshot === "string" ? snapshot : (snapshot.id ?? snapshot.sessionId)
+		if (!id) {
+			throw new Error("Invalid conversation snapshot: missing session id.")
+		}
+		return await this.openSession(id, options)
+	}
+
+	addDriver(driver: BHZAIDriver): () => void {
+		if (!this.ctx.llm) {
+			throw new Error("Cannot add driver: llm service is not registered.")
+		}
+		return this.ctx.llm.addDriver(driver)
+	}
+
+	async listModels(): Promise<ModelInfo[]> {
+		if (!this.ctx.llm) return []
+		return await this.ctx.llm.listModels()
+	}
+
+	on<T = unknown>(event: string, handler: NotificationHandler<T>): Disposable {
+		return this.events.on(event, handler)
+	}
+
+	emit<T = unknown>(event: string, payload: T): void {
+		this.events.emit(event, payload)
+	}
+
+	get conversations() {
+		return {
+			list: async () => {
+				const list = (await this.ctx.sessions?.list()) ?? []
+				return list.map((s) => ({
+					id: s.id,
+					title: (s.metadata?.title as string) || "Conversation",
+					createdAt: s.createdAt,
+					updatedAt: s.updatedAt,
+					messageCount: s.eventCount,
+					modelId: (s.metadata?.model as string) || "",
+				}))
+			},
+			load: async (id: string) => {
+				const session = await this.ctx.sessions?.open(id)
+				return session ? await session.export() : null
+			},
+			delete: async (id: string) => {
+				await this.ctx.sessions?.delete(id)
+			},
+		}
 	}
 
 	async dispose(): Promise<void> {

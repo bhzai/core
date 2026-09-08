@@ -64,14 +64,29 @@ export interface McpService {
 	attach(config: McpServerConfig, options?: McpClientOptions): Promise<McpServerState>
 
 	/**
+	 * Adds an MCP server (alias for attach).
+	 */
+	add(config: McpServerConfig, options?: McpClientOptions): Promise<McpServerState>
+
+	/**
 	 * Detaches an MCP server, unregistering its tools and closing the connection.
 	 */
 	detach(id: string): Promise<void>
 
 	/**
+	 * Removes an MCP server (alias for detach).
+	 */
+	remove(id: string): Promise<void>
+
+	/**
 	 * Retries connecting an existing MCP server entry.
 	 */
 	retry(id: string): Promise<McpServerState>
+
+	/**
+	 * Re-syncs the tool list for a connected server.
+	 */
+	refresh(id: string): Promise<McpServerState>
 
 	/**
 	 * Lists all attached MCP servers and their current status.

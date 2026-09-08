@@ -26,8 +26,46 @@ export const idbConversationsPlugin: PluginDefinition<IdbConversationsPluginOpti
 		const backend = createIndexedDbPersistence(config)
 		const unregister = sessions.registerBackend(backendName, backend)
 
+		const unregLoadPage = ctx.events.on("idb-conversations.load-page", async (p: unknown) => {
+			const payload = p as { offset?: number; limit?: number }
+			const offset = payload?.offset ?? 0
+			const list = await sessions.list({ backend: backendName })
+			ctx.events.emit("idb-conversations.load.success", {
+				conversations: list.slice(offset),
+				offset,
+				hasMore: false,
+				total: list.length,
+			})
+		})
+
+		const unregDelete = ctx.events.on("session/deleted", (p: unknown) => {
+			const payload = p as { sessionId?: string }
+			if (payload?.sessionId) {
+				ctx.events.emit("idb-conversations.conversation.deleted", {
+					id: payload.sessionId,
+				})
+			}
+		})
+
 		return () => {
 			unregister()
+			unregLoadPage()
+			unregDelete()
 		}
 	},
+}
+
+/**
+ * Factory creating an idb-conversations plugin instance (alias for backwards compatibility).
+ * @param config Plugin options.
+ */
+export function createIdbConversationStorePlugin(
+	config: IdbConversationsPluginOptions = {},
+): PluginDefinition<IdbConversationsPluginOptions> {
+	return {
+		...idbConversationsPlugin,
+		setup(ctx) {
+			return idbConversationsPlugin.setup(ctx, config)
+		},
+	}
 }

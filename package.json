@@ -55,6 +55,10 @@
 		"./plugins/interop/opencode": {
 			"types": "./dist/plugins/interop/opencode/index.d.ts",
 			"import": "./dist/plugins/interop/opencode/index.js"
+		},
+		"./v2": {
+			"types": "./dist/v2/index.d.ts",
+			"import": "./dist/v2/index.js"
 		}
 	},
 	"scripts": {

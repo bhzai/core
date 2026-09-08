@@ -247,8 +247,28 @@ export class McpServiceImpl implements McpService {
 		return await this.connect(record)
 	}
 
+	async refresh(id: string): Promise<McpServerState> {
+		const record = this.records.get(id)
+		if (!record) {
+			throw new Error(`MCP server with id "${id}" not found.`)
+		}
+		if (record.state.status !== "connected") {
+			return record.state
+		}
+		this.cleanupRecordTools(record)
+		return await this.connect(record)
+	}
+
 	list(): McpServerState[] {
 		return Array.from(this.records.values()).map((r) => r.state)
+	}
+
+	async add(config: McpServerState["config"], options?: McpClientOptions): Promise<McpServerState> {
+		return await this.attach(config, options)
+	}
+
+	async remove(id: string): Promise<void> {
+		await this.detach(id)
 	}
 
 	get(id: string): McpServerState | undefined {

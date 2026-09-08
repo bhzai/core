@@ -17,6 +17,12 @@ export * from "./plugins/mcp/index.js"
 export * from "./plugins/idb-conversations/index.js"
 export * from "./plugins/interop/pi/index.js"
 export * from "./plugins/interop/opencode/index.js"
+export {
+	createHarness,
+	type Harness,
+	type HarnessOptions,
+	type HarnessSession,
+} from "./v2/kernel/index.js"
 
 // Conversation primitives. Not a plugin subpath — these ship only from the root
 // entry, so they are re-exported explicitly rather than via a `plugins/*` barrel.

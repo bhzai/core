@@ -41,6 +41,7 @@ import { LMStudio } from "@bhzai/core/plugins/lmstudio"
 import { Ollama } from "@bhzai/core/plugins/ollama"
 import { OpenAI } from "@bhzai/core/plugins/openai"
 import { VLLM } from "@bhzai/core/plugins/vllm"
+import type { Harness } from "@bhzai/core/v2"
 
 import type { BhzaiProviderCog } from "../components/provider-cog.js"
 import type { BhzaiProvidersDialog, ProviderViewState } from "../components/providers-dialog.js"
@@ -69,8 +70,8 @@ type ProviderDriver = BHZAIDriver & EventTarget & { disconnect(): void }
 
 /** Everything the provider controller drives. */
 export interface ProviderControllerDeps {
-	/** The live BHZAI kernel instance. */
-	bh: BHZAI
+	/** The live BHZAI kernel or Harness instance. */
+	bh: Harness | BHZAI
 	/** The providers cog button in the status bar. */
 	cog: BhzaiProviderCog
 	/** The providers dialog custom element. */

@@ -334,4 +334,48 @@ describe("Harness & Kernel Lifecycle", () => {
 
 		await harness.dispose()
 	})
+
+	it("throws when createSession or openSession is called without sessions service", async () => {
+		const harness = await createHarness()
+		await expect(harness.createSession()).rejects.toThrow(
+			"Harness.createSession requires the sessions service",
+		)
+		await expect(harness.openSession("missing")).rejects.toThrow(
+			"Harness.openSession requires the sessions service",
+		)
+		await harness.dispose()
+	})
+
+	it("throws errors when required services are missing from harness methods", async () => {
+		const emptyHarness = await createHarness()
+		await expect(emptyHarness.createSession()).rejects.toThrow("requires the sessions service")
+		await expect(emptyHarness.openSession("any")).rejects.toThrow("requires the sessions service")
+		await emptyHarness.dispose()
+
+		const sessionPluginOnly: PluginDefinition = {
+			name: "sessions",
+			setup(ctx) {
+				ctx.claim("sessions", {
+					create: async () => ({
+						id: "s1",
+						metadata: {},
+						events: [],
+						getEvents: () => [],
+						export: async () => ({
+							version: 1 as const,
+							sessionId: "s1",
+							events: [],
+						}),
+					}),
+					open: async () => {
+						throw new Error("not found")
+					},
+				})
+			},
+		}
+		const h = await createHarness({ plugins: [sessionPluginOnly] })
+		const s = await h.createSession()
+		await expect(s.sendMessage("hi")).rejects.toThrow("agentLoop service is not registered")
+		await h.dispose()
+	})
 })

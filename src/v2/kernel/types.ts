@@ -1,3 +1,14 @@
+import type { BHZAIDriver } from "../../types/driver"
+import type { BHZAIMessage } from "../../types/message"
+import type { ModelInfo } from "../../types/model"
+import type { TurnInput, TurnOptions, TurnResult } from "../loop/types"
+import type {
+	CreateSessionOptions,
+	OpenSessionOptions,
+	SessionEvent,
+	SessionExport,
+} from "../sessions/types"
+
 /**
  * A cleanup function that releases resources or subscriptions.
  */
@@ -7,6 +18,22 @@ export type Disposable = () => void | Promise<void>
  * Teardown function returned by a plugin's setup method.
  */
 export type PluginTeardown = () => void | Promise<void>
+
+/**
+ * Options for creating an active conversation session facade.
+ */
+export interface HarnessCreateSessionOptions extends CreateSessionOptions {
+	model?: string
+	[key: string]: unknown
+}
+
+/**
+ * Options for opening an existing conversation session facade.
+ */
+export interface HarnessOpenSessionOptions extends OpenSessionOptions {
+	model?: string
+	[key: string]: unknown
+}
 
 /**
  * Handler for notification events.
@@ -212,7 +239,162 @@ export interface Harness {
 	getLoadedPlugins(): string[]
 
 	/**
+	 * Creates an active conversation session facade.
+	 * @param options Session creation options.
+	 */
+	createSession(options?: HarnessCreateSessionOptions): Promise<HarnessSession>
+
+	/**
+	 * Opens an existing conversation session by ID.
+	 * @param id Unique session ID.
+	 * @param options Options for opening.
+	 */
+	openSession(id: string, options?: HarnessOpenSessionOptions): Promise<HarnessSession>
+
+	/**
+	 * Creates an active conversation session facade (alias for createSession).
+	 * @param options Session creation options.
+	 */
+	createConversation(options?: HarnessCreateSessionOptions): Promise<HarnessSession>
+
+	/**
+	 * Loads an existing conversation session from a snapshot or ID.
+	 * @param snapshot Session snapshot or identifier.
+	 * @param options Options for opening.
+	 */
+	loadConversation(
+		snapshot: { id?: string; sessionId?: string } | string,
+		options?: HarnessOpenSessionOptions,
+	): Promise<HarnessSession>
+
+	/**
+	 * Registers an LLM driver on the claimed LLM service.
+	 * @param driver The driver instance to register.
+	 */
+	addDriver(driver: BHZAIDriver): () => void
+
+	/**
+	 * Lists all models merged across registered LLM drivers.
+	 */
+	listModels(): Promise<ModelInfo[]>
+
+	/**
+	 * Subscribes to events on the harness event bus.
+	 * @param event Event name.
+	 * @param handler Notification handler callback.
+	 */
+	on<T = unknown>(event: string, handler: NotificationHandler<T>): Disposable
+
+	/**
+	 * Dispatches an event across the harness event bus.
+	 * @param event Event name.
+	 * @param payload Event data payload.
+	 */
+	emit<T = unknown>(event: string, payload: T): void
+
+	/**
+	 * Conversation management operations for sidebar and host integration.
+	 */
+	readonly conversations: {
+		list(): Promise<
+			Array<{
+				id: string
+				title: string
+				createdAt: number
+				updatedAt: number
+				messageCount: number
+				modelId: string
+			}>
+		>
+		load(id: string): Promise<SessionExport | null>
+		delete(id: string): Promise<void>
+	}
+
+	/**
 	 * Shuts down the harness, unloading all plugins in reverse order.
 	 */
 	dispose(): Promise<void>
+}
+
+/**
+ * Public embedding facade for an active session.
+ */
+export interface HarnessSession {
+	/** Unique session identifier. */
+	readonly id: string
+
+	/** Currently assigned model reference. */
+	readonly model: string
+
+	/** Current session execution status. */
+	readonly status: "idle" | "running"
+
+	/** Token usage accumulated across turns in this session. */
+	readonly usage: {
+		inputTokens: number
+		outputTokens: number
+		totalTokens: number
+	}
+
+	/** Context usage details for the active session. */
+	readonly contextUsage?: {
+		totalTokens: number
+		contextWindow: number
+		utilization: number
+		lastInputTokens?: number
+		lastOutputTokens?: number
+	}
+
+	/**
+	 * Switches the active model reference for subsequent turns in this session.
+	 * @param modelRef Qualified or bare model reference.
+	 */
+	setModel(modelRef: string): Promise<void>
+
+	/**
+	 * Sends user input into the session and executes an agent turn.
+	 * @param input User prompt or structured content blocks.
+	 * @param options Turn configuration options.
+	 */
+	send(input: TurnInput, options?: TurnOptions): Promise<TurnResult>
+
+	/**
+	 * Sends user input text (convenience alias for send).
+	 * @param text User prompt text.
+	 * @param options Turn configuration options.
+	 */
+	sendMessage(text: string, options?: TurnOptions): Promise<TurnResult>
+
+	/**
+	 * Cancels the currently executing turn, if any.
+	 * @param reason Optional cancellation reason.
+	 */
+	abort(reason?: string): void
+
+	/**
+	 * Subscribes to events scoped to this session.
+	 * @param event Event name.
+	 * @param handler Event callback.
+	 */
+	on(event: string, handler: (payload: unknown) => void): Disposable
+
+	/**
+	 * Exports the full session log into a portable versioned JSON format.
+	 */
+	export(): Promise<SessionExport>
+
+	/**
+	 * Returns the raw events recorded in this session.
+	 */
+	getEvents(): readonly SessionEvent[]
+
+	/**
+	 * Serializes session messages for presentation.
+	 */
+	toJSON(): {
+		id: string
+		model: string
+		messages: BHZAIMessage[]
+		metadata: Record<string, unknown>
+	}
 }

@@ -26,11 +26,16 @@ afterEach(() => {
 
 describe("IndexedDB Persistence", () => {
 	it("throws if indexedDB is not available in environment", async () => {
+		const prev = g.indexedDB
 		g.indexedDB = undefined
-		const persistence = createIndexedDbPersistence({ dbName: uniqueDbName() })
-		await expect(persistence.create("test-1")).rejects.toThrow(
-			"IndexedDB is not available in the current environment",
-		)
+		try {
+			const persistence = createIndexedDbPersistence({ dbName: uniqueDbName() })
+			await expect(persistence.create("test-1")).rejects.toThrow(
+				"IndexedDB is not available in the current environment",
+			)
+		} finally {
+			g.indexedDB = prev
+		}
 	})
 
 	it("creates, opens, appends, and reads session events", async () => {

@@ -9,6 +9,7 @@
 
 import type { BHZAI, ConversationSummary } from "@bhzai/core"
 import { IdbConversationEvents } from "@bhzai/core/plugins/idb-conversations"
+import type { Harness } from "@bhzai/core/v2"
 import type { BhzaiComposer } from "../components/composer.js"
 import type { BhzaiConversationList } from "../components/conversation-list.js"
 import type { BhzaiConversation } from "../components/conversation-view.js"
@@ -16,8 +17,8 @@ import type { ChatController } from "./chat-controller.js"
 
 /** Everything the conversations controller drives. */
 export interface ConversationsControllerDeps {
-	/** The kernel, already initialized with the idb-conversations plugin. */
-	bh: BHZAI
+	/** The kernel or harness, already initialized with the idb-conversations plugin. */
+	bh: Harness | BHZAI
 	/** UI custom elements. */
 	ui: {
 		conversationList: BhzaiConversationList

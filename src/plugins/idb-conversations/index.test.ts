@@ -38,8 +38,8 @@ function plugin(opts?: Parameters<typeof createIdbConversationStorePlugin>[0]) {
  * Two macro-tasks are enough: one for the save promise, one for the emit
  * dispatch.
  */
-function settle(): Promise<void> {
-	return new Promise((resolve) => setTimeout(resolve, 0))
+function settle(ms = 25): Promise<void> {
+	return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
 // The original `indexedDB` value (if any) so `afterEach` can restore it

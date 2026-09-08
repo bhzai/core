@@ -76,3 +76,8 @@ export const contextTrackingPlugin: PluginDefinition = {
 		}
 	},
 }
+
+/**
+ * Alias for contextTrackingPlugin.
+ */
+export const contextPlugin = contextTrackingPlugin

@@ -37,6 +37,7 @@ export default defineConfig({
 		"plugins/idb-conversations/index": "src/plugins/idb-conversations/index.ts",
 		"plugins/interop/pi/index": "src/plugins/interop/pi/index.ts",
 		"plugins/interop/opencode/index": "src/plugins/interop/opencode/index.ts",
+		"v2/index": "src/v2/index.ts",
 	},
 	format: ["esm"],
 	dts: true,

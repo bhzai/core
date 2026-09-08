@@ -10,13 +10,17 @@ export {
 } from "./errors"
 export { createEventBus } from "./event-bus"
 export { createHarness } from "./kernel"
+export { HarnessSessionImpl } from "./harness-session"
 export type {
 	BailHandler,
 	Disposable,
 	EventBus,
 	Harness,
 	HarnessContext,
+	HarnessCreateSessionOptions,
+	HarnessOpenSessionOptions,
 	HarnessOptions,
+	HarnessSession,
 	NotificationHandler,
 	PluginContext,
 	PluginDefinition,
