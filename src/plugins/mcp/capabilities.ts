@@ -34,9 +34,9 @@
 // approval gate / event bus — no `fetch` directly (it uses the
 // `McpClient`'s transport methods), no Node built-ins.
 
-import { parseModelRef } from "../../core/models.js"
+import { parseModelRef } from "../../llm/models.js"
 import type { BHZAIDriver, ChatRequest } from "../../types/index.js"
-import type { ApprovalCall, ApprovalGate, McpApprovalOptions } from "./approval.js"
+import type { ApprovalCall, McpApprovalOptions } from "./approval.js"
 
 // ---------------------------------------------------------------------------
 // Elicitation shapes (spec: /client/elicitation, rev 2025-11-25).
@@ -532,7 +532,7 @@ async function selectSamplingDriver(
 	if (parsedModel) {
 		model = parsedModel.id
 	}
-	return { driver, model }
+	return { driver, model: model ?? "" }
 }
 
 export async function handleSampling(

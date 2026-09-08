@@ -6,8 +6,8 @@
  */
 
 import type { BHZAI, BHZAIConversation } from "@bhzai/core"
+import type { Harness, HarnessSession } from "@bhzai/core"
 import type { WebLLM } from "@bhzai/core/plugins/webllm"
-import type { Harness, HarnessSession } from "@bhzai/core/v2"
 import type * as webllm from "@mlc-ai/web-llm"
 
 import type { BhzaiColdStart } from "../components/cold-start-panel.js"

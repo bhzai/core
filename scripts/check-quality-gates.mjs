@@ -197,6 +197,60 @@ export function checkSourceFile(filePath, sourceFile, isTest) {
 	return errors
 }
 
+const V2_CORE_DIRS = [
+	"src/kernel",
+	"src/sessions",
+	"src/llm",
+	"src/tools",
+	"src/commands",
+	"src/loop",
+	"src/context",
+	"src/compaction",
+	"src/plugins/idb",
+	"src/plugins/examples",
+]
+
+const V2_CORE_EXTRA_FILES = [
+	"src/index.ts",
+	"src/plugins/mcp/service.ts",
+	"src/plugins/mcp/plugin.ts",
+	"src/plugins/mcp/types.ts",
+	"src/plugins/mcp/mcp.test.ts",
+]
+
+const DELETED_MODULE_PATTERNS = [
+	{ regex: /\b@bhzai\/core\/core\b/, desc: "@bhzai/core/core" },
+	{
+		regex:
+			/\bfrom\s+["'][^"']*\/core\/(bhzai|event-bus|decorators|credentials|storage|complete|embed)/,
+		desc: "src/core/",
+	},
+	{ regex: /\bfrom\s+["'][^"']*\/conversation\//, desc: "src/conversation/" },
+	{ regex: /\bfrom\s+["'][^"']*\/plugins\/interop\//, desc: "src/plugins/interop/" },
+]
+
+/**
+ * Check for forbidden references to deleted v0.1 modules.
+ * @param {string} filePath
+ * @param {string} content
+ * @returns {string[]}
+ */
+export function checkDeletedModuleReferences(filePath, content) {
+	const errors = []
+	const lines = content.split(/\r?\n/)
+	for (let i = 0; i < lines.length; i++) {
+		const line = lines[i]
+		for (const { regex, desc } of DELETED_MODULE_PATTERNS) {
+			if (regex.test(line)) {
+				errors.push(
+					`${filePath}:${i + 1}: Reference to deleted module ${desc} found: "${line.trim()}"`,
+				)
+			}
+		}
+	}
+	return errors
+}
+
 /**
  * Run all quality gate checks on given files or discovered files.
  * @param {string[]} [targetFiles]
@@ -205,27 +259,40 @@ export function checkSourceFile(filePath, sourceFile, isTest) {
 export function runQualityGates(targetFiles) {
 	let filesToCheck = targetFiles
 	if (!filesToCheck || filesToCheck.length === 0) {
-		const v2Files = walkDir("src/v2", (f) => f.endsWith(".ts"))
-		const docFiles = walkDir("docs/v2", (f) => f.endsWith(".md"))
-		filesToCheck = [...v2Files, ...docFiles]
+		const coreFiles = V2_CORE_DIRS.flatMap((d) => walkDir(d, (f) => f.endsWith(".ts")))
+		const docFiles = walkDir("docs", (f) => f.endsWith(".md"))
+		filesToCheck = [...coreFiles, ...V2_CORE_EXTRA_FILES, ...docFiles]
 	}
 
 	const allErrors = []
+
+	// Grep gate: verify zero references to deleted modules across all code files
+	const allSrcFiles = walkDir("src", (f) => f.endsWith(".ts"))
+	const allExampleFiles = walkDir("example/src", (f) => f.endsWith(".ts"))
+	const allExamplesDirFiles = walkDir("examples", (f) => f.endsWith(".ts"))
+	for (const f of [...allSrcFiles, ...allExampleFiles, ...allExamplesDirFiles]) {
+		if (fs.existsSync(f)) {
+			const content = fs.readFileSync(f, "utf-8")
+			allErrors.push(...checkDeletedModuleReferences(f, content))
+		}
+	}
 
 	for (const rawFile of filesToCheck) {
 		const filePath = path.normalize(rawFile)
 		if (!fs.existsSync(filePath)) continue
 
-		const isV2 = filePath.includes("src/v2")
-		const isDocsV2 = filePath.includes("docs/v2")
-		if (!isV2 && !isDocsV2) continue
+		const isCore =
+			V2_CORE_DIRS.some((d) => filePath.includes(d)) ||
+			V2_CORE_EXTRA_FILES.some((f) => path.normalize(f) === filePath)
+		const isDoc = filePath.startsWith("docs") && filePath.endsWith(".md")
+		if (!isCore && !isDoc) continue
 
 		const content = fs.readFileSync(filePath, "utf-8")
 
-		// 1. Narration check applies to both src/v2 and docs/v2
+		// 1. Narration check applies to both core and docs
 		allErrors.push(...checkNarration(filePath, content))
 
-		if (isV2) {
+		if (isCore) {
 			// 2. Max file length check
 			allErrors.push(...checkFileLength(filePath, content, MAX_FILE_LINES))
 

@@ -11,7 +11,6 @@
  */
 
 import type { ModelInfo } from "@bhzai/core"
-import { type MLCEngineInstance, WebLLM } from "@bhzai/core/plugins/webllm"
 import {
 	type McpService,
 	agentLoopPlugin,
@@ -25,7 +24,8 @@ import {
 	sessionPlugin,
 	tokenizerPlugin,
 	toolsPlugin,
-} from "@bhzai/core/v2"
+} from "@bhzai/core"
+import { type MLCEngineInstance, WebLLM } from "@bhzai/core/plugins/webllm"
 
 import { createChatController } from "./app/chat-controller.js"
 import { createConversationsController } from "./app/conversations-controller.js"

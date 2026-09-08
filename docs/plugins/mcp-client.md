@@ -1,7 +1,7 @@
 # MCP Client (`src/plugins/mcp/`)
 
 Documentation for the built-in MCP (Model Context Protocol) streamable-HTTP
-client. Spec rev 2025-11-25. Architecture reference: ARCHITECTURE.md § 9.3.
+client. Spec rev 2025-11-25.
 
 ## Overview
 
@@ -16,7 +16,7 @@ servers. One instance is constructed per attached server. It owns:
 5. A real `tools/call` execute binding with `outputSchema` validation,
    per-call timeouts, a progress seam, and `AbortSignal`-driven cancellation.
 
-The public `bh.addMcp()` entry point (TASK_0015) wraps this class; hosts do
+The MCP service wraps this class; hosts do
 not typically construct `McpClient` directly.
 
 ## Getting started
@@ -134,7 +134,7 @@ new McpClient(config: McpServerConfig, toolRegistry: ToolRegistry, options?: Mcp
 - `config.headers` — extra HTTP headers on every outbound request (optional).
 - `config.name` — bhzai-local server name for tool namespacing (optional;
   derived from URL hostname if omitted).
-- `config.deferred` — skip discovery at connect time (TASK_0016) (optional).
+- `config.deferred` — skip discovery at connect time (optional).
 - `options.callTimeoutMs` — per-call timeout in milliseconds (default 60_000).
 
 #### Methods

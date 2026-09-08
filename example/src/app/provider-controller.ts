@@ -37,11 +37,11 @@
  */
 
 import type { BHZAI, BHZAIDriver } from "@bhzai/core"
+import type { Harness } from "@bhzai/core"
 import { LMStudio } from "@bhzai/core/plugins/lmstudio"
 import { Ollama } from "@bhzai/core/plugins/ollama"
 import { OpenAI } from "@bhzai/core/plugins/openai"
 import { VLLM } from "@bhzai/core/plugins/vllm"
-import type { Harness } from "@bhzai/core/v2"
 
 import type { BhzaiProviderCog } from "../components/provider-cog.js"
 import type { BhzaiProvidersDialog, ProviderViewState } from "../components/providers-dialog.js"

@@ -13,7 +13,7 @@ The WebLLM driver plugin — runs LLM inference in-browser via WebGPU (ARCHITECT
 
 - **Peer dep, not a runtime dep**: `@mlc-ai/web-llm` is declared as an optional peer dependency (`peerDependencies` + `peerDependenciesMeta.optional: true`), so the core bundle never forces it. The host supplies the `MLCEngine` instance; this plugin wraps it as a `BHZAIDriver`.
 - **No static import of `@mlc-ai/web-llm`**: the adapter does NOT statically import the real package — the engine is injected by the host, keeping the core bundle free of the browser/WebGPU-only dependency.
-- **WebGPU is environment-specific**: this is one of the few places where a non-web-standard API (WebGPU) is touched. That's why it's a plugin subpath, not part of `src/core/` (§ 5: environment-specific surfaces live in drivers/plugins, not the kernel).
+- **WebGPU is environment-specific**: this is one of the few places where a non-web-standard API (WebGPU) is touched. That's why it's a plugin subpath, not part of the core harness.
 - **Constructor detection heuristic**: `typeof options.engine === 'function'` → constructor form (driver instantiates and manages init lifecycle); otherwise → pre-warmed instance form.
 
 ## Consumers

@@ -2,7 +2,6 @@
 
 Subpath: `@bhzai/core/plugins/vllm`
 Source: `src/plugins/vllm/index.ts`
-Spec: ARCHITECTURE.md § 10 (drivers), § 10.4 (credentials)
 
 ## Overview
 
@@ -49,8 +48,7 @@ differences justify a first-class driver:
 2. **`max_model_len`.** vLLM reports a real per-model context window on
    `/v1/models`. The OpenAI driver falls back to a model-id family table, which
    has no entry for an arbitrary HuggingFace repo id — and a model reporting no
-   `contextWindow` has auto-compaction disabled entirely
-   (`src/conversation/agent-loop.ts`). This is behavioral, not cosmetic.
+   `contextWindow` has auto-compaction disabled entirely. This is behavioral, not cosmetic.
 3. **`delta.reasoning`.** Current vLLM names the separated-thinking channel
    `reasoning`. The OpenAI driver reads only `reasoning_content`, so reasoning
    output would be silently dropped.
@@ -307,7 +305,7 @@ through the base model's weights and shares its sequence limit.
 
 ## Error handling
 
-Non-2xx responses throw `{ status, body }` so `src/core/retry.ts`'s classifier
+Non-2xx responses throw `{ status, body }` so the transport retry classifier
 can inspect `.status` (the body is JSON-parsed when possible, else raw text).
 Network-level `fetch` failures (`TypeError`) propagate uncaught. An aborted
 signal yields `{ type: 'done', stopReason: 'abort' }` — checked once per read-loop
@@ -333,8 +331,8 @@ curl -s -D - -o /dev/null -H "Origin: http://localhost:5173" \
 
 ## Credentials
 
-Per § 10.4, credentials are **forwarded, never resolved**. `VLLMOptions.headers`
-is the highest-priority tier (runtime values in driver options); the driver never
+Credentials are **forwarded, never resolved**. `VLLMOptions.headers`
+are sent with outbound requests; the driver never
 reads an environment variable or a file. A vLLM server started without
 `--api-key` accepts every request unauthenticated, so `headers` defaults to `{}`.
 

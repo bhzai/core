@@ -31,7 +31,6 @@ export type {
 // at the top of that file). Re-exported here so the barrel stays the single
 // import point for downstream tasks.
 export type {
-	BHZAIConversation,
 	BHZAIToolDefinition,
 	Icon,
 	ToolAnnotations,

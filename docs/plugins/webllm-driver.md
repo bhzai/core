@@ -1,7 +1,6 @@
 # WebLLM Driver Plugin (`src/plugins/webllm/`)
 
-Documentation for the WebLLM driver plugin. Architecture reference:
-ARCHITECTURE.md § 10.2.
+Documentation for the WebLLM driver plugin.
 
 ## Overview
 
@@ -96,8 +95,8 @@ resulting async iterable into the framework's `DriverEvent` shape:
   `'tool_calls'`→`'tool-calls'`, `'length'`→`'length'`)
 - Abort → `{ type: 'done', stopReason: 'abort' }` when the signal fires
 
-Unexpected engine exceptions propagate uncaught so the kernel's retry wrapper
-(TASK_0018) can classify and retry them.
+Unexpected engine exceptions propagate uncaught so the transport retry wrapper
+can classify and retry them.
 
 ## `driver.progress` events
 

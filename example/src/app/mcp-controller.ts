@@ -8,8 +8,7 @@
  * from `manager.list()` on write so storage cannot drift from the screen.
  */
 
-import type { McpManager } from "@bhzai/core/plugins/mcp"
-import type { McpService } from "@bhzai/core/v2"
+import type { McpService } from "@bhzai/core"
 
 import type { BhzaiMcpAddForm } from "../components/mcp-add-form.js"
 import type { BhzaiMcpErrorDialog } from "../components/mcp-error-dialog.js"
@@ -19,7 +18,7 @@ import { loadServers, parseHeaderLines, saveServers, validateServerUrl } from ".
 /** Everything the MCP controller drives. */
 export interface McpControllerDeps {
 	/** The manager handed back by `createMcpPlugin()` or claimed on HarnessContext. */
-	manager: McpManager | McpService
+	manager: McpService
 	/** The server-list custom element. */
 	serverList: BhzaiMcpServerList
 	/** The add-server form custom element. */

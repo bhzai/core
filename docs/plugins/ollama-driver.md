@@ -2,17 +2,15 @@
 
 > Subpath: `@bhzai/core/plugins/ollama`
 > Source: `src/plugins/ollama/index.ts`
-> Task: TASK_0020
-> Architecture: § 10.3
 
 ## Overview
 
-The `Ollama` driver implements `BHZAIDriver` (§ 10.1) on top of a local or
+The `Ollama` driver implements `BHZAIDriver` on top of a local or
 remote Ollama server, using only web-standard `fetch`. It works unmodified in
 any fetch-capable runtime (browser, Node, Electron) — no Node-specific HTTP
 client, no peer dependency.
 
-This is the second of the two "bundled drivers" (§ 10.3). Unlike the WebLLM
+Unlike the WebLLM
 driver (browser-only, WebGPU-accelerated, peer dep on `@mlc-ai/web-llm`),
 Ollama gives BHZAI a zero-install, environment-agnostic local-inference story.
 
@@ -53,10 +51,8 @@ interface OllamaOptions {
 }
 ```
 
-`headers` are the "runtime values passed in driver options" that § 10.4
-documents as the highest-priority tier of the credential-resolution chain.
-The driver does NOT implement the resolution chain itself (that's
-TASK_0021's `resolveCredentials`). Since local Ollama needs no auth,
+`headers` are forwarded on every request.
+Since local Ollama needs no auth,
 `headers` defaults to `{}` and every request works unauthenticated when
 omitted.
 
@@ -112,18 +108,16 @@ doesn't supply one, and uses the server-supplied id when it does.
 
 ## Error handling
 
-- **Non-2xx HTTP**: throws `{ status, body }`-shaped error so TASK_0018's
-  retry classifier can inspect `.status`. Body is parsed as JSON if possible,
+- **Non-2xx HTTP**: throws `{ status, body }`-shaped error so retry
+  classifiers can inspect `.status`. Body is parsed as JSON if possible,
   otherwise raw text.
 - **Network-level `fetch` failure** (thrown `TypeError`): propagates uncaught
-  out of the generator, letting TASK_0018's wrapper classify and retry.
+  out of the generator, allowing the transport retry wrapper to classify and retry.
 
 ## `listModels()` boundary
 
 `listModels()` only ever returns `'ready'` entries (mapped from `/api/tags`).
-Any `'downloadable'` Ollama entries in the merged catalogue come from a
-`modelSource` hook contribution merged in later by TASK_0022, not from this
-driver directly — Ollama's HTTP API does not expose a "known but unpulled"
+Only pulled models are reported by this driver directly — Ollama's HTTP API does not expose a "known but unpulled"
 catalogue endpoint.
 
 ## `embed()`

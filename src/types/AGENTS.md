@@ -28,5 +28,5 @@ Cross-cutting TypeScript type declarations shared across the kernel, plugins, an
 ## Consumers
 
 - `src/index.ts` re-exports `types/index.ts` first, so every type is available from the root package barrel.
-- `src/core/`, `src/tools/`, and (future) `src/plugins/**` import types from `../types/index.js`.
+- Kernel and plugin modules import types from `../types/index.js`.
 - `src/types/types.test.ts` is a regression guard — `pnpm typecheck` runs it via `tsc --noEmit`.

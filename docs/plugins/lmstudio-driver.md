@@ -2,11 +2,10 @@
 
 > Subpath: `@bhzai/core/plugins/lmstudio`
 > Source: `src/plugins/lmstudio/index.ts`
-> Architecture: § 10.3
 
 ## Overview
 
-The `LMStudio` driver implements `BHZAIDriver` (§ 10.1) on top of a local or
+The `LMStudio` driver implements `BHZAIDriver` on top of a local or
 remote [LM Studio](https://lmstudio.ai) server, using only web-standard
 `fetch`. It works unmodified in any fetch-capable runtime (browser, Node,
 Electron) — no Node-specific HTTP client, no peer dependency.
@@ -76,8 +75,7 @@ interface LMStudioOptions {
 
 `baseUrl` is the server **root** — the driver appends `/api/v0/…` itself.
 
-`headers` are the "runtime values passed in driver options" that § 10.4
-documents as the highest-priority tier of the credential-resolution chain. The
+`headers` are forwarded on every request to the backend server. The
 driver does NOT implement the resolution chain itself. LM Studio's local server
 is unauthenticated by default (its API token is opt-in), so `headers` defaults
 to `{}` and every request works unauthenticated when omitted.

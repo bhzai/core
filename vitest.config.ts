@@ -10,15 +10,11 @@ export default defineConfig({
 		alias: [
 			{
 				find: /^@bhzai\/core\/v2$/,
-				replacement: fileURLToPath(new URL("./src/v2/index.ts", import.meta.url)),
+				replacement: fileURLToPath(new URL("./src/index.ts", import.meta.url)),
 			},
 			{
 				find: /^@bhzai\/core\/plugins\/(.*)$/,
 				replacement: fileURLToPath(new URL("./src/plugins/$1/index.ts", import.meta.url)),
-			},
-			{
-				find: /^@bhzai\/core\/core$/,
-				replacement: fileURLToPath(new URL("./src/core/index.ts", import.meta.url)),
 			},
 			{
 				find: /^@bhzai\/core$/,
@@ -40,25 +36,32 @@ export default defineConfig({
 		coverage: {
 			provider: "v8",
 			reporter: ["text", "json-summary", "html"],
-			include: ["src/v2/**/*.ts"],
-			exclude: [
-				"src/v2/**/*.test.ts",
-				"src/v2/**/index.ts",
-				"src/v2/**/types.ts",
-				"src/v2/**/types/**",
+			include: [
+				"src/kernel/**/*.ts",
+				"src/sessions/**/*.ts",
+				"src/llm/**/*.ts",
+				"src/tools/**/*.ts",
+				"src/commands/**/*.ts",
+				"src/loop/**/*.ts",
+				"src/context/**/*.ts",
+				"src/compaction/**/*.ts",
+				"src/plugins/idb/**/*.ts",
+				"src/plugins/examples/**/*.ts",
+				"src/plugins/mcp/**/*.ts",
 			],
+			exclude: ["src/**/*.test.ts", "src/**/index.ts", "src/**/types.ts", "src/**/types/**"],
 			thresholds: {
 				lines: 80,
 				branches: 80,
 				functions: 80,
 				statements: 80,
-				"src/v2/kernel/**": {
+				"src/kernel/**": {
 					lines: 90,
 					branches: 90,
 					functions: 90,
 					statements: 90,
 				},
-				"src/v2/loop/**": {
+				"src/loop/**": {
 					lines: 90,
 					branches: 90,
 					functions: 90,

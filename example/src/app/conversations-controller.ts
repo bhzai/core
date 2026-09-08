@@ -8,8 +8,8 @@
  */
 
 import type { BHZAI, ConversationSummary } from "@bhzai/core"
+import type { Harness } from "@bhzai/core"
 import { IdbConversationEvents } from "@bhzai/core/plugins/idb-conversations"
-import type { Harness } from "@bhzai/core/v2"
 import type { BhzaiComposer } from "../components/composer.js"
 import type { BhzaiConversationList } from "../components/conversation-list.js"
 import type { BhzaiConversation } from "../components/conversation-view.js"
