@@ -51,10 +51,6 @@
 		"./plugins/examples": {
 			"types": "./dist/plugins/examples/index.d.ts",
 			"import": "./dist/plugins/examples/index.js"
-		},
-		"./v2": {
-			"types": "./dist/index.d.ts",
-			"import": "./dist/index.js"
 		}
 	},
 	"scripts": {

@@ -197,7 +197,7 @@ export function checkSourceFile(filePath, sourceFile, isTest) {
 	return errors
 }
 
-const V2_CORE_DIRS = [
+const CORE_DIRS = [
 	"src/kernel",
 	"src/sessions",
 	"src/llm",
@@ -210,7 +210,7 @@ const V2_CORE_DIRS = [
 	"src/plugins/examples",
 ]
 
-const V2_CORE_EXTRA_FILES = [
+const CORE_EXTRA_FILES = [
 	"src/index.ts",
 	"src/plugins/mcp/service.ts",
 	"src/plugins/mcp/plugin.ts",
@@ -259,9 +259,9 @@ export function checkDeletedModuleReferences(filePath, content) {
 export function runQualityGates(targetFiles) {
 	let filesToCheck = targetFiles
 	if (!filesToCheck || filesToCheck.length === 0) {
-		const coreFiles = V2_CORE_DIRS.flatMap((d) => walkDir(d, (f) => f.endsWith(".ts")))
+		const coreFiles = CORE_DIRS.flatMap((d) => walkDir(d, (f) => f.endsWith(".ts")))
 		const docFiles = walkDir("docs", (f) => f.endsWith(".md"))
-		filesToCheck = [...coreFiles, ...V2_CORE_EXTRA_FILES, ...docFiles]
+		filesToCheck = [...coreFiles, ...CORE_EXTRA_FILES, ...docFiles]
 	}
 
 	const allErrors = []
@@ -282,8 +282,8 @@ export function runQualityGates(targetFiles) {
 		if (!fs.existsSync(filePath)) continue
 
 		const isCore =
-			V2_CORE_DIRS.some((d) => filePath.includes(d)) ||
-			V2_CORE_EXTRA_FILES.some((f) => path.normalize(f) === filePath)
+			CORE_DIRS.some((d) => filePath.includes(d)) ||
+			CORE_EXTRA_FILES.some((f) => path.normalize(f) === filePath)
 		const isDoc = filePath.startsWith("docs") && filePath.endsWith(".md")
 		if (!isCore && !isDoc) continue
 

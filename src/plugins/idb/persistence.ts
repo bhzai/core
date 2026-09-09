@@ -1,6 +1,6 @@
 import type { SessionEvent, SessionPersistence, SessionSummary } from "../../sessions/types"
 
-const DEFAULT_DB_NAME = "bhzai-sessions-v2"
+const DEFAULT_DB_NAME = "bhzai-sessions"
 const DB_VERSION = 1
 const SESSIONS_STORE = "sessions"
 const EVENTS_STORE = "events"
