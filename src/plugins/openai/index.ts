@@ -226,8 +226,8 @@ export type OpenAIModelType =
  * Context windows by model-id family, longest-prefix wins.
  *
  * WHY A TABLE AT ALL: `GET /v1/models` reports no context length, and a model
- * that reports no `contextWindow` disables auto-compaction in the conversation
- * layer (`src/conversation/agent-loop.ts`) — so returning `undefined` for every
+ * that reports no `contextWindow` disables auto-compaction in the context
+ * layer — so returning `undefined` for every
  * OpenAI model would quietly turn that feature off for the entire provider.
  *
  * WHY IT IS SAFE ENOUGH: every value errs LOW (it is the published window of the
@@ -293,7 +293,7 @@ const MODALITY_PROBES: Array<{ type: OpenAIModelType; match: (id: string) => boo
  * Read the tool calls an assistant message recorded under `meta.toolCalls`.
  *
  * The agent loop writes `ToolCallRecord[]` there for every turn that produced
- * tool calls (`src/conversation/agent-loop.ts`), and it survives the snapshot
+ * tool calls, and it survives the snapshot
  * round-trip. Defensive about the shape because `meta` is an open
  * `Record<string, unknown>` that hosts and plugins also write to, and a
  * restored snapshot could predate the record.
@@ -884,7 +884,7 @@ export class OpenAI extends EventTarget implements BHZAIDriver {
 	 * message must carry a `tool_call_id` AND must be preceded by an assistant
 	 * message whose `tool_calls` array contains that id, or the request fails
 	 * with 400 before the model ever sees it. The kernel records the id on the
-	 * tool-result message's `meta.toolCallId` (`src/conversation/agent-loop.ts`)
+	 * tool-result message's `meta.toolCallId`
 	 * but does NOT record the calls on the assistant message that made them, so
 	 * a naive mapping breaks on the second iteration of every tool loop.
 	 *

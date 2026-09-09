@@ -1,6 +1,6 @@
 {
 	"name": "@bhzai/core",
-	"version": "0.1.0",
+	"version": "0.2.0",
 	"type": "module",
 	"license": "MIT",
 	"sideEffects": false,
@@ -15,10 +15,6 @@
 		".": {
 			"types": "./dist/index.d.ts",
 			"import": "./dist/index.js"
-		},
-		"./core": {
-			"types": "./dist/core/index.d.ts",
-			"import": "./dist/core/index.js"
 		},
 		"./plugins/webllm": {
 			"types": "./dist/plugins/webllm/index.d.ts",
@@ -44,31 +40,34 @@
 			"types": "./dist/plugins/mcp/index.d.ts",
 			"import": "./dist/plugins/mcp/index.js"
 		},
+		"./plugins/idb": {
+			"types": "./dist/plugins/idb/index.d.ts",
+			"import": "./dist/plugins/idb/index.js"
+		},
 		"./plugins/idb-conversations": {
 			"types": "./dist/plugins/idb-conversations/index.d.ts",
 			"import": "./dist/plugins/idb-conversations/index.js"
 		},
-		"./plugins/interop/pi": {
-			"types": "./dist/plugins/interop/pi/index.d.ts",
-			"import": "./dist/plugins/interop/pi/index.js"
-		},
-		"./plugins/interop/opencode": {
-			"types": "./dist/plugins/interop/opencode/index.d.ts",
-			"import": "./dist/plugins/interop/opencode/index.js"
+		"./plugins/examples": {
+			"types": "./dist/plugins/examples/index.d.ts",
+			"import": "./dist/plugins/examples/index.js"
 		}
 	},
 	"scripts": {
 		"build": "tsup",
 		"typecheck": "tsc --noEmit && tsc --noEmit -p example",
-		"lint": "biome check .",
+		"lint": "biome check . && node scripts/check-quality-gates.mjs",
+		"lint:gates": "node scripts/check-quality-gates.mjs",
 		"format": "biome format --write .",
 		"test": "vitest run",
+		"test:coverage": "vitest run --coverage",
 		"test:watch": "vitest",
 		"preview": "pnpm run build && pnpm --filter bhzai-example run preview",
 		"prepare": "husky"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "1.9.4",
+		"@vitest/coverage-v8": "3.2.6",
 		"fake-indexeddb": "^6.2.5",
 		"husky": "^9.1.7",
 		"tsup": "8.5.1",

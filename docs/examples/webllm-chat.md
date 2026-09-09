@@ -133,7 +133,7 @@ The framework then splits the stream as it arrives — statefully, so tags may s
 
 The full reasoning text is also available on the finished message as `message.think` (backed by `meta.think`, so it survives a snapshot round-trip).
 
-This example previously shipped its own `src/lib/think-stream.js` parser; that parser now lives in the framework at `src/conversation/think-stream.ts`.
+The reasoning parser is integrated directly into the framework streaming pipeline.
 
 ### Stats & telemetry
 
@@ -603,5 +603,5 @@ is served as-is.
 - **`example/AGENTS.md`** — Implementation notes for developers working on this example.
 - **`example/package.json`** — Dependencies and build scripts.
 - **`example/vite.config.ts`** — Vite configuration (note: `@mlc-ai/web-llm` is excluded from pre-bundling).
-- **BHZAI core docs**: `docs/core/kernel.md`, `docs/core/conversation.md` — Detailed BHZAI API and concepts.
+- **BHZAI core docs**: `docs/ARCHITECTURE.md` — Detailed BHZAI v0.2 API and architecture specification.
 - **WebLLM docs**: https://github.com/mlc-ai/web-llm — Model selection, custom parameters, advanced features.

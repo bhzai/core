@@ -1,13 +1,12 @@
 # IndexedDB conversation-store plugin
 
-> Subpath: `@bhzai/core/plugins/idb-conversations`
-> Source: `src/plugins/idb-conversations/index.ts`
-> Architecture: § 11.4
+> Subpath: `@bhzai/core/plugins/idb`
+> Source: `src/plugins/idb/index.ts`
 
 ## Overview
 
-The `idb-conversations` plugin implements the kernel's `ConversationStore`
-interface (§ 11.4) over IndexedDB, giving browser hosts a zero-dependency
+The `idb` plugin implements the session persistence
+interface over IndexedDB, giving browser hosts a zero-dependency
 durable conversation persistence layer. Registering it via `bh.use()` makes
 the kernel auto-save a snapshot on every `conversation.message(sent)` event
 and exposes `bh.conversations.list()` / `load(id)` / `delete(id)` for the

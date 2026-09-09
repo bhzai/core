@@ -16,15 +16,14 @@
 // never under `dependencies` or root `devDependencies` (a `devDependency` for
 // local typechecking/testing is acceptable, but the published runtime
 // classification must remain `peerDependencies`). This package is intentionally
-// never imported by anything under `src/core/`, `src/types/`, `src/tools/`, or
-// `src/conversation/` — only files under `src/plugins/webllm/` may import it.
+// never imported by the core package barrel — only files under `src/plugins/webllm/` may import it.
 // In practice this adapter does NOT statically import `@mlc-ai/web-llm` at all:
 // the engine is injected by the host, keeping the core bundle free of the
 // browser/WebGPU-only dependency.
 //
-// ENVIRONMENT BOUNDARY (§ 5): this plugin subpath is one of the few places
+// ENVIRONMENT BOUNDARY: this plugin subpath is one of the few places
 // where a non-web-standard API (WebGPU) is touched. That's why it's a plugin
-// subpath, not part of `src/core/`. The driver itself uses only
+// subpath, not part of the core harness. The driver itself uses only
 // `crypto.randomUUID()` (for fallback tool-call ids, never needed in the
 // WebLLM path since MLC supplies them) and async iterables — no Node built-ins.
 

@@ -287,7 +287,7 @@ function classifyModel(id: string): VLLMModelType {
  * Read the tool calls an assistant message recorded under `meta.toolCalls`.
  *
  * The agent loop writes `ToolCallRecord[]` there for every turn that produced
- * tool calls (`src/conversation/agent-loop.ts`), and it survives the snapshot
+ * tool calls, and it survives the snapshot
  * round-trip. Defensive about the shape because `meta` is an open
  * `Record<string, unknown>` that hosts and plugins also write to, and a restored
  * snapshot could predate the record.
@@ -797,7 +797,7 @@ export class VLLM extends EventTarget implements BHZAIDriver {
 	 * read `message.tool_calls` off the assistant turn to render the call, and
 	 * pair a `role: 'tool'` message to it by `tool_call_id`. The kernel records
 	 * the id on the tool-result message's `meta.toolCallId`
-	 * (`src/conversation/agent-loop.ts`) but does NOT record the calls on the
+	 * but does NOT record the calls on the
 	 * assistant message that made them, so a naive mapping renders a tool result
 	 * with no antecedent — the model then sees an answer to a question it never
 	 * asked.

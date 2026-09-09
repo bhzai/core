@@ -65,7 +65,7 @@ needs are a plain `fetch` away.
   longest-prefix (so `gpt-4o` beats `gpt-4`). Table values err LOW deliberately:
   under-reporting makes compaction fire early, over-reporting lets a conversation
   exceed the real limit and fail. A model matching no family reports `undefined`,
-  which disables auto-compaction for it (`src/conversation/agent-loop.ts`).
+  which disables auto-compaction for it.
 - **`meta.type` tags the modality.** The catalogue mixes chat with audio, image,
   moderation and embedding models. All are returned — filtering is a host
   decision — and `example/src/lib/models.ts` keeps only the conversational ones.

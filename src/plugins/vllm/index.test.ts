@@ -481,7 +481,7 @@ describe("VLLM — chat streaming", () => {
 	})
 
 	it("throws an error carrying .status on a non-2xx response", async () => {
-		// `src/core/retry.ts` classifies on `.status`.
+		// Transport retry classifies on `.status`.
 		const fetch = fakeFetch([
 			{
 				url: `${BASE}/v1/chat/completions`,

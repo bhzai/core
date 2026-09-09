@@ -41,7 +41,7 @@ async function mockOllamaFetch(input: string | Request, init?: RequestInit): Pro
 			JSON.stringify({
 				models: [
 					{
-						name: "llama3.3:latest",
+						name: "llama3.3",
 						model: "llama3.3",
 						size: 45e9,
 						digest: "abc123...",
@@ -61,7 +61,7 @@ async function mockOllamaFetch(input: string | Request, init?: RequestInit): Pro
 	}
 
 	// GET /api/show — model capabilities
-	if (url.includes("/api/show") && method === "GET") {
+	if (url.includes("/api/show") && method === "POST") {
 		return new Response(
 			JSON.stringify({
 				capabilities: ["tools", "embedding"],

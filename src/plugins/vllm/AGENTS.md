@@ -21,7 +21,7 @@ vLLM server via `baseUrl` — three concrete differences, in order of weight:
 2. **`max_model_len`.** vLLM reports a real per-model context window; the OpenAI
    driver falls back to an id-prefix family table that has no entry for an
    arbitrary HuggingFace repo id. A model reporting no `contextWindow` has
-   auto-compaction disabled (`src/conversation/agent-loop.ts`), so this is
+   auto-compaction disabled, so this is
    behavioral, not cosmetic.
 3. **`delta.reasoning`.** Current vLLM names the separated-thinking channel
    `reasoning`; the OpenAI driver reads only `reasoning_content`, so reasoning

@@ -11,9 +11,20 @@
  */
 
 import type { ModelInfo } from "@bhzai/core"
-import { BHZAI } from "@bhzai/core"
-import { createIdbConversationStorePlugin } from "@bhzai/core/plugins/idb-conversations"
-import { createMcpPlugin } from "@bhzai/core/plugins/mcp"
+import {
+	type McpService,
+	agentLoopPlugin,
+	commandsPlugin,
+	compactionPlugin,
+	contextPlugin,
+	createHarness,
+	idbConversationsPlugin,
+	llmPlugin,
+	mcpPlugin,
+	sessionPlugin,
+	tokenizerPlugin,
+	toolsPlugin,
+} from "@bhzai/core"
 import { type MLCEngineInstance, WebLLM } from "@bhzai/core/plugins/webllm"
 
 import { createChatController } from "./app/chat-controller.js"
@@ -100,7 +111,21 @@ async function initialize(): Promise<void> {
 	try {
 		const engine = createEngine((progress, text) => ui.coldStart.show(progress, text))
 
-		const bh = new BHZAI()
+		const bh = await createHarness({
+			plugins: [
+				sessionPlugin,
+				idbConversationsPlugin,
+				llmPlugin,
+				toolsPlugin,
+				commandsPlugin,
+				tokenizerPlugin,
+				contextPlugin,
+				compactionPlugin,
+				agentLoopPlugin,
+				mcpPlugin,
+			],
+		})
+
 		// Pre-warmed form: the host owns the engine, which is what lets the chat
 		// controller read `runtimeStatsText()` for telemetry.
 		//
@@ -115,22 +140,6 @@ async function initialize(): Promise<void> {
 			appConfig: prebuiltAppConfig,
 		})
 		bh.addDriver(driver)
-
-		// The MCP plugin fills the kernel's client-factory seam — without it
-		// `bh.addMcp()` refuses to attach anything — and hands back a manager that
-		// makes each attached server's state observable. Must be `use()`d before
-		// `init()`; the manager is only usable after.
-		const mcp = createMcpPlugin()
-		bh.use(mcp.plugin)
-
-		// The IndexedDB conversation-store plugin: registers a
-		// `conversationStore` capability so the kernel auto-saves on every
-		// `conversation.message(sent)` and exposes `bh.conversations.list()`
-		// / `load(id)` / `delete(id)`. The example's sidebar uses these
-		// exclusively — it never touches IndexedDB directly.
-		bh.use(createIdbConversationStorePlugin())
-
-		await bh.init()
 
 		// The full, unfiltered catalogue from the last refresh — the provider
 		// filter narrows `ui.modelSelect.models` down from this on every change.
@@ -233,7 +242,7 @@ async function initialize(): Promise<void> {
 		})
 
 		const mcpController = createMcpController({
-			manager: mcp.manager,
+			manager: bh.ctx.mcp as McpService,
 			serverList: ui.mcpServerList,
 			form: ui.mcpForm,
 			dialog: ui.mcpDialog,

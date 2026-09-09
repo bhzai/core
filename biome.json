@@ -20,46 +20,75 @@
 	},
 	"overrides": [
 		{
-			"include": ["src/core/**/*.ts", "src/index.ts"],
+			"include": [
+				"src/kernel/**/*.ts",
+				"src/sessions/**/*.ts",
+				"src/llm/**/*.ts",
+				"src/tools/**/*.ts",
+				"src/commands/**/*.ts",
+				"src/loop/**/*.ts",
+				"src/context/**/*.ts",
+				"src/compaction/**/*.ts",
+				"src/plugins/idb/**/*.ts",
+				"src/plugins/examples/**/*.ts",
+				"src/plugins/mcp/**/*.ts",
+				"src/index.ts"
+			],
 			"linter": {
 				"rules": {
+					"complexity": {
+						"noExcessiveCognitiveComplexity": {
+							"level": "error",
+							"options": {
+								"maxAllowedComplexity": 15
+							}
+						},
+						"noExcessiveNestedTestSuites": "error"
+					},
+					"performance": {
+						"useTopLevelRegex": "error"
+					},
+					"correctness": {
+						"noUnusedVariables": "error",
+						"noUnusedImports": "error"
+					},
 					"nursery": {
 						"noRestrictedImports": {
 							"level": "error",
 							"options": {
 								"paths": {
-									"node:fs": "src/core/** and src/index.ts must use only web-standard APIs (ARCHITECTURE.md § 5). No Node built-ins.",
-									"node:fs/promises": "src/core/** and src/index.ts must use only web-standard APIs (ARCHITECTURE.md § 5). No Node built-ins.",
-									"node:path": "src/core/** and src/index.ts must use only web-standard APIs (ARCHITECTURE.md § 5). No Node built-ins.",
-									"node:os": "src/core/** and src/index.ts must use only web-standard APIs (ARCHITECTURE.md § 5). No Node built-ins.",
-									"node:http": "src/core/** and src/index.ts must use only web-standard APIs (ARCHITECTURE.md § 5). No Node built-ins.",
-									"node:https": "src/core/** and src/index.ts must use only web-standard APIs (ARCHITECTURE.md § 5). No Node built-ins.",
-									"node:net": "src/core/** and src/index.ts must use only web-standard APIs (ARCHITECTURE.md § 5). No Node built-ins.",
-									"node:tls": "src/core/** and src/index.ts must use only web-standard APIs (ARCHITECTURE.md § 5). No Node built-ins.",
-									"node:child_process": "src/core/** and src/index.ts must use only web-standard APIs (ARCHITECTURE.md § 5). No Node built-ins.",
-									"node:cluster": "src/core/** and src/index.ts must use only web-standard APIs (ARCHITECTURE.md § 5). No Node built-ins.",
-									"node:crypto": "src/core/** and src/index.ts must use only web-standard APIs (use globalThis.crypto / crypto.randomUUID instead).",
-									"node:dns": "src/core/** and src/index.ts must use only web-standard APIs (ARCHITECTURE.md § 5). No Node built-ins.",
-									"node:events": "src/core/** and src/index.ts must use only web-standard APIs (ARCHITECTURE.md § 5). No Node built-ins.",
-									"node:stream": "src/core/** and src/index.ts must use only web-standard APIs (use the web ReadableStream / async iterables instead).",
-									"node:util": "src/core/** and src/index.ts must use only web-standard APIs (ARCHITECTURE.md § 5). No Node built-ins.",
-									"node:url": "src/core/** and src/index.ts must use only web-standard APIs (use the URL global instead).",
-									"node:zlib": "src/core/** and src/index.ts must use only web-standard APIs (ARCHITECTURE.md § 5). No Node built-ins.",
-									"node:buffer": "src/core/** and src/index.ts must use only web-standard APIs (ARCHITECTURE.md § 5). No Node built-ins.",
-									"node:process": "src/core/** and src/index.ts must use only web-standard APIs (ARCHITECTURE.md § 5). No Node built-ins.",
-									"node:worker_threads": "src/core/** and src/index.ts must use only web-standard APIs (ARCHITECTURE.md § 5). No Node built-ins.",
-									"fs": "src/core/** and src/index.ts must use only web-standard APIs (ARCHITECTURE.md § 5). No Node built-ins.",
-									"path": "src/core/** and src/index.ts must use only web-standard APIs (ARCHITECTURE.md § 5). No Node built-ins.",
-									"os": "src/core/** and src/index.ts must use only web-standard APIs (ARCHITECTURE.md § 5). No Node built-ins.",
-									"http": "src/core/** and src/index.ts must use only web-standard APIs (use fetch instead).",
-									"https": "src/core/** and src/index.ts must use only web-standard APIs (use fetch instead).",
-									"child_process": "src/core/** and src/index.ts must use only web-standard APIs (ARCHITECTURE.md § 5). No Node built-ins.",
-									"crypto": "src/core/** and src/index.ts must use only web-standard APIs (use globalThis.crypto instead).",
-									"stream": "src/core/** and src/index.ts must use only web-standard APIs (use the web ReadableStream instead).",
-									"url": "src/core/** and src/index.ts must use only web-standard APIs (use the URL global instead).",
-									"util": "src/core/** and src/index.ts must use only web-standard APIs (ARCHITECTURE.md § 5). No Node built-ins.",
-									"buffer": "src/core/** and src/index.ts must use only web-standard APIs (ARCHITECTURE.md § 5). No Node built-ins.",
-									"process": "src/core/** and src/index.ts must use only web-standard APIs (ARCHITECTURE.md § 5). No Node built-ins."
+									"node:fs": "src/** must use only web-standard APIs. No Node built-ins.",
+									"node:fs/promises": "src/** must use only web-standard APIs. No Node built-ins.",
+									"node:path": "src/** must use only web-standard APIs. No Node built-ins.",
+									"node:os": "src/** must use only web-standard APIs. No Node built-ins.",
+									"node:http": "src/** must use only web-standard APIs. No Node built-ins.",
+									"node:https": "src/** must use only web-standard APIs. No Node built-ins.",
+									"node:net": "src/** must use only web-standard APIs. No Node built-ins.",
+									"node:tls": "src/** must use only web-standard APIs. No Node built-ins.",
+									"node:child_process": "src/** must use only web-standard APIs. No Node built-ins.",
+									"node:cluster": "src/** must use only web-standard APIs. No Node built-ins.",
+									"node:crypto": "src/** must use only web-standard APIs (use globalThis.crypto / crypto.randomUUID instead).",
+									"node:dns": "src/** must use only web-standard APIs. No Node built-ins.",
+									"node:events": "src/** must use only web-standard APIs. No Node built-ins.",
+									"node:stream": "src/** must use only web-standard APIs (use the web ReadableStream / async iterables instead).",
+									"node:util": "src/** must use only web-standard APIs. No Node built-ins.",
+									"node:url": "src/** must use only web-standard APIs (use the URL global instead).",
+									"node:zlib": "src/** must use only web-standard APIs. No Node built-ins.",
+									"node:buffer": "src/** must use only web-standard APIs. No Node built-ins.",
+									"node:process": "src/** must use only web-standard APIs. No Node built-ins.",
+									"node:worker_threads": "src/** must use only web-standard APIs. No Node built-ins.",
+									"fs": "src/** must use only web-standard APIs. No Node built-ins.",
+									"path": "src/** must use only web-standard APIs. No Node built-ins.",
+									"os": "src/** must use only web-standard APIs. No Node built-ins.",
+									"http": "src/** must use only web-standard APIs (use fetch instead).",
+									"https": "src/** must use only web-standard APIs (use fetch instead).",
+									"child_process": "src/** must use only web-standard APIs. No Node built-ins.",
+									"crypto": "src/** must use only web-standard APIs (use globalThis.crypto instead).",
+									"stream": "src/** must use only web-standard APIs (use the web ReadableStream instead).",
+									"url": "src/** must use only web-standard APIs (use the URL global instead).",
+									"util": "src/** must use only web-standard APIs. No Node built-ins.",
+									"buffer": "src/** must use only web-standard APIs. No Node built-ins.",
+									"process": "src/** must use only web-standard APIs. No Node built-ins."
 								}
 							}
 						}

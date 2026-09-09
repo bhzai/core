@@ -1,6 +1,16 @@
 /** @file Storage interfaces (TASK_0029) — conversation persistence, agent memory, and skill resolution */
 
-import type { ConversationSnapshot } from "../conversation/snapshot.js"
+/** Snapshot shape for conversation serialization. */
+export interface ConversationSnapshot {
+	id: string
+	sessionId?: string
+	model?: string
+	events?: unknown[]
+	messages?: unknown[]
+	meta?: Record<string, unknown>
+	createdAt?: number
+	updatedAt?: number
+}
 
 /**
  * Summary information for a stored conversation, suitable for list/browsing UIs.

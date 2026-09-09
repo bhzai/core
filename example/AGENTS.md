@@ -9,7 +9,7 @@ telemetry (decode/prefill tokens per second, time-to-first-token, context
 usage), framework-side parsing of reasoning blocks (`` regions, via
 `parseThink: true`), runtime attachment of HTTP MCP servers with live
 connection status, searchable tool discovery, and error inspection, and
-durable conversation persistence via the IndexedDB conversation-store plugin
+durable conversation persistence via the IndexedDB persistence plugin
 with a sidebar for browsing, loading, and deleting past conversations.
 
 Consumes the WORKSPACE-LINKED, BUILT `dist/` output of `@bhzai/core` (via
@@ -410,8 +410,7 @@ Requirements:
 
 ## Rules
 
-- **Workspace-linked package only**: never import from `../../src/core/*.ts` or
-  `../../src/plugins/*/*.ts`. Always import from `@bhzai/core` subpaths.
+- **Workspace-linked package only**: never import from relative `../../src/` paths. Always import from `@bhzai/core` subpaths.
 - **Biome linting applies** (`pnpm exec biome check example/`).
 - **No persistent state in `app/*`**: all conversation/model state lives in
   `BHZAI`/`Conversation` instances; the UI is a pure reflection of that state

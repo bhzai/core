@@ -58,24 +58,15 @@ export {
 	eagerRegisterAndAnswer,
 	registerDeferredTools,
 } from "./deferred.js"
-// The capability object that fills the kernel's `registerMcpClientFactory`
-// seam — without it, `bh.addMcp()` refuses to attach anything. `bh.use()` this
-// (or a `createMcpPlugin()` result) before `bh.init()`.
-export {
-	type McpPluginOptions,
-	createMcpPlugin,
-	getMcpManager,
-	mcpPlugin,
-} from "./plugin.js"
-// Observable server lifecycle on top of `bh.addMcp()` — status, discovered
-// tools, and structured failures, for hosts that render MCP servers in a UI.
-export {
-	McpManager,
-	type McpManagerHost,
-	type McpManagerListener,
-	type McpManagerOptions,
-	type McpServerError,
-	type McpServerState,
-	type McpServerStatus,
-	type McpServerTool,
-} from "./manager.js"
+export type {
+	McpPluginOptions,
+	McpServerConfig,
+	McpServerError,
+	McpServerState,
+	McpServerStatus,
+	McpServerTool,
+	McpService,
+} from "./types.js"
+
+export { McpServiceImpl } from "./service.js"
+export { mcpPlugin } from "./plugin.js"

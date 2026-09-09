@@ -2,11 +2,10 @@
 
 > Subpath: `@bhzai/core/plugins/openai`
 > Source: `src/plugins/openai/index.ts`
-> Architecture: § 10.3
 
 ## Overview
 
-The `OpenAI` driver implements `BHZAIDriver` (§ 10.1) on top of the
+The `OpenAI` driver implements `BHZAIDriver` on top of the
 [OpenAI platform](https://platform.openai.com)'s public `/v1` REST API, using
 only web-standard `fetch`. It works unmodified in any fetch-capable runtime
 (browser, Node, Electron) — no Node-specific HTTP client, no peer dependency, and
@@ -39,9 +38,8 @@ bh.addDriver(driver)
 
 ### Credentials and the browser
 
-`headers` are the "runtime values passed in driver options" that § 10.4 documents
-as the highest-priority tier of the credential-resolution chain. The driver
-forwards them and does NOT implement the chain: it never reads
+`headers` are forwarded directly on outbound requests. The driver
+does NOT implement resolution from ambient environment: it never reads
 `process.env.OPENAI_API_KEY`, a config file, or any other ambient source.
 
 Unlike the local-server drivers, omitting them is not a working configuration —
@@ -169,8 +167,7 @@ This is the last resort, used only when neither the host nor the provider
 supplies a number.
 
 api.openai.com reports no context length, and a model that reports no
-`contextWindow` disables auto-compaction in the conversation layer
-(`src/conversation/agent-loop.ts`). Returning `undefined` for the whole provider
+`contextWindow` disables auto-compaction. Returning `undefined` for the whole provider
 would quietly turn that feature off, so the driver ships a family table matched
 longest-prefix — `gpt-4o` (128k) beats `gpt-4` (8k) for `gpt-4o-mini`, and
 `gpt-4.1` (1M) beats both.
@@ -295,7 +292,7 @@ OpenAI validates conversation structure, and this is the one place where a
 A `role: 'tool'` message must carry a `tool_call_id`, and it must follow an
 assistant message whose `tool_calls` array contains that id. The kernel records
 the id on the tool-result message's `meta.toolCallId`
-(`src/conversation/agent-loop.ts`) but does **not** record the calls on the
+but does **not** record the calls on the
 assistant message that made them, so the second iteration of every tool loop
 would fail before the model saw it.
 

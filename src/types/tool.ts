@@ -16,7 +16,6 @@
 // (§ 9.1: a BHZAI tool definition *is* an MCP `Tool` object plus a local
 // `execute` binding).
 
-import type { BHZAIConversation as BHZAIConversationReal } from "../conversation/conversation.js"
 import type { CallToolResult, ContentBlock, JSONSchema } from "./content.js"
 
 /**
@@ -56,7 +55,11 @@ export interface ToolAnnotations {
  * plugins interact with. The interface defines conversation lifecycle, event
  * handling, and metadata management.
  */
-export type BHZAIConversation = BHZAIConversationReal
+export interface BHZAIConversation {
+	readonly id: string
+	readonly model?: string
+	[key: string]: unknown
+}
 
 /**
  * The payload handed to a tool's `execute()` (§ 9.1).

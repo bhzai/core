@@ -6,6 +6,7 @@
  */
 
 import type { BHZAI, BHZAIConversation } from "@bhzai/core"
+import type { Harness, HarnessSession } from "@bhzai/core"
 import type { WebLLM } from "@bhzai/core/plugins/webllm"
 import type * as webllm from "@mlc-ai/web-llm"
 
@@ -48,7 +49,7 @@ function asMessageDelta(payload: unknown): MessageDelta | null {
 /** Everything the chat controller drives. */
 export interface ChatControllerDeps {
 	/** The kernel, already initialized. */
-	bh: BHZAI
+	bh: Harness | BHZAI
 	/** The host-owned MLC engine, for `runtimeStatsText()`. */
 	engine: webllm.MLCEngine
 	/** The registered WebLLM driver, for `capabilities()`. */
@@ -73,7 +74,7 @@ export interface ChatController {
 	/** Abort the in-flight turn, if any. */
 	stop(): void
 	/** Adopt an externally-loaded conversation (e.g., from the sidebar). */
-	setConversation(conv: BHZAIConversation): void
+	setConversation(conv: HarnessSession | BHZAIConversation): void
 	/** Start a fresh conversation with the current model (sidebar "New"). */
 	newConversation(): Promise<void>
 	/** The active conversation's id, or null if none. */
@@ -90,7 +91,7 @@ export interface ChatController {
 export function createChatController(deps: ChatControllerDeps): ChatController {
 	const { bh, engine, driver, ui } = deps
 
-	let conversation: BHZAIConversation | null = null
+	let conversation: HarnessSession | BHZAIConversation | null = null
 	/** The qualified model ref of the current/last-created conversation. */
 	let currentModelRef: string | null = null
 	/** Whether the selected model's weights have been downloaded this session. */
@@ -204,8 +205,8 @@ export function createChatController(deps: ChatControllerDeps): ChatController {
 		// Use the last turn's real input tokens (the actual context size the
 		// provider processed) for the context usage percentage — not the
 		// cumulative output tokens, which don't represent context fill.
-		const lastInputTokens = conversation.contextUsage.lastInputTokens
-		const lastOutputTokens = conversation.contextUsage.lastOutputTokens
+		const lastInputTokens = conversation.contextUsage?.lastInputTokens
+		const lastOutputTokens = conversation.contextUsage?.lastOutputTokens
 		const ttftMs = firstTokenTime === null ? null : firstTokenTime - sendStartTime
 
 		ui.telemetry.updateStats({

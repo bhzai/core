@@ -76,9 +76,7 @@
 // documented explicitly rather than silently pretending live push works.
 
 import Ajv, { type ValidateFunction } from "ajv"
-import type { ToolRegistry } from "../../tools/registry.js"
 import type {
-	BHZAIDriver,
 	BHZAIToolDefinition,
 	CallToolResult,
 	ContentBlock,
@@ -86,12 +84,14 @@ import type {
 	McpServerConfig,
 	ToolInvocation,
 } from "../../types/index.js"
-import {
-	type ApprovalCall,
-	type ApprovalGate,
-	type McpApprovalOptions,
-	guardCall,
-} from "./approval.js"
+
+/** Minimal tool sink interface required by {@link McpClient}. */
+export interface ToolRegistryTarget {
+	addTool(def: BHZAIToolDefinition): void
+	removeTool(name: string): void
+}
+export type ToolRegistry = ToolRegistryTarget
+import { type ApprovalCall, type McpApprovalOptions, guardCall } from "./approval.js"
 import {
 	type CapabilityEventBus,
 	type InboundRequestResult,
