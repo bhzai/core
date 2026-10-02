@@ -27,7 +27,7 @@ single model-selection typeahead (`@lucasschirm/litjs-typeahead`).
 
 - **`package.json`** — `bhzai-example` workspace member. Private. Depends on root
   `@bhzai/core` via `workspace:*`, `@mlc-ai/web-llm ^0.2.79`,
-  `lit ^3.2.0`, and `@lucasschirm/litjs-typeahead ^0.0.1` as production
+  `lit ^3.2.0`, and `@lucasschirm/litjs-typeahead ^0.0.10` as production
   dependencies; `@webgpu/types`, `happy-dom`, `typescript`, and `vite` as dev
   dependencies.
 - **`tsconfig.json`** — Typechecks the example as its own project (`pnpm --filter
@@ -123,7 +123,7 @@ CSS variables continue to drive their appearance.
 | Module | Custom element | Owns |
 | --- | --- | --- |
 | `status-indicator.ts` | `<bhzai-status-indicator>` | statusbar dot + label |
-| `provider-select.ts` | `<bhzai-provider-select>` | provider filter, to the left of the model picker; hidden unless more than one driver contributes models. Listens to both `input` (immediate, on datalist selection) and `change` (on blur) events from the underlying `lit-typeahead` so the model list filters without waiting for the user to tab away |
+| `provider-select.ts` | `<bhzai-provider-select>` | provider filter, to the left of the model picker; hidden unless more than one driver contributes models. Listens to the `change` event of the underlying searchable-dropdown `lit-typeahead`, which fires exactly when the user selects an item, so the model list filters on selection |
 | `model-select.ts` | `<bhzai-model-select>` | reactive model picker, consumes `bh.listModels()` and `models.changed` |
 | `composer.ts` | `<bhzai-composer>` | Send/Stop state, text, keyboard |
 | `conversation-view.ts` | `<bhzai-conversation>` | user bubbles, assistant turns, inline errors, compaction markers |
@@ -257,10 +257,10 @@ without it, so an OpenAI row added without a key shows red.
 The add form's Type field is a `<lit-typeahead>` showing display labels
 ("Ollama", "LM Studio", "vLLM", "OpenAI"), mapped back to kind slugs by
 `providerKindFromLabel()`.
-Because the typeahead is a native `<input list>` + `<datalist>`, the browser
-filters suggestions by the input's current value — pre-filled with "Ollama", the
-dropdown lists only Ollama until the field is cleared. That is the intended
-typeahead interaction: **clear the field to see every kind.**
+The typeahead renders a searchable custom dropdown (no native `datalist`):
+opening it shows every kind regardless of the pre-filled selection, and
+selecting a kind fires `change` with that label — the field starts on
+"Ollama" via `selectFirst`, and picking another kind re-labels the form.
 
 Changing the type re-labels the address field and its placeholder, so an LM
 Studio entry never ships with an Ollama default. The

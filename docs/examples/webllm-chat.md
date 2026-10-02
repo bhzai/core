@@ -234,10 +234,10 @@ while connecting). *Add provider* offers four kinds:
 | vLLM | `@bhzai/core/plugins/vllm` | `http://localhost:8000/v1` | optional |
 | OpenAI | `@bhzai/core/plugins/openai` | `https://api.openai.com/v1` | **required** |
 
-The Type field is a typeahead, backed by a native `<input list>` + `<datalist>`.
-The browser filters its suggestions by what the input currently holds, and the
-field starts pre-filled with `Ollama` — so **clear it to see every kind**, then
-pick LM Studio. Choosing a kind re-labels the address field and its placeholder.
+The Type field is a searchable dropdown typeahead. Opening it shows every kind
+regardless of the current selection, and the field starts on `Ollama`
+(via `selectFirst`); selecting a kind fires `change` with that label.
+Choosing a kind re-labels the address field and its placeholder.
 
 Whatever you type is normalized to the server ROOT before it reaches the driver
 — a trailing
@@ -308,22 +308,13 @@ When more than one provider contributes models to the catalogue, a
 Selecting a provider narrows the model list to that provider's entries; "All"
 shows every model.
 
-The filter relies on two event paths from the underlying `<lit-typeahead>`:
+The filter reacts to one event path from the underlying `<lit-typeahead>`:
 
-- **`input` event (primary, immediate):** The native `input` event fires the
-  instant the user selects from the datalist or types — it does not wait for
-  blur. It has `composed: true` by default, so it crosses `lit-typeahead`'s
-  shadow DOM boundary. `composedPath()[0]` retrieves the actual `<input>`
-  element (since `event.target` is retargeted to the shadow host), and its
-  live `value` is read directly — `lit-typeahead` only syncs its own `value`
-  property on `change` (blur), not on `input`. The filter is applied
-  immediately when the value matches a known provider label; partial matches
-  leave the current filter in place so the model list doesn't flicker while
-  the user types.
-- **`change` event (fallback, on blur):** `lit-typeahead` re-dispatches this
-  as a custom event with `detail.value` when the user tabs away. An
-  unrecognized value falls back to "All" so a stale partial entry doesn't
-  lock the user out.
+- **`change` event (on selection):** the searchable dropdown fires `change`
+  with `detail.value` exactly when the user selects an item from the list — it
+  is never fired with a partial or free-typed value. Selecting a provider
+  applies the filter immediately; an unrecognized value leaves the current
+  filter in place, since it is not a real selection.
 
 ### Cold-start feedback
 

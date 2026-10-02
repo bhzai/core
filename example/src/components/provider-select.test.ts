@@ -12,20 +12,11 @@ function fixture(): BhzaiProviderSelect {
 	return el
 }
 
-/** Dispatch a native `input` event from the inner `<input>` inside `lit-typeahead`. */
-function dispatchInput(el: BhzaiProviderSelect, value: string): void {
-	const typeahead = el.querySelector("lit-typeahead")
-	if (!typeahead) throw new Error("lit-typeahead not found")
-	const shadow = typeahead.shadowRoot
-	if (!shadow) throw new Error("lit-typeahead has no shadow root")
-	const input = shadow.querySelector("input")
-	if (!input) throw new Error("input not found inside lit-typeahead shadow root")
-	input.value = value
-	input.dispatchEvent(new InputEvent("input", { bubbles: true, composed: true }))
-}
-
-/** Dispatch a `change` custom event from `lit-typeahead` (simulates blur). */
-function dispatchChange(el: BhzaiProviderSelect, value: string): void {
+/**
+ * Dispatch the `change` custom event `lit-typeahead` fires when the user
+ * selects an item from its searchable dropdown (the only path that fires it).
+ */
+function dispatchSelect(el: BhzaiProviderSelect, value: string): void {
 	const typeahead = el.querySelector("lit-typeahead")
 	if (!typeahead) throw new Error("lit-typeahead not found")
 	typeahead.dispatchEvent(
@@ -57,7 +48,7 @@ describe("BhzaiProviderSelect", () => {
 		expect(el.selectedProvider).toBe(ALL_PROVIDERS)
 	})
 
-	it("dispatches bhzai-change immediately on input event (datalist selection)", async () => {
+	it("dispatches bhzai-change when selecting a provider from the dropdown", async () => {
 		const el = fixture()
 		el.providers = ["webllm", "vllm"]
 		await el.updateComplete
@@ -67,16 +58,15 @@ describe("BhzaiProviderSelect", () => {
 			events.push((event as CustomEvent<{ provider: string }>).detail.provider)
 		})
 
-		// Simulate the user selecting "vLLM" from the datalist — the native
-		// `input` event fires immediately, without waiting for blur.
-		dispatchInput(el, "vLLM")
+		// Simulate the user selecting "vLLM" from the searchable dropdown.
+		dispatchSelect(el, "vLLM")
 		await el.updateComplete
 
 		expect(el.selectedProvider).toBe("vllm")
 		expect(events).toEqual(["vllm"])
 	})
 
-	it("dispatches bhzai-change when selecting All via input event", async () => {
+	it("dispatches bhzai-change when selecting All from the dropdown", async () => {
 		const el = fixture()
 		el.providers = ["webllm", "vllm"]
 		el.selectedProvider = "vllm"
@@ -87,16 +77,17 @@ describe("BhzaiProviderSelect", () => {
 			events.push((event as CustomEvent<{ provider: string }>).detail.provider)
 		})
 
-		dispatchInput(el, "All")
+		dispatchSelect(el, "All")
 		await el.updateComplete
 
 		expect(el.selectedProvider).toBe(ALL_PROVIDERS)
 		expect(events).toEqual([ALL_PROVIDERS])
 	})
 
-	it("does not dispatch on partial match during typing (no flicker)", async () => {
+	it("ignores an unrecognized value instead of changing the filter", async () => {
 		const el = fixture()
 		el.providers = ["webllm", "vllm"]
+		el.selectedProvider = "vllm"
 		await el.updateComplete
 
 		const events: string[] = []
@@ -104,31 +95,13 @@ describe("BhzaiProviderSelect", () => {
 			events.push((event as CustomEvent<{ provider: string }>).detail.provider)
 		})
 
-		// User types "vL" — partial match, should NOT change the filter
-		dispatchInput(el, "vL")
+		// A stray `change` with a value that matches no rendered label is not a
+		// real selection — the current filter stays in place.
+		dispatchSelect(el, "garbage")
 		await el.updateComplete
 
-		expect(el.selectedProvider).toBe(ALL_PROVIDERS)
+		expect(el.selectedProvider).toBe("vllm")
 		expect(events).toEqual([])
-	})
-
-	it("falls back to All on change (blur) with an unrecognized value", async () => {
-		const el = fixture()
-		el.providers = ["webllm", "vllm"]
-		el.selectedProvider = "vllm"
-		await el.updateComplete
-
-		const events: string[] = []
-		el.addEventListener("bhzai-change", (event) => {
-			events.push((event as CustomEvent<{ provider: string }>).detail.provider)
-		})
-
-		// User types garbage and tabs away — change fires on blur
-		dispatchChange(el, "garbage")
-		await el.updateComplete
-
-		expect(el.selectedProvider).toBe(ALL_PROVIDERS)
-		expect(events).toEqual([ALL_PROVIDERS])
 	})
 
 	it("does not re-dispatch when the same provider is selected again", async () => {
@@ -142,27 +115,10 @@ describe("BhzaiProviderSelect", () => {
 			events.push((event as CustomEvent<{ provider: string }>).detail.provider)
 		})
 
-		// Select "vLLM" again — already selected, should be a no-op
-		dispatchInput(el, "vLLM")
+		// Select "vLLM" again — already selected, should be a no-op.
+		dispatchSelect(el, "vLLM")
 		await el.updateComplete
 
 		expect(events).toEqual([])
-	})
-
-	it("still handles the change event (blur fallback path)", async () => {
-		const el = fixture()
-		el.providers = ["webllm", "vllm"]
-		await el.updateComplete
-
-		const events: string[] = []
-		el.addEventListener("bhzai-change", (event) => {
-			events.push((event as CustomEvent<{ provider: string }>).detail.provider)
-		})
-
-		dispatchChange(el, "WebLLM")
-		await el.updateComplete
-
-		expect(el.selectedProvider).toBe("webllm")
-		expect(events).toEqual(["webllm"])
 	})
 })
