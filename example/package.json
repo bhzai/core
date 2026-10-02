@@ -10,7 +10,7 @@
 	},
 	"dependencies": {
 		"@bhzai/core": "workspace:*",
-		"@lucasschirm/litjs-typeahead": "^0.0.1",
+		"@lucasschirm/litjs-typeahead": "^0.0.10",
 		"@mlc-ai/web-llm": "^0.2.79",
 		"lit": "^3.2.0",
 		"toastify-js": "^1.12.0"

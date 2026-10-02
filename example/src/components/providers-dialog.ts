@@ -210,11 +210,11 @@ export class BhzaiProvidersDialog extends LitElement {
 	/**
 	 * The add view: a Type picker plus the kind-specific address fields.
 	 *
-	 * NOTE on the Type picker: `lit-typeahead` renders a native `input[list]` +
-	 * `datalist`, so the browser filters the suggestion list by whatever the
-	 * input currently holds. Pre-filled with "Ollama", the dropdown offers only
-	 * Ollama until the field is cleared — the normal typeahead interaction:
-	 * clear the field to browse every kind.
+	 * NOTE on the Type picker: `lit-typeahead` renders a searchable custom
+	 * dropdown (no native `datalist`), so the full list of kinds is always
+	 * available on open — the pre-filled "Ollama" is just the selection's
+	 * display, not a filter. Selecting a different kind re-labels the form
+	 * via `change`; `selectFirst` keeps the first kind pre-selected.
 	 */
 	private _renderAdd() {
 		return html`
